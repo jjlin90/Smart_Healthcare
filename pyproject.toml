@@ -1,0 +1,31 @@
+[project]
+name = "medagent-ai"
+version = "1.0.0"
+description = "A2A multi-agent medical consultation platform"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi>=0.141",
+  "uvicorn[standard]>=0.53",
+  "sqlalchemy>=2.0",
+  "aiosqlite>=0.22",
+  "aiomysql>=0.2",
+  "httpx>=0.28",
+  "cachetools>=7.0",
+  "python-jose[cryptography]>=3.5",
+  "pydantic-settings>=2.15",
+  "python-multipart>=0.0.32",
+  "openai>=3.16",
+  "fastmcp>=4.0",
+  "python-a2a[server]>=0.5.10",
+  "tenacity>=9.1",
+  "langchain>=1.4",
+  "langsmith>=0.13",
+  "streamlit>=1.40",
+  "locust>=2.46",
+  "redis>=8.1",
+  "prometheus-client>=0.26",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+asyncio_mode = "auto"

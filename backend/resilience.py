@@ -1,0 +1,56 @@
+"""Small async circuit breaker used around remote hospital and A2A services."""
+
+import asyncio
+import time
+from collections.abc import Awaitable, Callable
+from typing import TypeVar
+
+T = TypeVar("T")
+
+
+class CircuitOpenError(RuntimeError):
+    pass
+
+
+class AsyncCircuitBreaker:
+    def __init__(self, name: str, failure_threshold: int = 5, recovery_seconds: float = 30.0) -> None:
+        self.name = name
+        self.failure_threshold = failure_threshold
+        self.recovery_seconds = recovery_seconds
+        self.failures = 0
+        self.opened_at: float | None = None
+        self._half_open_probe = False
+        self._lock = asyncio.Lock()
+
+    async def call(self, operation: Callable[[], Awaitable[T]]) -> T:
+        async with self._lock:
+            if self.opened_at is not None:
+                elapsed = time.monotonic() - self.opened_at
+                if elapsed < self.recovery_seconds:
+                    raise CircuitOpenError(f"{self.name} 熔断中，请在 {self.recovery_seconds - elapsed:.1f} 秒后重试")
+                if self._half_open_probe:
+                    raise CircuitOpenError(f"{self.name} 正在半开探测")
+                self._half_open_probe = True
+        try:
+            result = await operation()
+        except Exception:
+            async with self._lock:
+                self.failures += 1
+                self._half_open_probe = False
+                if self.failures >= self.failure_threshold:
+                    self.opened_at = time.monotonic()
+            raise
+        async with self._lock:
+            self.failures = 0
+            self.opened_at = None
+            self._half_open_probe = False
+        return result
+
+
+_breakers: dict[str, AsyncCircuitBreaker] = {}
+
+
+def get_breaker(name: str) -> AsyncCircuitBreaker:
+    if name not in _breakers:
+        _breakers[name] = AsyncCircuitBreaker(name)
+    return _breakers[name]
