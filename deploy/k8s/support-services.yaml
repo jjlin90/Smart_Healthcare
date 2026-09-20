@@ -1,0 +1,158 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: redis}
+  template:
+    metadata:
+      labels: {app: redis}
+    spec:
+      containers:
+        - name: redis
+          image: redis:7.4-alpine
+          args: ["redis-server", "--appendonly", "yes"]
+          ports: [{containerPort: 6379}]
+          readinessProbe:
+            exec: {command: ["redis-cli", "ping"]}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts: [{name: data, mountPath: /data}]
+      volumes:
+        - name: data
+          persistentVolumeClaim: {claimName: redis-data}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: {storage: 5Gi}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+spec:
+  selector: {app: redis}
+  ports: [{port: 6379, targetPort: 6379}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: medagent-mcp
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: medagent-mcp}
+  template:
+    metadata:
+      labels: {app: medagent-mcp}
+    spec:
+      containers:
+        - name: mcp
+          image: YOUR_REGISTRY/medagent-ai:stable
+          command: ["python", "-m", "backend.mcp_tools"]
+          ports: [{containerPort: 8002}]
+          envFrom:
+            - configMapRef: {name: medagent-config}
+            - secretRef: {name: medagent-secrets}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: medagent-mcp
+spec:
+  selector: {app: medagent-mcp}
+  ports: [{port: 8002, targetPort: 8002}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: symptom-agent
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: symptom-agent}
+  template:
+    metadata:
+      labels: {app: symptom-agent}
+    spec:
+      containers:
+        - name: agent
+          image: YOUR_REGISTRY/medagent-ai:stable
+          command: ["python", "-m", "backend.a2a_server", "--agent", "symptom", "--host", "0.0.0.0", "--port", "8011"]
+          ports: [{containerPort: 8011}]
+          envFrom:
+            - configMapRef: {name: medagent-config}
+            - secretRef: {name: medagent-secrets}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: symptom-agent
+spec:
+  selector: {app: symptom-agent}
+  ports: [{port: 8011, targetPort: 8011}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drug-agent
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: drug-agent}
+  template:
+    metadata:
+      labels: {app: drug-agent}
+    spec:
+      containers:
+        - name: agent
+          image: YOUR_REGISTRY/medagent-ai:stable
+          command: ["python", "-m", "backend.a2a_server", "--agent", "drug", "--host", "0.0.0.0", "--port", "8012"]
+          ports: [{containerPort: 8012}]
+          envFrom:
+            - configMapRef: {name: medagent-config}
+            - secretRef: {name: medagent-secrets}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: drug-agent
+spec:
+  selector: {app: drug-agent}
+  ports: [{port: 8012, targetPort: 8012}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: guide-agent
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: guide-agent}
+  template:
+    metadata:
+      labels: {app: guide-agent}
+    spec:
+      containers:
+        - name: agent
+          image: YOUR_REGISTRY/medagent-ai:stable
+          command: ["python", "-m", "backend.a2a_server", "--agent", "guide", "--host", "0.0.0.0", "--port", "8013"]
+          ports: [{containerPort: 8013}]
+          envFrom:
+            - configMapRef: {name: medagent-config}
+            - secretRef: {name: medagent-secrets}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: guide-agent
+spec:
+  selector: {app: guide-agent}
+  ports: [{port: 8013, targetPort: 8013}]

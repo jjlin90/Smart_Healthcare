@@ -1,0 +1,87 @@
+# Secrets and machine-local configuration
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+credentials*.json
+service-account*.json
+
+# Python caches, environments and build output
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+build/
+dist/
+*.egg-info/
+.venv/
+venv/
+env/
+.conda/
+
+# Runtime state and local databases
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.pid
+*.log
+logs/
+tmp/
+temp/
+.cache/
+
+# Generated reports and private working artifacts
+artifacts/
+reports/
+locust*.csv
+locust*.html
+test-results/
+
+# Local model and ML experiment output
+models/
+checkpoints/
+runs/
+wandb/
+mlruns/
+*.bin
+*.safetensors
+*.gguf
+*.onnx
+*.pt
+*.pth
+*.ckpt
+
+# Resume-generation helpers are unrelated to the deployable application
+scripts/build_revised_resume.py
+scripts/inspect_resume.py
+
+# IDE and operating-system files
+.idea/
+.vscode/
+*.code-workspace
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# Local Docker/Kubernetes overrides
+docker-compose.override.yml
+docker-compose.override.yaml
+*.local.yaml
+*.local.yml
