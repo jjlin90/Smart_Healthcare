@@ -28,13 +28,16 @@ async def get_current_user(
     if not credentials:
         raise HTTPException(status_code=401, detail="请先登录")
     try:
+        # Token verification must fail closed when deployment configuration is
+        # incomplete.  HS256 accepts an empty byte string as a key.
+        get_settings().require("secret_key")
         payload = jwt.decode(
             credentials.credentials,
             get_settings().secret_key,
             algorithms=[ALGORITHM],
         )
         return UserContext.model_validate(payload)
-    except (JWTError, ValueError) as exc:
+    except (JWTError, ValueError, RuntimeError) as exc:
         raise HTTPException(status_code=401, detail="登录状态已失效") from exc
 
 

@@ -31,9 +31,15 @@ class MedicalA2AServer(A2AServer):
         try:
             payload = json.loads(message.content.text)
             result = asyncio.run(self.runtime.run(task=payload["task"], patient_id=payload["patient_id"], profile=payload.get("profile", {}), history=payload.get("history", [])))
-            text = json.dumps(result, ensure_ascii=False)
+            text = json.dumps({"success": True, **result}, ensure_ascii=False)
         except Exception as exc:
-            text = json.dumps({"error": str(exc), "answer": f"真实 Agent 调用失败：{exc}", "trace": []}, ensure_ascii=False)
+            text = json.dumps({
+                "success": False,
+                "error_code": "AGENT_EXECUTION_FAILED",
+                "retryable": True,
+                "error": str(exc),
+                "trace": [],
+            }, ensure_ascii=False)
         return Message(content=TextContent(text=text), role=MessageRole.AGENT, parent_message_id=message.message_id, conversation_id=message.conversation_id)
 
 

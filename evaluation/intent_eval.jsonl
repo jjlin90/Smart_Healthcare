@@ -28,6 +28,6 @@
 {"id":"report-01","text":"体检报告提示肺结节，请帮我整体看看报告","expected_intents":["报告解读"],"complex_task":true}
 {"id":"report-02","text":"这份肝功能检查报告能帮我综合解释吗","expected_intents":["报告解读"],"complex_task":true}
 {"id":"report-03","text":"CT报告写着磨玻璃影，整份报告是什么意思","expected_intents":["报告解读"],"complex_task":true}
-{"id":"multi-01","text":"我头痛恶心，正在吃布洛芬，还想知道该挂什么科","expected_intents":["症状分析","用药指导","挂号指引"],"complex_task":true}
-{"id":"multi-02","text":"血糖检查偏高，请解释指标并告诉我应该挂哪个科","expected_intents":["检验解读","挂号指引"],"complex_task":true}
+{"id":"multi-01","text":"我头痛恶心，帮我分析原因，并看看正在吃布洛芬是否合适，还想知道该挂什么科","expected_intents":["症状分析","用药指导","分诊建议"],"complex_task":true}
+{"id":"multi-02","text":"血糖检查偏高，请解释指标并告诉我应该挂哪个科","expected_intents":["检验解读","分诊建议"],"complex_task":true}
 {"id":"multi-03","text":"介绍一下高血压，再查查指南推荐的日常管理方式","expected_intents":["疾病科普","指南检索"],"complex_task":true}

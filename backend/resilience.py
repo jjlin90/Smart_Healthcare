@@ -33,6 +33,12 @@ class AsyncCircuitBreaker:
                 self._half_open_probe = True
         try:
             result = await operation()
+        except asyncio.CancelledError:
+            # Cancellation bypasses ``except Exception``. Release a half-open
+            # probe lease before propagating it so recovery cannot deadlock.
+            async with self._lock:
+                self._half_open_probe = False
+            raise
         except Exception:
             async with self._lock:
                 self.failures += 1

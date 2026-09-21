@@ -7,6 +7,7 @@ dependencies = [
   "fastapi>=0.141",
   "uvicorn[standard]>=0.53",
   "sqlalchemy>=2.0",
+  "alembic>=1.13",
   "aiosqlite>=0.22",
   "aiomysql>=0.2",
   "httpx>=0.28",
@@ -18,12 +19,22 @@ dependencies = [
   "fastmcp>=4.0",
   "python-a2a[server]>=0.5.10",
   "tenacity>=9.1",
-  "langchain>=1.4",
+  "langchain[mcp]>=1.4,<1.5",
+  "langchain-openai>=1.6,<1.7",
   "langsmith>=0.13",
   "streamlit>=1.40",
   "locust>=2.46",
   "redis>=8.1",
   "prometheus-client>=0.26",
+  "torch>=2.5",
+  "transformers>=4.51",
+  "sentence-transformers>=5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=9.1",
+  "pytest-asyncio>=1.4",
 ]
 
 [tool.pytest.ini_options]

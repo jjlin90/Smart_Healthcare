@@ -10,9 +10,12 @@ class Settings(BaseSettings):
     siliconflow_api_key: str = ""
     siliconflow_base_url: str = "https://api.siliconflow.cn/v1"
     siliconflow_model: str = "deepseek-ai/DeepSeek-V4-Flash"
-    local_intent_api_key: str = "EMPTY"
-    local_intent_base_url: str = ""
-    local_intent_model: str = "Qwen3-0.5B"
+    intent_bert_model_path: str = ""
+    intent_bert_threshold: float = 0.82
+    intent_vector_model_path: str = ""
+    intent_vector_threshold: float = 0.70
+    intent_vector_margin: float = 0.04
+    intent_prototypes_path: str = "evaluation/intent_prototypes.jsonl"
     mcp_server_url: str = "http://127.0.0.1:8002/mcp"
     mcp_host: str = "127.0.0.1"
     mcp_port: int = 8002
@@ -24,9 +27,6 @@ class Settings(BaseSettings):
     lis_api_base_url: str = ""
     emr_api_base_url: str = ""
     his_api_base_url: str = ""
-    sms_verify_api_url: str = ""
-    sms_app_key: str = ""
-    sms_app_secret: str = ""
     hospital_app_key: str = ""
     hospital_app_secret: str = ""
     session_ttl_seconds: int = 1800
