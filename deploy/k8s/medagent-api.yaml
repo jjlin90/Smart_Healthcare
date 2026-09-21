@@ -7,8 +7,12 @@ data:
   REDIS_URL: redis://redis:6379/0
   SILICONFLOW_BASE_URL: https://api.siliconflow.cn/v1
   SILICONFLOW_MODEL: deepseek-ai/DeepSeek-V4-Flash
-  LOCAL_INTENT_BASE_URL: http://lm-studio:1234/v1
-  LOCAL_INTENT_MODEL: qwen/qwen3.5-9b
+  INTENT_BERT_MODEL_PATH: /models/medical_intent_bert_v2
+  INTENT_BERT_THRESHOLD: "0.82"
+  INTENT_VECTOR_MODEL_PATH: /models/bge-m3
+  INTENT_VECTOR_THRESHOLD: "0.70"
+  INTENT_VECTOR_MARGIN: "0.04"
+  INTENT_PROTOTYPES_PATH: /app/evaluation/intent_prototypes.jsonl
   LANGSMITH_TRACING: "true"
   LANGSMITH_PROJECT: medagent-ai
   MCP_SERVER_URL: http://medagent-mcp:8002/mcp
@@ -47,6 +51,10 @@ spec:
   template:
     metadata:
       labels: {app: medagent-api, track: stable}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8000"
     spec:
       containers:
         - name: api
@@ -55,17 +63,25 @@ spec:
           envFrom:
             - configMapRef: {name: medagent-config}
             - secretRef: {name: medagent-secrets}
+          volumeMounts:
+            - name: intent-models
+              mountPath: /models
+              readOnly: true
           readinessProbe:
-            httpGet: {path: /api/health, port: 8000}
+            httpGet: {path: /api/health/ready, port: 8000}
             initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
-            httpGet: {path: /api/health, port: 8000}
+            httpGet: {path: /api/health/live, port: 8000}
             initialDelaySeconds: 30
             periodSeconds: 20
           resources:
-            requests: {cpu: 250m, memory: 512Mi}
-            limits: {cpu: "1", memory: 1Gi}
+            requests: {cpu: "1", memory: 4Gi}
+            limits: {cpu: "4", memory: 8Gi}
+      volumes:
+        - name: intent-models
+          persistentVolumeClaim:
+            claimName: medagent-intent-models
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -78,6 +94,10 @@ spec:
   template:
     metadata:
       labels: {app: medagent-api, track: canary}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: /metrics
+        prometheus.io/port: "8000"
     spec:
       containers:
         - name: api
@@ -86,10 +106,21 @@ spec:
           envFrom:
             - configMapRef: {name: medagent-config}
             - secretRef: {name: medagent-secrets}
+          volumeMounts:
+            - name: intent-models
+              mountPath: /models
+              readOnly: true
           readinessProbe:
-            httpGet: {path: /api/health, port: 8000}
+            httpGet: {path: /api/health/ready, port: 8000}
             initialDelaySeconds: 10
             periodSeconds: 10
+          resources:
+            requests: {cpu: "1", memory: 4Gi}
+            limits: {cpu: "4", memory: 8Gi}
+      volumes:
+        - name: intent-models
+          persistentVolumeClaim:
+            claimName: medagent-intent-models
 ---
 apiVersion: v1
 kind: Service

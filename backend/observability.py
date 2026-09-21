@@ -27,3 +27,8 @@ MCP_TOOL_CALLS = Counter(
     "MCP tool calls initiated by ReAct agents",
     ("agent", "tool", "status"),
 )
+SCOPE_DECISIONS = Counter(
+    "medagent_scope_decisions_total",
+    "Medical domain boundary decisions before intent routing",
+    ("scope", "source"),
+)

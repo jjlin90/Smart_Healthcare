@@ -1,10 +1,10 @@
-# MedAgent AI 智能医疗问诊 Agent
+# MedAgent AI 医院内部临床辅助多 Agent 平台
 
-按《智能医疗 Agent》文档实现的真实多服务项目。运行链路为：
+面向医院医生、药师、医务管理人员和信息科的私有化部署多服务项目，不提供患者自助注册或公网问诊入口。运行链路为：
 
 ```text
-Streamlit 工作台 → FastAPI/JWT/SSE → 本地 LM Studio 意图分类
-                                  ↓
+Streamlit 工作台 → FastAPI/JWT/SSE → 急症规则 → 医疗范围守卫/澄清 → 正则 → 医疗 BERT → BGE-M3 → DeepSeek
+                                                   ↓
                           Planning Agent（复杂任务）
                                   ↓ A2A
              SymptomAgent / DrugAgent / GuideAgent
@@ -19,18 +19,19 @@ Streamlit 工作台 → FastAPI/JWT/SSE → 本地 LM Studio 意图分类
 ## 文档要求对应
 
 - 主模型：SiliconFlow OpenAI 兼容接口，默认 `deepseek-ai/DeepSeek-V4-Flash`
-- 意图识别：本机 LM Studio 的 `qwen/qwen3.5-9b` OpenAI 兼容接口，覆盖 10 类医疗意图
+- 意图识别：四级受控级联，依次使用高精度正则、本地十分类医疗 BERT、本地 BGE-M3 意图原型相似度和 SiliconFlow DeepSeek 兜底；各层使用置信度阈值，低置信结果不会强行分类
+- 范围与澄清：意图识别前先区分医疗、非医疗、混合和不确定请求；非医疗固定拒识，混合请求只传递经原文校验的医疗片段，任务关键槽位不足时先追问且不调用 A2A/MCP
 - A2A：`python-a2a` 独立运行 SymptomAgent、DrugAgent、GuideAgent
-- MCP：FastMCP 独立服务，注册外部工具 10 个、内部工具 4 个
-- ReAct：模型 Function Calling → MCP 工具 → 工具结果回填，最多 6 轮
+- MCP：FastMCP 独立服务，注册外部/有副作用工具 11 个、内部数据工具 3 个；`generate_referral` 因调用 HIS 写接口按外部工具治理
+- ReAct：三个专科 Agent 使用 LangChain `create_agent` 执行模型 Function Calling → MCPAdapter → FastMCP 工具 → Observation 回填；模型调用和工具调用分别限制最多 6 次
 - 复杂任务：Planning Agent 生成短链计划并按文档串行执行
-- 外部工具：HMAC 鉴权、10 秒超时、失败指数退避、最多重试 3 次并带熔断器
+- 外部工具：HMAC 鉴权、10 秒超时、失败指数退避、最多尝试 3 次（首次调用加 2 次重试）并带熔断器
 - 隐私：当前问题、历史消息、嵌套工具结果发送外部主模型前统一递归脱敏
 - 记忆：Redis 多实例会话/阶段 checkpoint（未配置时使用本地 TTLCache）+ MySQL 长期档案/问诊记录
 - 可观测：Prometheus 指标、Grafana 数据源和隐藏医疗输入/输出的 LangSmith trace
 - 发布：Dockerfile、K8s stable/canary、10% NGINX Ingress 灰度和 HPA
-- 认证：患者手机号+真实短信验证码；医生工号+PBKDF2 密码
-- 合规：JWT、patient_id 隔离、审计日志、安全免责声明和急诊拦截
+- 认证：院内员工工号 + PBKDF2 密码，预留医院 SSO/OIDC 对接边界
+- 授权：员工—患者访问关系、JWT、patient_id 服务端校验、审计日志和急诊拦截
 
 ## 配置
 
@@ -40,14 +41,15 @@ Streamlit 工作台 → FastAPI/JWT/SSE → 本地 LM Studio 意图分类
 
 - `SILICONFLOW_API_KEY`：SiliconFlow API Key
 - `SILICONFLOW_BASE_URL`、`SILICONFLOW_MODEL`
-- `LOCAL_INTENT_BASE_URL`、`LOCAL_INTENT_MODEL`
+- `INTENT_BERT_MODEL_PATH`：由 `scripts/train_intent_bert.py` 生成的本项目十分类模型目录
+- `INTENT_VECTOR_MODEL_PATH`：本地 BGE-M3 / SentenceTransformer 模型目录
+- `INTENT_BERT_THRESHOLD`、`INTENT_VECTOR_THRESHOLD`、`INTENT_VECTOR_MARGIN`
 - `DATABASE_URL` 与 MySQL Docker 参数
 - `DRUG_API_BASE_URL`、`GUIDELINE_API_BASE_URL`、`LIS_API_BASE_URL`、`EMR_API_BASE_URL`、`HIS_API_BASE_URL`
 - `HOSPITAL_APP_KEY`、`HOSPITAL_APP_SECRET`
-- `SMS_VERIFY_API_URL`、`SMS_APP_KEY`、`SMS_APP_SECRET`
 - 高强度随机 `SECRET_KEY`
 
-可选生产配置包括 `REDIS_URL`、`LANGSMITH_API_KEY`、`LANGSMITH_TRACING` 与 `GRAFANA_ADMIN_PASSWORD`。LangSmith trace 只记录步骤、意图、Agent 和耗时，患者原文、患者 ID 及医疗答复会在上传前隐藏。
+可选生产配置包括 `REDIS_URL`、`LANGSMITH_API_KEY`、`LANGSMITH_TRACING` 与 `GRAFANA_ADMIN_PASSWORD`。LangSmith 仅记录经过处理的外层步骤摘要；LangChain 子运行已在代码中关闭远端追踪，避免上传工具参数、Observation、患者原文、患者 ID 和医疗答复。
 
 检查配置：
 
@@ -58,13 +60,49 @@ python scripts/check_config.py
 
 ## 安装与启动
 
-先在 LM Studio 中加载 `qwen/qwen3.5-9b`，进入 Developer → Local Server，确认服务地址为 `http://127.0.0.1:1234` 且状态为 Running。项目通过 `/v1/chat/completions` 调用该本地模型，并关闭推理思考以降低意图分类延迟。
+首次使用前，基于本地 `bert-base-chinese` 训练当前项目的十类医疗意图分类头。仓库提供 3,800 条可复现的合成启动数据：训练 2,000 条、验证 400 条、测试 1,000 条、专项挑战 400 条；数据生成脚本会检查类别平衡和跨集合精确重复。合成数据只用于启动训练和工程回归，正式指标仍需独立人工复核的匿名真实测试集：
+
+```powershell
+$BERT_BASE_MODEL = "请替换为本机 bert-base-chinese 模型目录"
+python scripts/train_intent_bert.py `
+  --base-model $BERT_BASE_MODEL `
+  --dataset evaluation\datasets\intent_train.jsonl `
+  --validation-dataset evaluation\datasets\intent_validation.jsonl `
+  --output models\medical_intent_bert_v2
+```
+
+需要重新生成数据时运行：
+
+```powershell
+python scripts/build_intent_dataset.py
+```
+
+`python scripts/check_config.py` 只检查本地核心链路，医院接口未配置时会给出提示但不阻止启动；生产联调前使用 `python scripts/check_config.py --strict`，要求 HIS/LIS/EMR、药品和指南服务全部配置。未配置的真实工具会明确失败，不会用模拟医学数据兜底。
+
+向量层从独立的 `evaluation/intent_prototypes.jsonl` 加载单意图样本作为版本化原型，避免与 `evaluation/intent_eval.jsonl` 回归集直接重合造成数据泄漏；使用 `INTENT_VECTOR_MODEL_PATH` 指向的本地 SentenceTransformer 模型计算余弦相似度。多意图提示、低置信度和冲突样本会进入 SiliconFlow 主模型兜底。该级联提高覆盖率，但不承诺所有真实表达都能 100% 正确分类。
+
+阈值校准与完整回归：
+
+```powershell
+python scripts/calibrate_intent_vector.py
+python scripts/evaluate_intent.py --output artifacts/intent_eval_cascade_full.json
+```
+
+当前 33 条小型工程回归集严格匹配率和 micro-F1 均为 100%，0 个运行错误；这只用于防止已知工程能力退化，不能外推为临床准确率。BERT v2 使用 2,000 条合成训练数据和 400 条独立模板族验证数据训练；在 1,000 条合成测试集上 Top-1 为 100%，0.82 阈值覆盖率为 80%、接受样本准确率为 100%。专项挑战集的单意图 Top-1 为 70%，但高阈值只接受 11% 且接受样本准确率为 100%；其中 50 条非医疗请求的 100% 拒绝率是 BERT 单层结果。完整请求链路现已在四层意图识别之前增加医疗范围守卫，并用 50 条 OOD 样本验证：即使范围模型不可用，也只会固定拒绝或要求澄清，不会进入医疗意图路由。
+
+BERT 独立评测命令：
+
+```powershell
+python scripts/evaluate_intent_bert.py --model models\medical_intent_bert_v2 --dataset evaluation\datasets\intent_test.jsonl
+python scripts/evaluate_intent_bert.py --model models\medical_intent_bert_v2 --dataset evaluation\datasets\intent_challenge.jsonl
+```
 
 ```powershell
 conda activate Smart_Healthcare
 python -m pip install -r requirements.txt
 docker compose up -d mysql
 docker compose up -d redis
+python -m alembic upgrade head
 python scripts/run_all.py
 ```
 
@@ -75,7 +113,7 @@ python scripts/run_all.py
 - DrugAgent A2A：`127.0.0.1:8012`
 - GuideAgent A2A：`127.0.0.1:8013`
 - FastAPI：`127.0.0.1:8000`（接口文档 `/docs`）
-- Streamlit：`127.0.0.1:8501`（用户界面）
+- Streamlit：`127.0.0.1:8501`（院内员工工作台）
 
 也可以分别启动 API 和界面：
 
@@ -86,15 +124,14 @@ python -m streamlit run streamlit_app.py --server.address 127.0.0.1 --server.por
 
 ## 账号
 
-患者首次用手机号和短信验证码登录时自动创建隔离档案。短信验证码必须由 `.env` 配置的真实验证码服务验证。
-
-医生账号由医院管理员创建：
+院内员工账号由医院管理员创建。角色支持医生、药师、医务管理员和系统管理员；医生/药师可重复传入多个授权患者。医务管理员可按医院级范围查看患者，系统管理员默认不具备病历读取权限。现有数据库先运行 Alembic（数据库迁移工具）迁移；本地联调档案必须来自明确输入，脚本不会生成医学数据：
 
 ```powershell
-python scripts/create_doctor.py --employee-id D10086 --username doctor_name --patient-id patient_xxx
+python scripts/upsert_patient.py --patient-id patient_001 --name patient_name --age 40 --gender 未知
+python scripts/create_staff.py --employee-id D10086 --username doctor_name --role doctor --patient-id patient_001 --patient-id patient_002
 ```
 
-生产环境中医生对患者的访问授权应由 HIS 动态下发，不能长期静态绑定。
+生产环境中员工账号应接入医院统一身份认证，患者访问授权由 HIS/EMR 动态下发；服务端会在读取档案、历史记录和执行 Agent 前再次校验授权范围。
 
 ## 验证
 
@@ -103,7 +140,7 @@ python -m pytest -q
 python -m compileall -q backend scripts streamlit_app.py
 ```
 
-测试会确认：14 个 FastMCP 工具真实注册、未配置的医院接口明确失败、敏感标识脱敏、急诊边界优先执行、患者会话严格隔离。
+测试会确认：14 个 FastMCP 工具真实注册、未配置的医院接口明确失败、敏感标识脱敏、急诊边界优先执行、员工—患者授权、多意图保留和患者会话隔离。
 
 意图回归评测：
 
@@ -111,7 +148,7 @@ python -m compileall -q backend scripts streamlit_app.py
 python scripts/evaluate_intent.py --output artifacts/intent_eval_report.json
 ```
 
-当前 33 条工程回归集实测严格完全匹配率 93.94%，它不是临床标注基准。300 用户 HTTP 入口压测命令和口径见 [压测说明](loadtests/README.md)。本地报告生成到已被 Git 忽略的 `artifacts/` 目录；该报告不代表完整 Agent 链路吞吐。
+当前 33 条工程回归集严格完全匹配率和 micro-F1 均为 100%，它不是临床标注基准。300 用户 HTTP 入口压测命令和口径见 [压测说明](loadtests/README.md)。本地报告生成到已被 Git 忽略的 `artifacts/` 目录；该报告不代表完整 Agent 链路吞吐。
 
 ## GitHub 上传前检查
 

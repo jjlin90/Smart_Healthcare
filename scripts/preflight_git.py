@@ -43,6 +43,28 @@ FORBIDDEN_SUFFIXES = {
     ".pt",
 }
 
+REQUIRED_TRACKED_PATHS = {
+    "alembic.ini",
+    "migrations/env.py",
+    "migrations/script.py.mako",
+    "migrations/versions/20260921_01_internal_staff_access.py",
+    "evaluation/intent_prototypes.jsonl",
+    "evaluation/datasets/manifest.json",
+    "evaluation/datasets/intent_train.jsonl",
+    "evaluation/datasets/intent_validation.jsonl",
+    "evaluation/datasets/intent_test.jsonl",
+    "evaluation/datasets/intent_challenge.jsonl",
+    "scripts/build_intent_dataset.py",
+    "scripts/calibrate_intent_vector.py",
+    "scripts/create_staff.py",
+    "scripts/evaluate_intent_bert.py",
+    "scripts/train_intent_bert.py",
+    "scripts/upsert_patient.py",
+    "tests/conftest.py",
+    "tests/test_intent_dataset.py",
+    "tests/test_internal_access.py",
+}
+
 SECRET_PATTERNS = [
     ("OpenAI/SiliconFlow 风格密钥", re.compile(r"\bsk-[A-Za-z0-9_-]{20,}\b")),
     ("GitHub Token", re.compile(r"\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}\b")),
@@ -123,6 +145,15 @@ def check_forbidden_files(report: Report, tracked: list[Path]) -> None:
         report.error("不应被 Git 跟踪的文件：" + ", ".join(sorted(problems)))
     else:
         report.ok("Git 索引中没有本地密钥、数据库、模型权重或生成产物")
+
+
+def check_required_project_files_tracked(report: Report, tracked: list[Path]) -> None:
+    tracked_names = {path.relative_to(ROOT).as_posix() for path in tracked}
+    missing = sorted(REQUIRED_TRACKED_PATHS - tracked_names)
+    if missing:
+        report.error("实现或复现所需文件尚未加入 Git 索引：" + ", ".join(missing))
+    else:
+        report.ok("迁移、数据集、模型脚本和关键测试均已加入 Git 索引")
 
 
 def text_content(path: Path) -> str | None:
@@ -209,7 +240,7 @@ def check_python_syntax(report: Report, candidates: list[Path]) -> None:
 
 
 def check_absolute_local_paths(report: Report, candidates: list[Path]) -> None:
-    pattern = re.compile(r"(?<![A-Za-z])[A-Za-z]:[\\/](?:Users|pythonProject|python_envs)[\\/]")
+    pattern = re.compile(r"(?<![A-Za-z])[A-Za-z]:[\\/](?:Users|pythonProject|python_envs)(?:[\\/]|(?=\s|$))")
     findings: list[str] = []
     for path in candidates:
         text = text_content(path)
@@ -275,6 +306,7 @@ def main() -> int:
     tracked = git_paths(["git", "ls-files", "-z"], report, "已跟踪文件")
     check_required_ignores(report)
     check_forbidden_files(report, tracked)
+    check_required_project_files_tracked(report, tracked)
     check_secret_content(report, candidates)
     check_large_files(report, candidates)
     check_env_template(report)

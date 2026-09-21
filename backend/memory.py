@@ -10,9 +10,9 @@ from backend.config import get_settings
 class ConversationMemory:
     """Isolated short-term memory keyed by patient and conversation."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, use_redis: bool = True) -> None:
         settings = get_settings()
-        self._redis = Redis.from_url(settings.redis_url, decode_responses=True) if settings.redis_url else None
+        self._redis = Redis.from_url(settings.redis_url, decode_responses=True) if use_redis and settings.redis_url else None
         self._sessions: TTLCache[str, list[dict[str, str]]] = TTLCache(
             maxsize=100,
             ttl=settings.session_ttl_seconds,
@@ -72,6 +72,11 @@ class ConversationMemory:
             value = await self._redis.get(f"medagent:checkpoint:{key}")
             return json.loads(value) if value else None
         return self._checkpoints.get(key)
+
+    async def ping(self) -> bool:
+        if self._redis:
+            return bool(await self._redis.ping())
+        return True
 
     @property
     def backend_name(self) -> str:

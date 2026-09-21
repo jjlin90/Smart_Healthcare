@@ -26,9 +26,9 @@ EXTERNAL_TOOL_NAMES = [
     "analyze_symptoms", "suggest_department", "get_disease_info",
     "query_drug_info", "check_drug_interaction", "check_contraindications",
     "query_drug_alternatives", "search_guidelines", "interpret_lab_results",
-    "get_treatment_protocol",
+    "get_treatment_protocol", "generate_referral",
 ]
-INTERNAL_TOOL_NAMES = ["save_patient_history", "load_patient_history", "save_medical_record", "generate_referral"]
+INTERNAL_TOOL_NAMES = ["save_patient_history", "load_patient_history", "save_medical_record"]
 ALL_TOOL_NAMES = EXTERNAL_TOOL_NAMES + INTERNAL_TOOL_NAMES
 
 
