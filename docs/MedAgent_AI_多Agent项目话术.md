@@ -10,7 +10,7 @@
 
 - 三层链路：FastAPI API Server（应用程序接口服务端）→ A2A（Agent-to-Agent，智能体间通信）子 Agent（智能体）→ FastMCP 工具服务。
 - 3 个子 Agent（智能体）：SymptomAgent、DrugAgent、GuideAgent。
-- 14 个 MCP（Model Context Protocol，模型上下文协议）工具：11 个外部/有副作用工具、3 个内部数据工具；调用 HIS 写接口的转诊工具按外部工具治理。
+- 14 个 MCP（Model Context Protocol，模型上下文协议）工具：11 个外部接口工具、3 个内部数据工具；外部转诊和内部病史/问诊保存都属于有副作用的操作。
 - 10 类意图：症状分析、药品查询、指南检索、检验解读、分诊建议、健康咨询、用药指导、疾病科普、挂号指引、报告解读。
 - 简单任务直接路由；复杂任务先 Planning（任务规划），再串行执行子任务。
 - 子 Agent 内部使用 LangChain `create_agent` 执行真实 ReAct（Reasoning and Acting，推理与行动）：模型生成 Function Call（函数调用），`MCPAdapter`（MCP 适配器）把 FastMCP 工具转换为 LangChain Tool（工具），Observation（观察结果）自动回填，模型再决定继续调用或结束；不是业务代码手写固定图节点。
@@ -96,7 +96,7 @@ FastAPI API Server
 3. DrugAgent 的模型选择 `query_drug_info`。
 4. FastMCP 对药品库发起 HMAC 签名请求。
 5. 工具结果回填给模型，模型基于真实说明书生成答复。
-6. FastAPI 保存问诊记录和审计信息，再通过 SSE 输出。
+6. FastAPI 通过 SSE（服务端推送事件）实时输出回答片段；流完成后保存问诊记录、审计和完成阶段，最后发送 done（完成）事件。片段已显示不等于结果已持久化，保存失败会发送 error（错误）事件。
 
 ## 复杂任务怎么走
 
@@ -243,7 +243,7 @@ async with MCPAdapter(mcp_url) as adapter:
 }
 ```
 
-生产版本还应增加 `task_id、trace_id、schema_version、deadline、retry_count、error_code`，并对 A2A 服务本身增加服务鉴权和 mTLS（双向传输层安全认证）。
+当前已包含 `success、error_code、retryable` 等业务状态字段。生产版本可继续增加 `task_id、trace_id、schema_version、deadline、retry_count`，并对 A2A 服务本身增加服务鉴权和 mTLS（双向传输层安全认证）。
 
 ---
 
@@ -271,8 +271,9 @@ async with MCPAdapter(mcp_url) as adapter:
 
 - 未配置 URL：立即失败，不重试，因为这是配置错误。
 - 参数、权限或业务校验错误：不应重试。
-- HTTP 网络错误、医院临时失败：最多 3 次指数退避。
-- 连续失败：当前返回明确错误，模型被提示不得编造；生产版应再接熔断器和告警。
+- 只读医院查询遇到网络错误或 HTTP 429/500/502/503/504：最多尝试 3 次，指数退避；参数、权限和业务拒绝不自动重试。
+- 连续失败：当前已接入进程内熔断器并返回错误，模型被提示不得编造；生产还需配置告警、隔离舱及多实例治理。
+- 转诊写接口：不自动重试。超时可能意味着远端已经写入，必须先核对业务结果；关闭重试不能代替幂等键，也不能防止模型另发一次同类调用。
 - 写操作：内部保存操作具有相对稳定的 patient_id 范围，但生产版本仍应加入 request_id/幂等键，防止请求重放造成重复记录。
 
 ---
@@ -303,7 +304,7 @@ JWT 解码后得到服务端信任的员工身份和角色，API 再用 `patient
 
 ## 短期记忆
 
-会话 key 是 `patient_id:conversation_id`，每个会话最多保留 20 条消息。配置 `REDIS_URL` 后使用 Redis List、TTL 和事务 pipeline，支持多 API 实例共享；未配置时才使用单进程 `TTLCache` 作为本地开发模式。生产还需配置 Redis ACL/TLS、备份、容量告警和按患者删除能力。
+会话 key（键）由患者 ID 和会话 ID 的 JSON 二元组编码组成，避免简单冒号拼接的碰撞；每个会话最多保留 20 条消息。配置 `REDIS_URL` 后使用 Redis List、TTL（过期时间）和事务 pipeline（流水线），支持多 API 实例共享；未配置时使用单进程 `TTLCache`，追加消息时刷新过期时间，读取返回副本。Redis 单次追加不等于整个问答轮次或 MySQL/Redis 跨存储事务原子化。生产还需配置 Redis ACL/TLS、备份、容量告警和按患者删除能力。
 
 ## 长期数据
 
@@ -336,7 +337,7 @@ FastAPI 返回 `text/event-stream`，事件类型包括：
 
 ## 用户刷新怎么恢复
 
-运行中任务会按 `patient_id:conversation_id` 保存 started、agents_completed、completed 或 failed 阶段 checkpoint；配置 Redis 后多实例共享。当前仍未保存每个 token 的事件序号，因此页面刷新后可以判断任务阶段，但不能从 `Last-Event-ID` 精确续传未完成文本；完整恢复需要事件日志或消息队列。
+服务端按患者 ID 与会话 ID 的组合保存 started（已开始）、agents_completed（专科已完成）、completed（已完成）或 failed（失败）阶段 checkpoint（检查点）；配置 Redis 后多实例共享。这是服务端阶段记录，当前页面没有阶段查询和刷新恢复功能，也不能从 `Last-Event-ID` 精确续传。进程退出或连接取消时可能留下旧阶段；完整恢复还需要运行 ID、状态查询、事件日志和副作用幂等设计。
 
 ---
 
@@ -404,7 +405,7 @@ FastAPI 返回 `text/event-stream`，事件类型包括：
 
 当前 A2A 服务使用 `success、error_code、retryable、error、trace` 表达业务失败，不再在失败响应中伪造 `answer`。主协调器必须同时校验 `success=true`、非空 `answer` 和 Agent 身份，协议返回成功但业务失败时会明确终止，不进入最终医疗汇总。
 
-改进：统一响应 schema，增加 `success、error_code、retryable、partial_result`，主协调器按字段决定重试、降级或停止。
+当前协调器在熔断保护内校验业务成功、回答类型、Agent 身份和 trace（步骤记录）类型，异常响应同样计入失败。后续可增加协议版本及 partial_result（部分结果）。当前失败响应不声明可以安全重试，因为错误发生前可能已经执行写工具。
 
 ## 9. 模型生成不存在的工具名
 
@@ -412,7 +413,7 @@ FastAPI 返回 `text/event-stream`，事件类型包括：
 
 ## 10. 重试导致重复写数据
 
-当前 HTTP 重试主要用于外部读取接口，但转诊属于写操作。生产环境必须给转诊请求附带幂等键，并让 HIS 返回同一业务结果。不能单纯依赖“模型通常不会再调一次”。
+当前只对只读医院查询的暂态故障做 HTTP 重试，转诊写接口已禁用自动重试。生产环境还应给转诊请求附带幂等键，并让 HIS 返回同一业务结果；远端执行成功但响应丢失时先查询确认，不能直接重放，也不能依赖“模型通常不会再调一次”。
 
 ---
 
@@ -423,7 +424,7 @@ FastAPI 返回 `text/event-stream`，事件类型包括：
 | 缺少配置 | 否 | 启动检查或明确报错 | 配置中心、部署门禁 |
 | 参数/schema 错误 | 否/最多修复一次 | Pydantic/工具 schema 拦截 | 统一错误码和坏样本回流 |
 | JWT 无效 | 否 | 401 | 刷新令牌、撤销列表 |
-| 医院 API 超时 | 是 | 最多 3 次指数退避 | 熔断、隔离舱、备用数据源 |
+| 医院 API 超时 | 只读查询重试 | 查询最多尝试 3 次，转诊写入不重试；已有进程内熔断 | 幂等键、结果核对、隔离舱、备用数据源 |
 | 医院业务拒绝 | 否 | 返回失败 Observation | 展示业务原因或转人工 |
 | BERT/BGE 模型缺失 | 否 | 记录告警并进入后续层 | 镜像内置模型、启动门禁、模型版本校验 |
 | SiliconFlow 不可用 | 有限重试 | Agent 失败 | 模型网关、备用模型、预算控制 |
@@ -523,7 +524,7 @@ JSON Schema 能约束格式，但不能保证业务正确。例如合法 JSON �
 1. 最终汇总已原生 token streaming，但 A2A 子 Agent 工具阶段仍是请求完成后返回；要进一步降低可见等待，需要把 A2A 中间事件也流式上送。
 2. Redis 会话和阶段 checkpoint 已实现；还需补事件序号、断线续传、Redis ACL/TLS 与故障切换演练。
 3. Alembic migration（数据库版本化迁移）已补齐；仍需在目标 MySQL 备份副本上验证升级、回滚和锁表时长。
-4. A2A 响应需要正式 `success/error_code/retryable` schema。
+4. A2A 已有 `success/error_code/retryable` 字段及协调器校验，后续补充协议版本、服务身份认证和部分结果契约。
 5. 熔断器和 Prometheus 指标已加入；外部 HTTP 仍需连接池复用、分依赖超时预算和跨实例熔断状态。
 6. 转诊等写操作需要幂等键和事务边界。
 7. 当前已有多患者授权表和服务端重复校验；本地由管理员脚本维护，生产应由 HIS 动态下发并处理撤权时效。
@@ -623,7 +624,7 @@ Schema（结构定义）要做到单一职责、名称有区分度、描述写�
 
 只保存完成任务和审计必需的数据：任务目标、结构化槽位、工具事实、来源、执行阶段、授权范围和必要摘要。全量对话会增加隐私暴露、存储成本、删除难度和错误记忆污染；医疗数据还受最小化采集、用途限制和保留周期约束。
 
-项目短期会话按 `patient_id:conversation_id` 隔离并设 TTL，长期只存业务记录和审计。原始自由文本是否持久化应由数据分级与患者授权决定，而不是默认“以后也许有用”就全存。
+项目短期会话按患者 ID 与会话 ID 的 JSON 二元组键隔离并设 TTL（过期时间），长期存业务记录和审计。原始自由文本是否持久化应由数据分级与患者授权决定，而不是默认“以后也许有用”就全存。
 
 ### 14. 长短记忆的区别及对应适配业务数据？
 
