@@ -17,7 +17,7 @@ def main() -> None:
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--threshold", type=float, default=0.82)
+    parser.add_argument("--threshold", type=float, default=0.95)
     parser.add_argument("--batch-size", type=int, default=64)
     args = parser.parse_args()
 
@@ -69,7 +69,7 @@ def main() -> None:
     multi = [row for row in results if len(row["expected_intents"]) > 1]
     ood = [row for row in results if not row["expected_intents"]]
     threshold_sweep = []
-    for threshold in (0.50, 0.60, 0.70, 0.75, 0.80, 0.82, 0.85, 0.90):
+    for threshold in (0.50, 0.60, 0.70, 0.75, 0.80, 0.82, 0.85, 0.90, 0.93, 0.95, 0.97, 0.99):
         accepted = [row for row in single if row["confidence"] >= threshold]
         threshold_sweep.append({
             "threshold": threshold,

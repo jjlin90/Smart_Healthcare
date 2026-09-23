@@ -105,6 +105,18 @@ async def test_non_medical_request_is_rejected_before_a2a(monkeypatch):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("message", [
+    "我想预约明天下午的心内科门诊",
+    "手机上怎么挂专家号",
+    "帮我取消预约并办理退费",
+])
+async def test_patient_self_service_is_out_of_scope(message):
+    decision = await DomainGuard().assess(message)
+    assert decision.scope == "non_medical"
+    assert "患者自助服务" in decision.reason
+
+
+@pytest.mark.asyncio
 async def test_unknown_scope_fails_safe_to_clarification(monkeypatch):
     async def unavailable(_message):
         raise RuntimeError("scope model unavailable")
@@ -123,15 +135,15 @@ async def test_mixed_scope_only_sends_extracted_medical_request_to_agent(monkeyp
     async def mixed_scope(_self, _message, _profile=None):
         return ScopeDecision(
             scope="mixed",
-            medical_request="我头痛两天，请分析原因",
+            medical_request="患者头痛两天，请分析原因",
             reason="同时包含编程请求",
             source="llm",
         )
 
     async def intent(_self, message):
-        assert message == "我头痛两天，请分析原因"
+        assert message == "患者头痛两天，请分析原因"
         return IntentDecision(
-            intents=["症状分析"],
+            intents=["症状评估"],
             complex_task=False,
             reason="测试",
             source="regex",
@@ -145,8 +157,8 @@ async def test_mixed_scope_only_sends_extracted_medical_request_to_agent(monkeyp
     monkeypatch.setattr(DomainGuard, "assess", mixed_scope)
     monkeypatch.setattr(IntentClassifier, "classify", intent)
     monkeypatch.setattr(coordinator, "_call_a2a", fake_a2a)
-    result = await coordinator.run("我头痛两天，请分析原因，再帮我写 Python", "p1", {})
-    assert seen_tasks == ["我头痛两天，请分析原因"]
+    result = await coordinator.run("患者头痛两天，请分析原因，再帮我写 Python", "p1", {})
+    assert seen_tasks == ["患者头痛两天，请分析原因"]
     assert result.scope == "mixed"
     assert result.answer.startswith("已识别到医疗与非医疗混合内容")
 
@@ -172,14 +184,14 @@ async def test_scope_llm_accepts_only_medical_segments_copied_from_input(monkeyp
         async def create(self, **kwargs):
             assert kwargs["messages"][0]["role"] == "system"
             return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=(
-                '{"scope":"mixed","medical_segments":["我头痛两天，请分析原因"],"reason":"混合请求"}'
+                '{"scope":"mixed","medical_segments":["患者头痛两天，请分析原因"],"reason":"混合请求"}'
             )))])
 
     fake_clients = SimpleNamespace(main=SimpleNamespace(chat=SimpleNamespace(completions=FakeCompletions())))
     monkeypatch.setattr("backend.agents.ModelClients", lambda: fake_clients)
-    decision = await DomainGuard._llm_assess("我头痛两天，请分析原因，再帮我写 Python")
+    decision = await DomainGuard._llm_assess("患者头痛两天，请分析原因，再帮我写 Python")
     assert decision.scope == "mixed"
-    assert decision.medical_request == "我头痛两天，请分析原因"
+    assert decision.medical_request == "患者头痛两天，请分析原因"
 
 
 @pytest.mark.asyncio
@@ -200,10 +212,10 @@ async def test_scope_llm_generated_or_non_medical_segment_fails_closed(monkeypat
 @pytest.mark.parametrize(
     ("message", "intent", "expected_slot"),
     [
-        ("这个药怎么吃", "用药指导", "药品名称"),
-        ("帮我看一下这个报告", "报告解读", "检查项目"),
-        ("我不舒服怎么办", "症状分析", "具体症状"),
-        ("挂什么科", "分诊建议", "症状或科室"),
+        ("这个药怎么吃", "用药审核", "药品名称"),
+        ("帮我看一下这个报告", "检查报告辅助解读", "检查项目"),
+        ("患者身体不适", "症状评估", "具体症状"),
+        ("判断接诊科室", "院内分诊建议", "症状或初步判断"),
     ],
 )
 def test_vague_medical_request_asks_one_targeted_question(message, intent, expected_slot):
@@ -276,11 +288,12 @@ async def test_synthesis_forwards_model_native_deltas(monkeypatch):
 @pytest.mark.parametrize(
     ("message", "expected"),
     [
-        ("我想预约明天下午的心内科门诊", ["挂号指引"]),
-        ("膝盖上下楼疼应该看什么科", ["分诊建议"]),
-        ("阿莫西林有哪些常见不良反应", ["药品查询"]),
-        ("我在吃华法林，还能不能吃阿司匹林", ["用药指导"]),
-        ("帮我查一下最新高血压诊疗指南", ["指南检索"]),
+        ("需要把该患者从急诊转入心内科并生成转诊单", ["转诊协同"]),
+        ("患者膝关节活动疼痛，请判断院内接诊科室", ["院内分诊建议"]),
+        ("阿莫西林有哪些常见不良反应", ["药品信息查询"]),
+        ("查询蒙脱石散的适应症和说明书信息", ["药品信息查询"]),
+        ("该患者正在服用华法林，请审核能否合用阿司匹林", ["用药审核"]),
+        ("帮我查一下最新高血压诊疗指南", ["临床指南检索"]),
     ],
 )
 @pytest.mark.asyncio
@@ -307,7 +320,7 @@ async def test_intent_cascade_reaches_llm_only_after_bert_and_vector(monkeypatch
     async def fake_llm(message, hints):
         calls.append("llm")
         return IntentDecision(
-            intents=["健康咨询"],
+            intents=["随访管理"],
             complex_task=False,
             reason="测试兜底",
             source="llm",
@@ -320,30 +333,40 @@ async def test_intent_cascade_reaches_llm_only_after_bert_and_vector(monkeypatch
     monkeypatch.setattr(classifier, "_llm_classify", fake_llm)
     decision = await classifier.classify("请给我一些日常建议")
     assert calls == ["bert", "vector", "llm"]
-    assert decision.intents == ["健康咨询"]
+    assert decision.intents == ["随访管理"]
     assert decision.source == "llm"
 
 
 @pytest.mark.asyncio
 async def test_guideline_question_does_not_duplicate_health_intent():
     decision = await IntentClassifier().classify("糖尿病指南对运动管理有什么建议")
-    assert decision.intents == ["指南检索"]
+    assert decision.intents == ["临床指南检索"]
     assert decision.source == "regex"
 
 
 @pytest.mark.asyncio
 async def test_multi_intent_keeps_medication_context():
     decision = await IntentClassifier().classify(
-        "我头痛恶心，帮我分析原因，并看看正在吃布洛芬是否合适，还想知道该挂什么科"
+        "患者头痛恶心，请评估可能方向，并审核当前布洛芬用药，还需给出院内分诊科室"
     )
-    assert set(decision.intents) == {"症状分析", "用药指导", "分诊建议"}
+    assert set(decision.intents) == {"症状评估", "用药审核", "院内分诊建议"}
+    assert decision.source == "regex"
+    assert decision.complex_task is True
+
+
+@pytest.mark.asyncio
+async def test_multi_intent_keeps_explicit_knowledge_request_with_guideline():
+    decision = await IntentClassifier().classify(
+        "查询高血压临床特征，再检索指南中的随访管理建议"
+    )
+    assert set(decision.intents) == {"临床指南检索", "临床知识查询"}
     assert decision.source == "regex"
     assert decision.complex_task is True
 
 
 def test_multi_intent_plan_rejects_extra_or_duplicate_agents():
     decision = IntentDecision(
-        intents=["症状分析", "用药指导", "检验解读"],
+        intents=["症状评估", "用药审核", "检验结果辅助解读"],
         complex_task=True,
         reason="多意图测试",
         source="regex",
@@ -412,3 +435,57 @@ async def test_specialist_runtime_uses_create_agent_and_injects_patient_scope(mo
     assert seen == ["authorized_patient"]
     assert result["runtime"] == "langchain_create_agent"
     assert result["trace"][0]["status"] == "completed"
+
+
+@pytest.mark.asyncio
+async def test_specialist_blocks_duplicate_tool_call_with_same_arguments(monkeypatch):
+    from backend.config import get_settings
+
+    monkeypatch.setattr(get_settings(), "siliconflow_api_key", "test-key")
+    calls = 0
+
+    async def source(patient_id: str) -> dict:
+        nonlocal calls
+        calls += 1
+        return {"patient_id": patient_id}
+
+    source_tool = StructuredTool.from_function(
+        coroutine=source,
+        name="load_patient_history",
+        description="读取患者病史",
+    )
+
+    class FakeAdapter:
+        def __init__(self, _target):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def list_tools(self):
+            return [source_tool]
+
+    class FakeRuntime:
+        def __init__(self, tools):
+            self.tools = tools
+
+        async def ainvoke(self, _payload, config):
+            assert config["recursion_limit"] > 1
+            first = await self.tools[0].ainvoke({"patient_id": "ignored"})
+            second = await self.tools[0].ainvoke({"patient_id": "ignored"})
+            assert "DUPLICATE_TOOL_CALL" not in first
+            assert "DUPLICATE_TOOL_CALL" in second
+            return {"messages": [AIMessage(content="完成")]}
+
+    monkeypatch.setattr("backend.agents.MCPAdapter", FakeAdapter)
+    monkeypatch.setattr("backend.agents.ChatOpenAI", lambda **_kwargs: object())
+    monkeypatch.setattr(
+        "backend.agents.create_agent",
+        lambda model, tools, system_prompt, middleware: FakeRuntime(tools),
+    )
+    result = await MCPToolAgent("SymptomAgent").run("读取病史", "authorized_patient", {})
+    assert calls == 1
+    assert [item["status"] for item in result["trace"]] == ["completed", "duplicate_blocked"]

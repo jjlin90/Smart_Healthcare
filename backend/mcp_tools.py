@@ -13,7 +13,7 @@ from typing import Any
 import httpx
 from fastmcp import FastMCP
 from sqlalchemy import select
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_exponential
 
 from backend.config import get_settings
 from backend.database import SessionLocal
@@ -44,8 +44,14 @@ def _auth_headers(body: bytes) -> dict[str, str]:
     return {"X-App-Key": settings.hospital_app_key, "X-Timestamp": timestamp, "X-Signature": signature, "Content-Type": "application/json"}
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=0.3, min=0.3, max=2), retry=retry_if_exception_type((httpx.HTTPError, HospitalAPIError)), reraise=True)
-async def _hospital_post(base_url: str, path: str, payload: dict[str, Any]) -> dict[str, Any]:
+def _is_transient(exc: BaseException) -> bool:
+    return isinstance(exc, httpx.TransportError) or (
+        isinstance(exc, httpx.HTTPStatusError)
+        and exc.response.status_code in {429, 500, 502, 503, 504}
+    )
+
+
+async def _hospital_post(base_url: str, path: str, payload: dict[str, Any], *, retry_safe: bool = True) -> dict[str, Any]:
     if not base_url:
         raise RuntimeError(f"医院接口未配置：{path}")
     async def request() -> dict[str, Any]:
@@ -58,9 +64,19 @@ async def _hospital_post(base_url: str, path: str, payload: dict[str, Any]) -> d
                 raise HospitalAPIError("医院接口返回格式不是 JSON 对象")
             if data.get("success") is False:
                 raise HospitalAPIError(str(data.get("message") or "医院接口返回失败"))
-            return data.get("data", data)
+            result = data.get("data", data)
+            if not isinstance(result, dict):
+                raise HospitalAPIError("医院接口 data 字段必须为 JSON 对象")
+            return result
 
-    return await get_breaker(f"hospital:{base_url}").call(request)
+    async for attempt in AsyncRetrying(
+        stop=stop_after_attempt(3 if retry_safe else 1),
+        wait=wait_exponential(multiplier=0.3, min=0.3, max=2),
+        retry=retry_if_exception(_is_transient),
+        reraise=True,
+    ):
+        with attempt:
+            return await get_breaker(f"hospital:{base_url}").call(request)
 
 
 @mcp.tool(annotations={"readOnlyHint": True, "openWorldHint": True})
@@ -152,9 +168,9 @@ async def load_patient_history(patient_id: str) -> dict[str, Any]:
 
 @mcp.tool()
 async def save_medical_record(patient_id: str, record_data: dict[str, Any]) -> dict[str, Any]:
-    """保存本次真实 Agent 问诊记录。"""
+    """保存本次真实 Agent 院内临床辅助记录。"""
     async with SessionLocal() as db:
-        db.add(Consultation(patient_id=patient_id, title=str(record_data.get("title") or "智能问诊")[:128], symptoms=json.dumps(record_data.get("input", {}), ensure_ascii=False), response=str(record_data.get("response") or ""), intent=str(record_data.get("intent") or "未知")[:32], suggested_department=record_data.get("department")))
+        db.add(Consultation(patient_id=patient_id, title=str(record_data.get("title") or "临床辅助任务")[:128], symptoms=json.dumps(record_data.get("input", {}), ensure_ascii=False), response=str(record_data.get("response") or ""), intent=str(record_data.get("intent") or "未知")[:32], suggested_department=record_data.get("department")))
         await db.commit()
         return {"saved": True, "patient_id": patient_id}
 
@@ -162,7 +178,7 @@ async def save_medical_record(patient_id: str, record_data: dict[str, Any]) -> d
 @mcp.tool()
 async def generate_referral(patient_id: str, department: str, reason: str) -> dict[str, Any]:
     """在 HIS 生成待医生确认的转诊单并记录编号。"""
-    result = await _hospital_post(get_settings().his_api_base_url, "/v1/referrals", {"patient_id": patient_id, "department": department, "reason": reason})
+    result = await _hospital_post(get_settings().his_api_base_url, "/v1/referrals", {"patient_id": patient_id, "department": department, "reason": reason}, retry_safe=False)
     async with SessionLocal() as db:
         referral = Referral(patient_id=patient_id, department=department, reason=reason, external_id=str(result.get("referral_id", "")), status="待医生确认")
         db.add(referral); await db.commit(); await db.refresh(referral)

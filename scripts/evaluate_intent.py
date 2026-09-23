@@ -30,6 +30,8 @@ def percentile(values: list[float], quantile: float) -> float:
 
 
 async def evaluate(cases: list[dict], dataset: Path | None = None) -> dict:
+    if not cases:
+        raise ValueError("评测集不能为空")
     classifier = IntentClassifier()
     rows: list[dict] = []
     latencies: list[float] = []

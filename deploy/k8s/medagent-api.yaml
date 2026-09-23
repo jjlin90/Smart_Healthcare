@@ -7,10 +7,10 @@ data:
   REDIS_URL: redis://redis:6379/0
   SILICONFLOW_BASE_URL: https://api.siliconflow.cn/v1
   SILICONFLOW_MODEL: deepseek-ai/DeepSeek-V4-Flash
-  INTENT_BERT_MODEL_PATH: /models/medical_intent_bert_v2
-  INTENT_BERT_THRESHOLD: "0.82"
+  INTENT_BERT_MODEL_PATH: /models/medical_intent_bert_tob_v3
+  INTENT_BERT_THRESHOLD: "0.95"
   INTENT_VECTOR_MODEL_PATH: /models/bge-m3
-  INTENT_VECTOR_THRESHOLD: "0.70"
+  INTENT_VECTOR_THRESHOLD: "0.78"
   INTENT_VECTOR_MARGIN: "0.04"
   INTENT_PROTOTYPES_PATH: /app/evaluation/intent_prototypes.jsonl
   LANGSMITH_TRACING: "true"
