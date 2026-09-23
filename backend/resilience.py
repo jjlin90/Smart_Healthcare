@@ -20,6 +20,7 @@ class AsyncCircuitBreaker:
         self.failures = 0
         self.opened_at: float | None = None
         self._half_open_probe = False
+        self._generation = 0
         self._lock = asyncio.Lock()
 
     async def call(self, operation: Callable[[], Awaitable[T]]) -> T:
@@ -31,25 +32,34 @@ class AsyncCircuitBreaker:
                 if self._half_open_probe:
                     raise CircuitOpenError(f"{self.name} 正在半开探测")
                 self._half_open_probe = True
+            generation = self._generation
+            is_probe = self._half_open_probe
         try:
             result = await operation()
         except asyncio.CancelledError:
             # Cancellation bypasses ``except Exception``. Release a half-open
             # probe lease before propagating it so recovery cannot deadlock.
             async with self._lock:
-                self._half_open_probe = False
+                if is_probe and generation == self._generation:
+                    self._half_open_probe = False
             raise
         except Exception:
             async with self._lock:
-                self.failures += 1
-                self._half_open_probe = False
-                if self.failures >= self.failure_threshold:
-                    self.opened_at = time.monotonic()
+                if generation == self._generation:
+                    self.failures += 1
+                    self._half_open_probe = False
+                    if self.failures >= self.failure_threshold:
+                        self.opened_at = time.monotonic()
+                        self._generation += 1
             raise
         async with self._lock:
-            self.failures = 0
-            self.opened_at = None
-            self._half_open_probe = False
+            # A slow call begun before opening must not close a newer circuit.
+            if generation == self._generation:
+                self.failures = 0
+                self.opened_at = None
+                self._half_open_probe = False
+                if is_probe:
+                    self._generation += 1
         return result
 
 

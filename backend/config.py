@@ -11,9 +11,9 @@ class Settings(BaseSettings):
     siliconflow_base_url: str = "https://api.siliconflow.cn/v1"
     siliconflow_model: str = "deepseek-ai/DeepSeek-V4-Flash"
     intent_bert_model_path: str = ""
-    intent_bert_threshold: float = 0.82
+    intent_bert_threshold: float = 0.95
     intent_vector_model_path: str = ""
-    intent_vector_threshold: float = 0.70
+    intent_vector_threshold: float = 0.78
     intent_vector_margin: float = 0.04
     intent_prototypes_path: str = "evaluation/intent_prototypes.jsonl"
     mcp_server_url: str = "http://127.0.0.1:8002/mcp"

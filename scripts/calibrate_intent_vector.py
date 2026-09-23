@@ -10,7 +10,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from backend.agents import INTENTS, IntentClassifier, _load_vector_bundle
+from backend.agents import INTENTS, MULTI_INTENT_CUE, IntentClassifier, _load_vector_bundle
 from backend.config import get_settings
 
 
@@ -39,10 +39,11 @@ def main() -> None:
     cases: list[dict] = []
     for case in all_cases:
         regex_intents, _terms = IntentClassifier._regex_classify(case["text"])
-        if regex_intents:
+        needs_multi_check = bool(MULTI_INTENT_CUE.search(case["text"]))
+        if regex_intents and (len(regex_intents) > 1 or not needs_multi_check):
             continue
         bert_result = IntentClassifier._bert_classify_sync(case["text"])
-        if bert_result and bert_result[1] >= settings.intent_bert_threshold:
+        if bert_result and bert_result[1] >= settings.intent_bert_threshold and not needs_multi_check:
             continue
         cases.append(case)
     if not cases:

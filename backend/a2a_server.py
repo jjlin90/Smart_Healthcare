@@ -15,9 +15,9 @@ from python_a2a import A2AServer, AgentCard, AgentSkill, Message, MessageRole, T
 from backend.agents import AGENT_TOOLS, MCPToolAgent
 
 AGENTS = {
-    "symptom": ("SymptomAgent", "症状分析、辅助分诊、健康咨询与挂号指引"),
-    "drug": ("DrugAgent", "药品说明书、禁忌症、相互作用与替代药查询"),
-    "guide": ("GuideAgent", "临床指南、检验报告与标准诊疗路径检索"),
+    "symptom": ("SymptomAgent", "院内症状评估、辅助分诊与转诊协同"),
+    "drug": ("DrugAgent", "药品信息、用药审核、禁忌症、相互作用与替代药查询"),
+    "guide": ("GuideAgent", "临床指南、检验与报告辅助解读、随访管理及临床知识查询"),
 }
 
 
@@ -36,8 +36,8 @@ class MedicalA2AServer(A2AServer):
             text = json.dumps({
                 "success": False,
                 "error_code": "AGENT_EXECUTION_FAILED",
-                "retryable": True,
-                "error": str(exc),
+                "retryable": False,
+                "error": "专科 Agent 执行失败，请联系管理员检查依赖服务",
                 "trace": [],
             }, ensure_ascii=False)
         return Message(content=TextContent(text=text), role=MessageRole.AGENT, parent_message_id=message.message_id, conversation_id=message.conversation_id)

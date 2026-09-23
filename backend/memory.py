@@ -1,4 +1,5 @@
 import json
+from copy import deepcopy
 from typing import Any
 
 from cachetools import TTLCache
@@ -24,7 +25,7 @@ class ConversationMemory:
 
     @staticmethod
     def _key(patient_id: str, conversation_id: str) -> str:
-        return f"{patient_id}:{conversation_id}"
+        return json.dumps([patient_id, conversation_id], ensure_ascii=True, separators=(",", ":"))
 
     async def get(self, patient_id: str, conversation_id: str) -> list[dict[str, str]]:
         key = self._key(patient_id, conversation_id)
@@ -33,7 +34,7 @@ class ConversationMemory:
             return [json.loads(value) for value in values]
         if key not in self._sessions:
             self._sessions[key] = []
-        return self._sessions[key]
+        return deepcopy(self._sessions[key])
 
     async def append(
         self,
@@ -54,6 +55,7 @@ class ConversationMemory:
         history = await self.get(patient_id, conversation_id)
         history.append({"role": role, "content": content})
         del history[:-20]
+        self._sessions[key] = history  # Refresh sliding TTL, matching Redis EXPIRE.
 
     async def save_checkpoint(self, patient_id: str, conversation_id: str, state: dict[str, Any]) -> None:
         key = self._key(patient_id, conversation_id)
@@ -64,14 +66,14 @@ class ConversationMemory:
                 ex=get_settings().checkpoint_ttl_seconds,
             )
             return
-        self._checkpoints[key] = state
+        self._checkpoints[key] = deepcopy(state)
 
     async def get_checkpoint(self, patient_id: str, conversation_id: str) -> dict[str, Any] | None:
         key = self._key(patient_id, conversation_id)
         if self._redis:
             value = await self._redis.get(f"medagent:checkpoint:{key}")
             return json.loads(value) if value else None
-        return self._checkpoints.get(key)
+        return deepcopy(self._checkpoints.get(key))
 
     async def ping(self) -> bool:
         if self._redis:

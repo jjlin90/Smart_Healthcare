@@ -66,6 +66,8 @@ REQUIRED_TRACKED_PATHS = {
 }
 
 SECRET_PATTERNS = [
+    ("LangSmith Token", re.compile(r"\blsv2_[A-Za-z0-9_-]{20,}\b")),
+    ("GitHub Fine-grained Token", re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b")),
     ("OpenAI/SiliconFlow 风格密钥", re.compile(r"\bsk-[A-Za-z0-9_-]{20,}\b")),
     ("GitHub Token", re.compile(r"\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}\b")),
     ("AWS Access Key", re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b")),
@@ -195,6 +197,26 @@ def check_large_files(report: Report, candidates: list[Path]) -> None:
         report.ok("候选文件大小检查通过")
 
 
+def check_index_content(report: Report, tracked: list[Path]) -> None:
+    """Scan staged blobs too: a clean working copy can hide an older staged secret."""
+    failures = []
+    for path in tracked:
+        relative = path.relative_to(ROOT).as_posix()
+        result = run(["git", "show", f":{relative}"])
+        if result.returncode:
+            failures.append(f"{relative}（无法读取索引内容）")
+            continue
+        if "\0" in result.stdout:
+            continue
+        for label, pattern in SECRET_PATTERNS:
+            if pattern.search(result.stdout):
+                failures.append(f"{relative}（{label}）")
+    if failures:
+        report.error("暂存内容检查失败（不输出密钥）：" + "; ".join(failures))
+    else:
+        report.ok("Git 索引内容敏感扫描通过（与工作区分别检查）")
+
+
 def dotenv_keys(path: Path) -> set[str]:
     keys: set[str] = set()
     if not path.exists():
@@ -308,6 +330,7 @@ def main() -> int:
     check_forbidden_files(report, tracked)
     check_required_project_files_tracked(report, tracked)
     check_secret_content(report, candidates)
+    check_index_content(report, tracked)
     check_large_files(report, candidates)
     check_env_template(report)
     check_python_syntax(report, candidates)

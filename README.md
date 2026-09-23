@@ -1,9 +1,9 @@
 # MedAgent AI 医院内部临床辅助多 Agent 平台
 
-面向医院医生、药师、医务管理人员和信息科的私有化部署多服务项目，不提供患者自助注册或公网问诊入口。运行链路为：
+面向医院医生、药师、医务管理人员和信息科的私有化部署多服务项目，仅通过院内员工账号和授权患者范围进入业务链路。运行链路为：
 
 ```text
-Streamlit 工作台 → FastAPI/JWT/SSE → 急症规则 → 医疗范围守卫/澄清 → 正则 → 医疗 BERT → BGE-M3 → DeepSeek
+Streamlit 工作台 → FastAPI/JWT/SSE → 急症规则 → 医疗范围守卫 → 四层意图识别 → 关键槽位澄清
                                                    ↓
                           Planning Agent（复杂任务）
                                   ↓ A2A
@@ -12,22 +12,23 @@ Streamlit 工作台 → FastAPI/JWT/SSE → 急症规则 → 医疗范围守卫/
           HIS / 药品库 / 指南库 / LIS / EMR / MySQL
 ```
 
-系统没有医学 Mock 数据或规则式正常问诊回答。模型、A2A、MCP、医院接口或数据库未配置时会明确失败，不会生成伪造医学结果。紧急症状拦截属于安全规则，会在调用模型前提示拨打 120。
+系统没有医学 Mock 数据或规则式正常临床辅助回答。模型、A2A、MCP、医院接口或数据库未配置时会明确失败，不会生成伪造医学结果。紧急症状拦截属于安全规则，会在调用模型前提示拨打 120。
 
 项目讲解、面试追问、真实踩坑和生产化边界见 [MedAgent AI 多 Agent 项目话术](docs/MedAgent_AI_多Agent项目话术.md)。
 
 ## 文档要求对应
 
 - 主模型：SiliconFlow OpenAI 兼容接口，默认 `deepseek-ai/DeepSeek-V4-Flash`
-- 意图识别：四级受控级联，依次使用高精度正则、本地十分类医疗 BERT、本地 BGE-M3 意图原型相似度和 SiliconFlow DeepSeek 兜底；各层使用置信度阈值，低置信结果不会强行分类
+- 意图识别：正则 → 本地十分类医疗 BERT → 本地 BGE-M3 意图原型相似度 → SiliconFlow DeepSeek 兜底；BERT 和向量层使用接受阈值，模型兜底结果经过意图枚举校验。分数不是经过校准的正确率，四层级联也不保证所有表达都能正确识别
 - 范围与澄清：意图识别前先区分医疗、非医疗、混合和不确定请求；非医疗固定拒识，混合请求只传递经原文校验的医疗片段，任务关键槽位不足时先追问且不调用 A2A/MCP
 - A2A：`python-a2a` 独立运行 SymptomAgent、DrugAgent、GuideAgent
-- MCP：FastMCP 独立服务，注册外部/有副作用工具 11 个、内部数据工具 3 个；`generate_referral` 因调用 HIS 写接口按外部工具治理
+- MCP：FastMCP 独立服务，注册外部接口工具 11 个、内部数据工具 3 个；外部转诊和内部病史/临床辅助记录保存均属于有副作用的操作
 - ReAct：三个专科 Agent 使用 LangChain `create_agent` 执行模型 Function Calling → MCPAdapter → FastMCP 工具 → Observation 回填；模型调用和工具调用分别限制最多 6 次
 - 复杂任务：Planning Agent 生成短链计划并按文档串行执行
-- 外部工具：HMAC 鉴权、10 秒超时、失败指数退避、最多尝试 3 次（首次调用加 2 次重试）并带熔断器
+- 外部工具：HMAC 鉴权、单次 HTTP 请求 10 秒超时和进程内熔断器；只读查询遇到网络异常或 HTTP 429/500/502/503/504 时最多尝试 3 次。业务拒绝不自动重试；转诊写接口不自动重试，以免超时后重复创建
 - 隐私：当前问题、历史消息、嵌套工具结果发送外部主模型前统一递归脱敏
-- 记忆：Redis 多实例会话/阶段 checkpoint（未配置时使用本地 TTLCache）+ MySQL 长期档案/问诊记录
+- 记忆：Redis 多实例会话/阶段 checkpoint（未配置时使用本地 TTLCache）+ MySQL 长期档案/临床辅助记录
+- Agent 上下文：专科 Agent 无独立长期记忆，每次运行接收同一患者会话的只读快照；运行上下文和工具调用指纹按 Agent 任务隔离，协调器去重计划并只在最终答复后统一写回会话
 - 可观测：Prometheus 指标、Grafana 数据源和隐藏医疗输入/输出的 LangSmith trace
 - 发布：Dockerfile、K8s stable/canary、10% NGINX Ingress 灰度和 HPA
 - 认证：院内员工工号 + PBKDF2 密码，预留医院 SSO/OIDC 对接边界
@@ -60,6 +61,13 @@ python scripts/check_config.py
 
 ## 安装与启动
 
+先激活环境并安装依赖，再执行后面的训练、检查和启动命令：
+
+```powershell
+conda activate Smart_Healthcare
+python -m pip install -r requirements.txt
+```
+
 首次使用前，基于本地 `bert-base-chinese` 训练当前项目的十类医疗意图分类头。仓库提供 3,800 条可复现的合成启动数据：训练 2,000 条、验证 400 条、测试 1,000 条、专项挑战 400 条；数据生成脚本会检查类别平衡和跨集合精确重复。合成数据只用于启动训练和工程回归，正式指标仍需独立人工复核的匿名真实测试集：
 
 ```powershell
@@ -68,7 +76,7 @@ python scripts/train_intent_bert.py `
   --base-model $BERT_BASE_MODEL `
   --dataset evaluation\datasets\intent_train.jsonl `
   --validation-dataset evaluation\datasets\intent_validation.jsonl `
-  --output models\medical_intent_bert_v2
+  --output models\medical_intent_bert_tob_v3
 ```
 
 需要重新生成数据时运行：
@@ -88,13 +96,13 @@ python scripts/calibrate_intent_vector.py
 python scripts/evaluate_intent.py --output artifacts/intent_eval_cascade_full.json
 ```
 
-当前 33 条小型工程回归集严格匹配率和 micro-F1 均为 100%，0 个运行错误；这只用于防止已知工程能力退化，不能外推为临床准确率。BERT v2 使用 2,000 条合成训练数据和 400 条独立模板族验证数据训练；在 1,000 条合成测试集上 Top-1 为 100%，0.82 阈值覆盖率为 80%、接受样本准确率为 100%。专项挑战集的单意图 Top-1 为 70%，但高阈值只接受 11% 且接受样本准确率为 100%；其中 50 条非医疗请求的 100% 拒绝率是 BERT 单层结果。完整请求链路现已在四层意图识别之前增加医疗范围守卫，并用 50 条 OOD 样本验证：即使范围模型不可用，也只会固定拒绝或要求澄清，不会进入医疗意图路由。
+意图体系已调整为十类院内任务，并重新生成 3,800 条 ToB 合成启动数据。`medical_intent_bert_tob_v3` 已从原始 `bert-base-chinese` 重新初始化分类头并训练；不符合当前十类标签集合的权重会被运行时拒绝加载。当前 `0.95` 阈值下，1,000 条合成测试集覆盖率为 98.8%、接受样本准确率为 100%；100 条否定/模糊单意图挑战集覆盖率为 24%、接受样本准确率为 100%，50 条分布外样本全部拒绝。向量层在 230 条残余挑战样本上以 `0.78` 阈值接受 10 条且均判断正确。以上只用于工程校准，不能外推为临床准确率。范围守卫会在意图分类前终止非院内工作请求。
 
 BERT 独立评测命令：
 
 ```powershell
-python scripts/evaluate_intent_bert.py --model models\medical_intent_bert_v2 --dataset evaluation\datasets\intent_test.jsonl
-python scripts/evaluate_intent_bert.py --model models\medical_intent_bert_v2 --dataset evaluation\datasets\intent_challenge.jsonl
+python scripts/evaluate_intent_bert.py --model models\medical_intent_bert_tob_v3 --dataset evaluation\datasets\intent_test.jsonl
+python scripts/evaluate_intent_bert.py --model models\medical_intent_bert_tob_v3 --dataset evaluation\datasets\intent_challenge.jsonl
 ```
 
 ```powershell
@@ -128,7 +136,7 @@ python -m streamlit run streamlit_app.py --server.address 127.0.0.1 --server.por
 
 ```powershell
 python scripts/upsert_patient.py --patient-id patient_001 --name patient_name --age 40 --gender 未知
-python scripts/create_staff.py --employee-id D10086 --username doctor_name --role doctor --patient-id patient_001 --patient-id patient_002
+python scripts/create_staff.py --employee-id D10086 --username doctor_name --role doctor --patient-id patient_001
 ```
 
 生产环境中员工账号应接入医院统一身份认证，患者访问授权由 HIS/EMR 动态下发；服务端会在读取档案、历史记录和执行 Agent 前再次校验授权范围。
@@ -148,11 +156,11 @@ python -m compileall -q backend scripts streamlit_app.py
 python scripts/evaluate_intent.py --output artifacts/intent_eval_report.json
 ```
 
-当前 33 条工程回归集严格完全匹配率和 micro-F1 均为 100%，它不是临床标注基准。300 用户 HTTP 入口压测命令和口径见 [压测说明](loadtests/README.md)。本地报告生成到已被 Git 忽略的 `artifacts/` 目录；该报告不代表完整 Agent 链路吞吐。
+当前 33 条工程回归集已迁移到纯 ToB 意图标签，并在当前模型与阈值下重新运行：严格匹配率、复杂任务标记准确率和 micro-F1 均为 100%，0 个运行错误（32 条由正则层完成，1 条由向量层完成）。该小型工程集只用于防回退，不代表临床泛化。300 用户 HTTP 入口压测命令和口径见 [压测说明](loadtests/README.md)。本地报告生成到已被 Git 忽略的 `artifacts/` 目录；该报告不代表完整 Agent 链路吞吐。
 
 ## GitHub 上传前检查
 
-仓库内置不依赖第三方扫描器的预检脚本，会检查 Git 忽略规则、疑似密钥、私钥文件、超大文件、Python 语法和 `.env.example` 配置项完整性。完整模式还会运行 pytest 与 `pip check`：
+仓库内置不依赖第三方扫描器的预检脚本，会分别扫描工作区候选文件和 Git 暂存内容中的疑似密钥，并检查忽略规则、私钥文件、超大文件、Python 语法和 `.env.example` 配置项完整性。完整模式还会运行 pytest 与 `pip check`。模式匹配不是完整的数据泄露防护，上传前仍应人工审阅暂存差异；已泄露的密钥需要撤销重置，不能只删除文件：
 
 ```powershell
 conda activate Smart_Healthcare

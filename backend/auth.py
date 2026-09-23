@@ -35,6 +35,7 @@ async def get_current_user(
             credentials.credentials,
             get_settings().secret_key,
             algorithms=[ALGORITHM],
+            options={"require_exp": True},
         )
         return UserContext.model_validate(payload)
     except (JWTError, ValueError, RuntimeError) as exc:

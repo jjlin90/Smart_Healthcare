@@ -1,5 +1,6 @@
 import asyncio
 import json
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -59,9 +60,11 @@ app.mount("/metrics", make_asgi_app())
 
 @app.middleware("http")
 async def prometheus_middleware(request, call_next):
-    path = request.url.path
-    with HTTP_LATENCY.labels(request.method, path).time():
-        response = await call_next(request)
+    started = time.perf_counter()
+    response = await call_next(request)
+    route = request.scope.get("route")
+    path = getattr(route, "path", "unmatched")
+    HTTP_LATENCY.labels(request.method, path).observe(time.perf_counter() - started)
     HTTP_REQUESTS.labels(request.method, path, str(response.status_code)).inc()
     return response
 
@@ -130,14 +133,16 @@ async def readiness(response: Response) -> dict[str, Any]:
 
     runtime_checks = {"database_connection": False, "session_store": False}
     try:
-        async with SessionLocal() as probe_db:
-            await probe_db.execute(text("SELECT 1"))
+        async with asyncio.timeout(2):
+            async with SessionLocal() as probe_db:
+                await probe_db.execute(text("SELECT 1"))
         runtime_checks["database_connection"] = True
-    except SQLAlchemyError:
+    except (SQLAlchemyError, TimeoutError):
         pass
     try:
-        runtime_checks["session_store"] = await conversation_memory.ping()
-    except RedisError:
+        async with asyncio.timeout(2):
+            runtime_checks["session_store"] = await conversation_memory.ping()
+    except (RedisError, TimeoutError):
         pass
     snapshot["runtime_checks"] = runtime_checks
     if not all(runtime_checks.values()):
@@ -296,6 +301,8 @@ async def chat_stream(
     async def event_stream():
         yield coordinator._event("session", {"conversation_id": conversation_id})
         answer_parts: list[str] = []
+        completion: dict[str, Any] = {}
+        received_done = False
         metadata: dict[str, Any] = {
             "intent": "",
             "agent": "",
@@ -318,9 +325,14 @@ async def chat_stream(
                 elif event_name == "delta":
                     answer_parts.append(str(data.get("text", "")))
                 elif event_name == "done":
+                    received_done = True
                     metadata.update(data)
+                    completion.update(data)
+                    continue  # Completion is acknowledged only after persistence.
                 yield coordinator._event(event_name, data)
 
+            if not received_done:
+                raise RuntimeError("Agent stream ended without completion")
             answer = "".join(answer_parts)
             stored_message = str(metadata.get("medical_request") or request.message)
             if metadata.get("persist_memory", True):
@@ -356,12 +368,15 @@ async def chat_stream(
                 "intent": metadata.get("intent"),
                 "agent": metadata.get("agent"),
             })
-        except (ConfigurationError, RuntimeError, httpx.HTTPError, RedisError, SQLAlchemyError, ValueError) as exc:
+            yield coordinator._event("done", {**completion, "conversation_id": conversation_id})
+        except Exception as exc:
+            # Translate SDK/transport failures at the SSE boundary too.
+            # CancelledError remains uncaught so disconnect cancellation propagates.
             try:
                 await conversation_memory.save_checkpoint(patient_id, conversation_id, {"phase": "failed", "error_type": type(exc).__name__})
             except RedisError:
                 pass
-            yield coordinator._event("error", {"message": f"真实 Agent 服务不可用：{exc}"})
+            yield coordinator._event("error", {"message": "临床辅助请求未完成，请稍后重试或联系管理员。", "error_type": type(exc).__name__})
 
     return StreamingResponse(
         event_stream(),

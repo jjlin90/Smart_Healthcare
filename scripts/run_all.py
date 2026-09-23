@@ -27,8 +27,10 @@ def main() -> None:
         [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "127.0.0.1", "--port", "8000"],
         [sys.executable, "-m", "streamlit", "run", "streamlit_app.py", "--server.address", "127.0.0.1", "--server.port", "8501", "--browser.gatherUsageStats", "false"],
     ]
-    processes = [subprocess.Popen(command, cwd=ROOT) for command in commands]
+    processes = []
     try:
+        for command in commands:
+            processes.append(subprocess.Popen(command, cwd=ROOT))
         while True:
             for command, process in zip(commands, processes, strict=True):
                 exit_code = process.poll()
