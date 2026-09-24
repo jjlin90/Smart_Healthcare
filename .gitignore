@@ -32,6 +32,7 @@ env/
 .conda/
 
 # Runtime state and local databases
+.mimosa/
 *.db
 *.db-*
 *.sqlite
@@ -46,6 +47,7 @@ temp/
 
 # Generated reports and private working artifacts
 artifacts/
+output/
 reports/
 locust*.csv
 locust*.html
@@ -66,8 +68,7 @@ mlruns/
 *.ckpt
 
 # Resume-generation helpers are unrelated to the deployable application
-scripts/build_revised_resume.py
-scripts/inspect_resume.py
+scripts/*resume*.py
 
 # IDE and operating-system files
 .idea/
