@@ -115,7 +115,7 @@ async def evaluate(cases: list[dict], dataset: Path | None = None) -> dict:
 async def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=Path, default=Path("evaluation/intent_eval.jsonl"))
-    parser.add_argument("--output", type=Path, default=Path("artifacts/intent_eval_report.json"))
+    parser.add_argument("--output", type=Path, default=Path("artifacts/intent_eval_tob_v3.json"))
     parser.add_argument("--limit", type=int)
     args = parser.parse_args()
     report = await evaluate(load_cases(args.dataset, args.limit), args.dataset)

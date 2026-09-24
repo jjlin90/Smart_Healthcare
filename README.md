@@ -1,6 +1,6 @@
 # MedAgent AI 医院内部临床辅助多 Agent 平台
 
-面向医院医生、药师、医务管理人员和信息科的私有化部署多服务项目，仅通过院内员工账号和授权患者范围进入业务链路。运行链路为：
+面向医院医生、药师、医务管理人员和信息科的院内多服务项目。工作台与对外 API 要求员工登录和授权患者范围；内部 A2A/MCP 服务当前仍依赖可信网络隔离，尚未独立验证调用方身份。应用服务可部署在院内；主模型通过配置的 SiliconFlow 云端接口调用，因此不能将整条推理链称为完全私有化部署。运行链路为：
 
 ```text
 Streamlit 工作台 → FastAPI/JWT/SSE → 急症规则 → 医疗范围守卫 → 四层意图识别 → 关键槽位澄清
@@ -14,7 +14,9 @@ Streamlit 工作台 → FastAPI/JWT/SSE → 急症规则 → 医疗范围守卫 
 
 系统没有医学 Mock 数据或规则式正常临床辅助回答。模型、A2A、MCP、医院接口或数据库未配置时会明确失败，不会生成伪造医学结果。紧急症状拦截属于安全规则，会在调用模型前提示拨打 120。
 
-项目讲解、面试追问、真实踩坑和生产化边界见 [MedAgent AI 多 Agent 项目话术](docs/MedAgent_AI_多Agent项目话术.md)。
+项目讲解、面试追问、真实踩坑和生产化边界见 [MedAgent AI 多 Agent 项目话术](docs/MedAgent_AI_多Agent项目话术.md)；旧模型清理、指标复核和待补强项见 [2026-09-24 核查记录](docs/audit-2026-09-24.md)。
+
+常用术语：Agent（智能体）、A2A（智能体间通信）、MCP（模型上下文协议）、JWT（身份令牌）、SSE（服务器发送事件）、BERT（双向编码器表示模型）、BGE-M3（文本向量模型）、HMAC（基于密钥的消息认证码）、TTL（过期时间）。更多缩写及中文含义见项目话术末尾的术语表。
 
 ## 文档要求对应
 
@@ -33,6 +35,8 @@ Streamlit 工作台 → FastAPI/JWT/SSE → 急症规则 → 医疗范围守卫 
 - 发布：Dockerfile、K8s stable/canary、10% NGINX Ingress 灰度和 HPA
 - 认证：院内员工工号 + PBKDF2 密码，预留医院 SSO/OIDC 对接边界
 - 授权：员工—患者访问关系、JWT、patient_id 服务端校验、审计日志和急诊拦截
+
+内部 A2A/MCP 端点目前没有独立的服务身份认证；若部署到多租户或不可信网络，必须在这些端点增加服务认证与授权，不能只依赖工作台入口的 JWT（身份令牌）。
 
 ## 配置
 
@@ -93,10 +97,16 @@ python scripts/build_intent_dataset.py
 
 ```powershell
 python scripts/calibrate_intent_vector.py
-python scripts/evaluate_intent.py --output artifacts/intent_eval_cascade_full.json
+python scripts/evaluate_intent.py --output artifacts/intent_eval_tob_v3.json
 ```
 
-意图体系已调整为十类院内任务，并重新生成 3,800 条 ToB 合成启动数据。`medical_intent_bert_tob_v3` 已从原始 `bert-base-chinese` 重新初始化分类头并训练；不符合当前十类标签集合的权重会被运行时拒绝加载。当前 `0.95` 阈值下，1,000 条合成测试集覆盖率为 98.8%、接受样本准确率为 100%；100 条否定/模糊单意图挑战集覆盖率为 24%、接受样本准确率为 100%，50 条分布外样本全部拒绝。向量层在 230 条残余挑战样本上以 `0.78` 阈值接受 10 条且均判断正确。以上只用于工程校准，不能外推为临床准确率。范围守卫会在意图分类前终止非院内工作请求。
+意图体系已调整为十类院内任务，并重新生成 3,800 条 ToB 合成启动数据。`medical_intent_bert_tob_v3` 已从原始 `bert-base-chinese` 重新初始化分类头并训练；不符合当前十类标签集合的权重会被运行时拒绝加载。当前 `0.95` 阈值下，1,000 条合成测试集覆盖率为 98.8%、接受样本准确率为 100%；100 条否定/模糊单意图挑战集覆盖率为 24%、接受样本准确率为 100%，50 条分布外样本全部拒绝。向量层在 236 条残余挑战样本上以 `0.78` 阈值接受 10 条且均判断正确。以上只用于工程校准，不能外推为临床准确率。范围守卫会在意图分类前终止非院内工作请求。
+
+在挑战集上复核已确定的 `0.78` 阈值（不要用该集重新调参）：
+
+```powershell
+python scripts/calibrate_intent_vector.py --dataset evaluation/datasets/intent_challenge.jsonl --thresholds 0.78
+```
 
 BERT 独立评测命令：
 
@@ -153,7 +163,7 @@ python -m compileall -q backend scripts streamlit_app.py
 意图回归评测：
 
 ```powershell
-python scripts/evaluate_intent.py --output artifacts/intent_eval_report.json
+python scripts/evaluate_intent.py --output artifacts/intent_eval_tob_v3.json
 ```
 
 当前 33 条工程回归集已迁移到纯 ToB 意图标签，并在当前模型与阈值下重新运行：严格匹配率、复杂任务标记准确率和 micro-F1 均为 100%，0 个运行错误（32 条由正则层完成，1 条由向量层完成）。该小型工程集只用于防回退，不代表临床泛化。300 用户 HTTP 入口压测命令和口径见 [压测说明](loadtests/README.md)。本地报告生成到已被 Git 忽略的 `artifacts/` 目录；该报告不代表完整 Agent 链路吞吐。

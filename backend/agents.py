@@ -284,7 +284,7 @@ mixed 必须只复制医疗片段，禁止改写、补充或生成原文不存�
             SCOPE_DECISIONS.labels(decision.scope, decision.source).inc()
             return decision
 
-        if PATIENT_SELF_SERVICE_CUE.search(text) and not re.search(r"(?:院内转诊|转科|转院|会诊|转诊单)", text):
+        if PATIENT_SELF_SERVICE_CUE.search(text):
             decision = ScopeDecision(scope="non_medical", reason="患者自助服务不属于院内临床辅助范围", source="rule")
             SCOPE_DECISIONS.labels(decision.scope, decision.source).inc()
             return decision
@@ -656,7 +656,7 @@ class Planner:
     def _synthesis_prompt(message: str, results: list[dict[str, Any]], profile: dict[str, Any]) -> str:
         return f"""你是 MedAgent 主助手。根据三个子 Agent 的真实工具结果汇总中文答复。
 硬性边界：不直接确诊；不推荐处方药剂量；出现紧急信号建议 120/急诊；引用指南必须带版本日期；末尾原样附上“{DISCLAIMER}”。
-患者问题（已脱敏）：{deidentify(message, profile)}
+院内员工请求（已脱敏）：{deidentify(message, profile)}
 子 Agent 结果：{json.dumps(deidentify_payload(results, profile), ensure_ascii=False)}"""
 
     @traceable(name="agent-planning", run_type="chain", process_inputs=_redact_trace_inputs, process_outputs=_redact_trace_outputs)
@@ -665,7 +665,7 @@ class Planner:
         prompt = f"""你是 MedAgent Planning Agent。只输出 JSON，格式为 {json.dumps({'steps':[{'agent':'SymptomAgent','task':'任务'}]}, ensure_ascii=False)}。
 按文档采用短任务链和串行 ReAct，每步只能分派给 SymptomAgent、DrugAgent、GuideAgent。不要加入无关步骤。
 已识别意图：{decision.intents}
-患者问题（已脱敏）：{deidentify(message, profile)}"""
+院内员工请求（已脱敏）：{deidentify(message, profile)}"""
         response = await clients.main.chat.completions.create(model=settings.siliconflow_model, messages=[{"role": "user", "content": prompt}], temperature=0, response_format={"type": "json_object"})
         try:
             candidate = ExecutionPlan.model_validate(_json_from_text(response.choices[0].message.content or ""))

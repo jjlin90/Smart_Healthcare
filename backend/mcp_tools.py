@@ -139,7 +139,7 @@ async def get_treatment_protocol(disease: str) -> dict[str, Any]:
     return await _hospital_post(get_settings().guideline_api_base_url, "/v1/protocols/query", {"disease": disease})
 
 
-@mcp.tool(annotations={"idempotentHint": True})
+@mcp.tool()
 async def save_patient_history(patient_id: str, history_data: dict[str, Any]) -> dict[str, Any]:
     """按 patient_id 将患者画像字段保存至院内数据库。"""
     async with SessionLocal() as db:

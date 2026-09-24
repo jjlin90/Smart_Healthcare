@@ -1,6 +1,8 @@
 # Kubernetes 灰度发布
 
-清单提供 stable/canary 两套 API Deployment、10% NGINX Ingress canary 权重、滚动更新、健康探针和 HPA。部署前必须替换镜像、域名和 Secret，占位值不得进入真实环境。
+清单提供 stable/canary（稳定版/金丝雀版）两套 API Deployment（应用部署对象）、10% NGINX Ingress（金丝雀入口）权重、滚动更新、健康探针和 HPA（水平自动扩缩容）。部署前必须替换镜像、域名和 Secret（密钥配置），占位值不得进入真实环境。
+
+当前内部 A2A/MCP 服务没有独立的调用方认证与患者级授权，清单本身也不提供网络策略；将其接入真实医院网络前，应增加服务身份认证、患者授权复核与限制可访问来源的网络策略。
 
 `support-services.yaml` 包含 Redis、MCP 和三个 A2A（Agent-to-Agent，智能体间通信）Agent；MySQL、本地 BERT/BGE（双向编码器表示/通用文本向量）推理资源与医院接口按院内已有基础设施接入，地址通过 Secret/ConfigMap 配置。DeepSeek 主模型访问配置的 SiliconFlow 兼容地址；生产应另行配置受控出网代理，当前清单不包含该代理。代码在出站前递归处理直接身份标识，但保留推理所需的症状等医疗内容；规则脱敏不等于完整匿名化，上云前仍需医院的数据授权及安全评审。
 

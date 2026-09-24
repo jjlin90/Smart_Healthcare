@@ -109,6 +109,8 @@ async def test_non_medical_request_is_rejected_before_a2a(monkeypatch):
     "我想预约明天下午的心内科门诊",
     "手机上怎么挂专家号",
     "帮我取消预约并办理退费",
+    "请帮患者预约挂号并生成转诊单",
+    "患者想预约心内科门诊并办理院内转诊",
 ])
 async def test_patient_self_service_is_out_of_scope(message):
     decision = await DomainGuard().assess(message)
