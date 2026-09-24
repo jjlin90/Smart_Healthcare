@@ -60,7 +60,7 @@ def main() -> int:
         default=Path("evaluation/datasets/intent_validation.jsonl"),
         help="独立验证集；传入空值不可用时才从训练集内部切分",
     )
-    parser.add_argument("--output", type=Path, default=Path("models/medical_intent_bert"))
+    parser.add_argument("--output", type=Path, default=Path("models/medical_intent_bert_tob_v3"))
     parser.add_argument("--epochs", type=int, default=8)
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--learning-rate", type=float, default=2e-5)
