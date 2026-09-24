@@ -170,7 +170,7 @@ python scripts/evaluate_intent.py --output artifacts/intent_eval_tob_v3.json
 
 ## GitHub 上传前检查
 
-仓库内置不依赖第三方扫描器的预检脚本，会分别扫描工作区候选文件和 Git 暂存内容中的疑似密钥，并检查忽略规则、私钥文件、超大文件、Python 语法和 `.env.example` 配置项完整性。完整模式还会运行 pytest 与 `pip check`。模式匹配不是完整的数据泄露防护，上传前仍应人工审阅暂存差异；已泄露的密钥需要撤销重置，不能只删除文件：
+仓库内置不依赖第三方扫描器的预检脚本，会分别扫描工作区候选文件和 Git 暂存内容中的疑似密钥，并检查忽略规则、私钥文件、超大文件、Python 语法和 `.env.example` 配置项完整性。预检还会拒绝跟踪 `output/`、`.mimosa/` 和本地简历生成脚本。完整模式还会运行 pytest 与 `pip check`。模式匹配不是完整的数据泄露防护，上传前仍应人工审阅暂存差异；已泄露的密钥需要撤销重置，不能只删除文件：
 
 ```powershell
 conda activate Smart_Healthcare
@@ -183,7 +183,7 @@ python scripts/preflight_git.py
 python scripts/preflight_git.py --quick
 ```
 
-执行一次 `python scripts/install_git_hooks.py` 可启用仓库内的 hooks：提交前运行快速检查，推送前运行完整检查。真实 `.env`、数据库、运行日志、模型权重、压测报告和简历产物均不会进入 Git。
+执行一次 `python scripts/install_git_hooks.py` 可启用仓库内的 hooks：提交前运行快速检查，推送前运行完整检查。真实 `.env`、数据库、运行日志、模型权重、压测报告、简历产物和 `.mimosa/` 运行状态应留在本地；`.gitignore` 与预检约束当前 Git 索引。预检会提示这些本地文件是否曾进入 Git 历史，但不审查历史内容或远端可见性。已经进入历史或远端的文件不会因后来取消跟踪而消失。
 
 启动监控服务：
 

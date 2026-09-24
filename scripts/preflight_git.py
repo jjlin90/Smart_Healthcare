@@ -19,6 +19,8 @@ FORBIDDEN_TRACKED_PARTS = {
     ".venv",
     "venv",
     "artifacts",
+    "output",
+    ".mimosa",
     "reports",
     "models",
     "checkpoints",
@@ -120,10 +122,10 @@ def git_paths(command: list[str], report: Report, label: str) -> list[Path]:
 
 
 def check_required_ignores(report: Report) -> None:
-    required = [Path(".env"), Path("medagent.db"), Path("artifacts")]
+    required = [Path(".env"), Path("medagent.db"), Path("artifacts"), Path("output"), Path(".mimosa")]
     missing: list[str] = []
     for relative in required:
-        result = run(["git", "check-ignore", "-q", "--", relative.as_posix()])
+        result = run(["git", "check-ignore", "-q", "--no-index", "--", relative.as_posix()])
         if result.returncode != 0:
             missing.append(relative.as_posix())
     if missing:
@@ -139,6 +141,7 @@ def check_forbidden_files(report: Report, tracked: list[Path]) -> None:
         lowered_parts = {part.lower() for part in relative.parts}
         if (
             relative.name.lower() in FORBIDDEN_TRACKED_NAMES
+            or (relative.parts[0] == "scripts" and "resume" in relative.name.lower() and relative.suffix.lower() == ".py")
             or relative.suffix.lower() in FORBIDDEN_SUFFIXES
             or lowered_parts.intersection(FORBIDDEN_TRACKED_PARTS)
         ):
@@ -147,6 +150,19 @@ def check_forbidden_files(report: Report, tracked: list[Path]) -> None:
         report.error("不应被 Git 跟踪的文件：" + ", ".join(sorted(problems)))
     else:
         report.ok("Git 索引中没有本地密钥、数据库、模型权重或生成产物")
+
+
+def check_history_artifacts(report: Report) -> None:
+    result = run([
+        "git", "log", "--all", "--format=", "--name-only", "--",
+        "output", ".mimosa", ":(glob)scripts/*resume*.py",
+    ])
+    if result.returncode != 0:
+        report.warning("无法核查 Git 历史中的本地生成产物")
+    elif result.stdout.strip():
+        report.warning("Git 历史包含简历或运行状态文件；取消跟踪不会删除既有提交，推送前需核查远端与历史")
+    else:
+        report.ok("Git 历史未发现简历或运行状态文件")
 
 
 def check_required_project_files_tracked(report: Report, tracked: list[Path]) -> None:
@@ -306,7 +322,10 @@ def print_report(report: Report) -> int:
     if report.errors:
         print(f"结论：不建议上传，存在 {len(report.errors)} 项失败。")
         return 1
-    print("结论：检查通过，可以进入提交/推送流程。")
+    if report.warnings:
+        print("结论：当前索引与工作区检查通过；上述历史风险仍需处理或确认。")
+    else:
+        print("结论：检查通过，可以进入提交/推送流程。")
     return 0
 
 
@@ -328,6 +347,7 @@ def main() -> int:
     tracked = git_paths(["git", "ls-files", "-z"], report, "已跟踪文件")
     check_required_ignores(report)
     check_forbidden_files(report, tracked)
+    check_history_artifacts(report)
     check_required_project_files_tracked(report, tracked)
     check_secret_content(report, candidates)
     check_index_content(report, tracked)
