@@ -132,7 +132,15 @@ def git_paths(command: list[str], report: Report, label: str) -> list[Path]:
 
 
 def check_required_ignores(report: Report) -> None:
-    required = [Path(".env"), Path("medagent.db"), Path("artifacts"), Path("output"), Path(".mimosa")]
+    # CI checks out only tracked files, so these directories may not exist.
+    # Probe a child path to verify the directory rule in either environment.
+    required = [
+        Path(".env"),
+        Path("medagent.db"),
+        Path("artifacts/__preflight_probe__"),
+        Path("output/__preflight_probe__"),
+        Path(".mimosa/__preflight_probe__"),
+    ]
     missing: list[str] = []
     for relative in required:
         result = run(["git", "check-ignore", "-q", "--no-index", "--", relative.as_posix()])
