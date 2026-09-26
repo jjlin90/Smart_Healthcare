@@ -19,12 +19,14 @@ STAFF_ROLES = ["doctor", "pharmacist", "medical_admin", "system_admin"]
 
 
 async def create(employee_id: str, username: str, role: str, patient_ids: list[str]) -> None:
+    if not 2 <= len(employee_id) <= 64 or not 1 <= len(username) <= 64 or role not in STAFF_ROLES:
+        raise SystemExit("员工工号、姓名长度或角色无效")
     patient_ids = list(dict.fromkeys(patient_ids))
     if role in CLINICAL_ROLES and not patient_ids:
         raise SystemExit("医生和药师至少需要一个已授权患者；可重复使用 --patient-id")
     password = getpass("院内员工账号密码（至少 8 位）：")
-    if len(password) < 8:
-        raise SystemExit("密码至少需要 8 位")
+    if not 8 <= len(password) <= 128:
+        raise SystemExit("密码长度需为 8 到 128 位")
     await init_db()
     async with SessionLocal() as db:
         exists = await db.scalar(select(User).where(User.employee_id == employee_id))

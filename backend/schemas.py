@@ -1,6 +1,7 @@
-from typing import Literal
+from typing import Annotated, Literal
+from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class StaffLoginRequest(BaseModel):
@@ -14,9 +15,11 @@ class TokenResponse(BaseModel):
 
 
 class ChatRequest(BaseModel):
+    request_id: str = Field(default_factory=lambda: uuid4().hex, min_length=8, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
     patient_id: str = Field(min_length=1, max_length=64)
     message: str = Field(min_length=1, max_length=2000)
-    conversation_id: str | None = None
+    conversation_id: str | None = Field(default=None, min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
+    approved_actions: list[Literal["save_patient_history", "save_medical_record", "generate_referral"]] = Field(default_factory=list, max_length=3)
 
 
 class UserContext(BaseModel):
@@ -26,10 +29,29 @@ class UserContext(BaseModel):
     legacy_patient_id: str | None = None
 
 
+ClinicalEntry = Annotated[str, Field(min_length=1, max_length=500)]
+
+
+class HistoryUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    allergies: list[ClinicalEntry] | None = Field(default=None, max_length=100)
+    conditions: list[ClinicalEntry] | None = Field(default=None, max_length=100)
+    medications: list[ClinicalEntry] | None = Field(default=None, max_length=100)
+
+
+class RecordWrite(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    title: str = Field(default="临床辅助任务", min_length=1, max_length=128)
+    input: dict = Field(default_factory=dict)
+    response: str = Field(min_length=1, max_length=16000)
+    intent: str = Field(default="辅助材料", max_length=32)
+    department: str | None = Field(default=None, max_length=64)
+
+
 class ProfileUpdate(BaseModel):
     name: str = Field(min_length=1, max_length=64)
     age: int = Field(ge=0, le=150)
     gender: str = Field(min_length=1, max_length=10)
-    allergies: list[str] = []
-    conditions: list[str] = []
-    medications: list[str] = []
+    allergies: list[ClinicalEntry] = Field(default_factory=list, max_length=100)
+    conditions: list[ClinicalEntry] = Field(default_factory=list, max_length=100)
+    medications: list[ClinicalEntry] = Field(default_factory=list, max_length=100)

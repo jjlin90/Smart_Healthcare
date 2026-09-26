@@ -1,0 +1,29 @@
+# Direct dependency versions verified on 2026-09-26 (Python 3.11).
+# Not a transitive hash lock; validate the target platform before release.
+fastapi==0.141.1
+uvicorn==0.53.0
+sqlalchemy==2.0.54
+alembic==1.20.0
+aiosqlite==0.22.1
+aiomysql==0.3.2
+httpx==0.28.1
+cachetools==7.2.0
+python-jose==3.5.0
+pydantic-settings==2.15.0
+python-multipart==0.0.32
+openai==3.16.2
+fastmcp==4.0.5
+python-a2a==0.5.10
+tenacity==9.1.4
+langchain==1.4.2
+langchain-openai==1.6.2
+langsmith==0.13.0
+streamlit==1.64.0
+pytest==9.1.1
+pytest-asyncio==1.4.0
+locust==2.46.6
+redis==8.1.0
+prometheus-client==0.26.0
+torch==2.14.0
+transformers==5.17.0
+sentence-transformers==6.1.0

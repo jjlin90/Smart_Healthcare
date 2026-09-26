@@ -1,4 +1,5 @@
 import asyncio
+import hashlib
 import json
 import time
 from contextlib import asynccontextmanager
@@ -7,7 +8,7 @@ from typing import Any
 from uuid import uuid4
 
 import httpx
-from fastapi import Depends, FastAPI, HTTPException, Response
+from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select, text
@@ -16,19 +17,31 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from prometheus_client import make_asgi_app
 from redis.exceptions import RedisError
 
-from backend.agents import ConfigurationError, _load_bert_bundle, _load_vector_bundle, coordinator
-from backend.auth import create_token, get_current_user, verify_password
+from backend.agents import ConfigurationError, _load_bert_bundle, _load_vector_bundle, coordinator, close_model_connections
+from backend.auth import create_token, get_current_user, verify_password, hash_password
 from backend.config import get_settings
-from backend.database import SessionLocal, get_db, init_db
+from backend.database import SessionLocal, get_db, init_db, engine
 from backend.memory import conversation_memory
-from backend.models import AuditLog, Consultation, PatientAccess, PatientProfile, User
+from backend.models import AuditLog, Consultation, PatientAccess, PatientProfile, User, ToolExecution
 from backend.observability import HTTP_LATENCY, HTTP_REQUESTS
 from backend.schemas import ChatRequest, ProfileUpdate, StaffLoginRequest, TokenResponse, UserContext
+from backend.access import active_staff, patient_ids, require_patient, require_write_role
+from backend.service_auth import delegated_context
+from backend.rate_limit import login_limiter
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    await init_db()
     settings = get_settings()
+    if settings.app_env == "production":
+        errors = settings.production_errors()
+        if errors:
+            raise RuntimeError("生产配置检查失败：" + "; ".join(errors))
+        async with SessionLocal() as db:
+            revision = await db.scalar(text("SELECT version_num FROM alembic_version"))
+            if revision != "20260926_02":
+                raise RuntimeError("请先执行 alembic upgrade head")
+    else:
+        await init_db()
     # Fail startup (and warm caches) when configured local model artifacts are
     # unreadable, instead of reporting readiness from path strings alone.
     if settings.intent_bert_model_path:
@@ -39,7 +52,13 @@ async def lifespan(_: FastAPI):
             settings.intent_vector_model_path,
             settings.intent_prototypes_path,
         )
-    yield
+    try:
+        yield
+    finally:
+        await close_model_connections()
+        await conversation_memory.close()
+        await login_limiter.close()
+        await engine.dispose()
 
 
 app = FastAPI(
@@ -47,6 +66,9 @@ app = FastAPI(
     description="MCP → A2A Agent → API Server medical consultation platform",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url=None if get_settings().app_env == "production" else "/docs",
+    redoc_url=None if get_settings().app_env == "production" else "/redoc",
+    openapi_url=None if get_settings().app_env == "production" else "/openapi.json",
 )
 app.add_middleware(
     CORSMiddleware,
@@ -83,6 +105,7 @@ def _health_snapshot() -> dict[str, Any]:
     core_checks = {
         "database": "YOUR_PASSWORD" not in settings.database_url,
         "jwt_secret": bool(settings.secret_key),
+        "service_auth": bool(settings.internal_service_secret),
         "main_model": bool(settings.siliconflow_api_key),
         "intent_bert": bool(settings.intent_bert_model_path) and Path(settings.intent_bert_model_path).is_dir(),
         "intent_vector": bool(settings.intent_vector_model_path) and Path(settings.intent_vector_model_path).is_dir(),
@@ -94,7 +117,6 @@ def _health_snapshot() -> dict[str, Any]:
         "drug_api": bool(settings.drug_api_base_url),
         "guideline_api": bool(settings.guideline_api_base_url),
         "lis_api": bool(settings.lis_api_base_url),
-        "emr_api": bool(settings.emr_api_base_url),
         "his_api": bool(settings.his_api_base_url),
     }
     if not all(core_checks.values()):
@@ -144,6 +166,18 @@ async def readiness(response: Response) -> dict[str, Any]:
             runtime_checks["session_store"] = await conversation_memory.ping()
     except (RedisError, TimeoutError):
         pass
+    async with httpx.AsyncClient(timeout=2.0) as client:
+        settings = get_settings()
+        async def probe(name, url):
+            try:
+                result = await client.get(url.rstrip("/") + "/health/live")
+                runtime_checks[name] = result.status_code == 200
+            except httpx.HTTPError:
+                runtime_checks[name] = False
+        await asyncio.gather(*(probe(name, url) for name, url in (
+            ("symptom_agent", settings.symptom_agent_url), ("drug_agent", settings.drug_agent_url),
+            ("guide_agent", settings.guide_agent_url), ("mcp", settings.mcp_server_url.rstrip("/").removesuffix("/mcp")),
+        )))
     snapshot["runtime_checks"] = runtime_checks
     if not all(runtime_checks.values()):
         snapshot["status"] = "not_ready"
@@ -153,18 +187,26 @@ async def readiness(response: Response) -> dict[str, Any]:
 
 STAFF_ROLES = {"doctor", "pharmacist", "medical_admin", "system_admin"}
 HOSPITAL_WIDE_PATIENT_ROLES = {"medical_admin"}
+_DUMMY_PASSWORD_HASH = hash_password("not-an-employee-password")
 
 
 @app.post("/api/auth/staff-login", response_model=TokenResponse)
-async def staff_login(request: StaffLoginRequest, db: AsyncSession = Depends(get_db)) -> TokenResponse:
+async def staff_login(request: StaffLoginRequest, http_request: Request, db: AsyncSession = Depends(get_db)) -> TokenResponse:
+    try:
+        allowed = await login_limiter.allow(request.employee_id, http_request.client.host if http_request.client else "unknown")
+    except RedisError as exc:
+        raise HTTPException(status_code=503, detail="登录限流服务暂不可用") from exc
+    if not allowed:
+        raise HTTPException(status_code=429, detail="登录尝试过于频繁，请稍后重试", headers={"Retry-After": str(get_settings().login_window_seconds)})
     user = await db.scalar(select(User).where(User.employee_id == request.employee_id, User.role.in_(STAFF_ROLES)))
-    if not user or not user.active or not verify_password(request.password, user.password_hash):
+    # PBKDF2 is CPU intensive; run it outside the API event loop.
+    valid = await asyncio.to_thread(verify_password, request.password, user.password_hash if user else _DUMMY_PASSWORD_HASH)
+    if not user or not user.active or not valid:
         raise HTTPException(status_code=401, detail="工号或密码错误")
     context = UserContext(
         username=user.username,
         user_id=user.user_id,
         role=user.role,
-        legacy_patient_id=user.patient_id,
     )
     return TokenResponse(access_token=create_token(context))
 
@@ -178,22 +220,11 @@ def parse_list(raw: str) -> list[str]:
 
 
 async def authorized_patient_ids(db: AsyncSession, user: UserContext) -> set[str] | None:
-    if user.role in HOSPITAL_WIDE_PATIENT_ROLES:
-        return None
-    values = set((await db.scalars(select(PatientAccess.patient_id).where(PatientAccess.user_id == user.user_id))).all())
-    if user.legacy_patient_id:
-        values.add(user.legacy_patient_id)
-    return values
+    return await patient_ids(db, user)
 
 
 async def require_profile(db: AsyncSession, user: UserContext, patient_id: str) -> PatientProfile:
-    allowed = await authorized_patient_ids(db, user)
-    if allowed is not None and patient_id not in allowed:
-        raise HTTPException(status_code=403, detail="当前员工无权访问该患者")
-    profile = await db.scalar(select(PatientProfile).where(PatientProfile.patient_id == patient_id))
-    if not profile:
-        raise HTTPException(status_code=404, detail="未找到患者档案")
-    return profile
+    return await require_patient(db, user, patient_id)
 
 
 @app.get("/api/patients")
@@ -237,6 +268,7 @@ async def update_profile(
     user: UserContext = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
+    require_write_role(user, "profile_updated")
     profile = await require_profile(db, user, patient_id)
     profile.name = request.name
     profile.age = request.age
@@ -286,20 +318,24 @@ async def chat_stream(
 ) -> StreamingResponse:
     patient_id = request.patient_id
     conversation_id = request.conversation_id or str(uuid4())
+    memory_id = json.dumps([user.user_id, conversation_id], separators=(",", ":"))
+    for action in request.approved_actions:
+        require_write_role(user, action)
     profile_model = await require_profile(db, user, patient_id)
     profile = {
         "allergies": parse_list(profile_model.allergy_history),
         "conditions": parse_list(profile_model.past_medical_history),
         "medications": parse_list(profile_model.current_medications),
     }
-    try:
-        history = await conversation_memory.get(patient_id, conversation_id)
-    except RedisError as exc:
-        raise HTTPException(status_code=503, detail="Redis 会话服务不可用") from exc
     agent_profile = {**profile, "name": profile_model.name, "patient_id": patient_id, "username": user.username}
 
-    async def event_stream():
-        yield coordinator._event("session", {"conversation_id": conversation_id})
+    async def run_events():
+        history = await conversation_memory.get(patient_id, memory_id)
+        checkpoint = await conversation_memory.get_checkpoint(patient_id, memory_id)
+        effective_message = request.message
+        if checkpoint and checkpoint.get("intent") == "需要澄清" and len(history) >= 2:
+            effective_message = f"前次院内任务：{history[-2]['content'][:1900]}\n本次补充：{request.message}"
+        yield coordinator._event("session", {"conversation_id": conversation_id, "request_id": request.request_id})
         answer_parts: list[str] = []
         completion: dict[str, Any] = {}
         received_done = False
@@ -312,16 +348,16 @@ async def chat_stream(
             "persist_consultation": True,
         }
         try:
-            await conversation_memory.save_checkpoint(patient_id, conversation_id, {"phase": "started"})
+            await conversation_memory.save_checkpoint(patient_id, memory_id, {"phase": "started"})
             async for event_name, data in coordinator.stream_native(
-                request.message,
+                effective_message,
                 patient_id,
                 agent_profile,
                 history,
             ):
                 if event_name == "meta":
                     metadata.update(data)
-                    await conversation_memory.save_checkpoint(patient_id, conversation_id, {"phase": "agents_completed", **metadata})
+                    await conversation_memory.save_checkpoint(patient_id, memory_id, {"phase": "agents_completed", **metadata})
                 elif event_name == "delta":
                     answer_parts.append(str(data.get("text", "")))
                 elif event_name == "done":
@@ -334,13 +370,12 @@ async def chat_stream(
             if not received_done:
                 raise RuntimeError("Agent stream ended without completion")
             answer = "".join(answer_parts)
-            stored_message = str(metadata.get("medical_request") or request.message)
-            if metadata.get("persist_memory", True):
-                await conversation_memory.append(patient_id, conversation_id, "user", stored_message)
-                await conversation_memory.append(patient_id, conversation_id, "assistant", answer)
+            stored_message = str(metadata.get("medical_request") or effective_message)
             # Do not hold a pool connection while model/A2A/SSE work is in
             # progress. Open a transaction only for the final durable writes.
             async with SessionLocal() as write_db:
+                current_user = await active_staff(write_db, user.user_id)
+                await require_profile(write_db, current_user, patient_id)
                 if metadata.get("persist_consultation", True):
                     write_db.add(Consultation(
                         patient_id=patient_id,
@@ -355,6 +390,7 @@ async def chat_stream(
                     action="agent_response" if metadata.get("persist_consultation", True) else "request_filtered",
                     detail=json.dumps({
                         "conversation_id": conversation_id,
+                        "request_id": request.request_id,
                         "staff_user_id": user.user_id,
                         "intent": metadata.get("intent"),
                         "agent": metadata.get("agent"),
@@ -363,7 +399,9 @@ async def chat_stream(
                     }, ensure_ascii=False),
                 ))
                 await write_db.commit()
-            await conversation_memory.save_checkpoint(patient_id, conversation_id, {
+            if metadata.get("persist_memory", True):
+                await conversation_memory.append_turn(patient_id, memory_id, stored_message, answer)
+            await conversation_memory.save_checkpoint(patient_id, memory_id, {
                 "phase": "completed",
                 "intent": metadata.get("intent"),
                 "agent": metadata.get("agent"),
@@ -373,13 +411,36 @@ async def chat_stream(
             # Translate SDK/transport failures at the SSE boundary too.
             # CancelledError remains uncaught so disconnect cancellation propagates.
             try:
-                await conversation_memory.save_checkpoint(patient_id, conversation_id, {"phase": "failed", "error_type": type(exc).__name__})
+                await conversation_memory.save_checkpoint(patient_id, memory_id, {"phase": "failed", "error_type": type(exc).__name__})
             except RedisError:
                 pass
             yield coordinator._event("error", {"message": "临床辅助请求未完成，请稍后重试或联系管理员。", "error_type": type(exc).__name__})
+
+    async def event_stream():
+        context = {"staff_id": user.user_id, "patient_id": patient_id, "approved_actions": request.approved_actions, "request_id": request.request_id}
+        try:
+            async with conversation_memory.turn(patient_id, memory_id):
+                with delegated_context(context):
+                    async with asyncio.timeout(get_settings().request_timeout_seconds):
+                        async for event in run_events():
+                            yield event
+        except Exception:
+            yield coordinator._event("error", {"message": "任务超时、会话繁忙或服务不可用，请核对任务状态后重试。"})
 
     return StreamingResponse(
         event_stream(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@app.get("/api/operations/{request_id}")
+async def operation_status(request_id: str, user: UserContext = Depends(get_current_user), db: AsyncSession = Depends(get_db)) -> list[dict]:
+    """Inspect only the caller's approved writes, after fresh patient authorization."""
+    operation_ids = [hashlib.sha256(json.dumps([user.user_id, request_id, name]).encode()).hexdigest() for name in ("save_patient_history", "save_medical_record", "generate_referral")]
+    rows = (await db.scalars(select(ToolExecution).where(ToolExecution.operation_id.in_(operation_ids), ToolExecution.staff_id == user.user_id))).all()
+    result = []
+    for row in rows:
+        await require_profile(db, user, row.patient_id)
+        result.append({"tool": row.tool_name, "status": row.status, "created_at": row.created_at})
+    return result

@@ -82,3 +82,16 @@ class Referral(Base):
     external_id: Mapped[str] = mapped_column(String(128), default="")
     status: Mapped[str] = mapped_column(String(32), default="待医生确认")
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
+
+
+class ToolExecution(Base):
+    __tablename__ = "tool_executions"
+
+    operation_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    argument_hash: Mapped[str] = mapped_column(String(64))
+    staff_id: Mapped[str] = mapped_column(String(64), index=True)
+    patient_id: Mapped[str] = mapped_column(String(64), index=True)
+    tool_name: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(16), default="pending")
+    result_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)

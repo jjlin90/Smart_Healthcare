@@ -69,6 +69,15 @@ mlruns/
 
 # Resume-generation helpers are unrelated to the deployable application
 scripts/*resume*.py
+*简历*.html
+*resume*.html
+*Resume*.html
+*.pdf
+*.docx
+*.doc
+*.bundle
+*.bak
+*.zip
 
 # IDE and operating-system files
 .idea/

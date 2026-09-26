@@ -14,13 +14,15 @@ import httpx
 from fastmcp import FastMCP
 from sqlalchemy import select
 from tenacity import AsyncRetrying, retry_if_exception, stop_after_attempt, wait_exponential
+from starlette.responses import JSONResponse
 
 from backend.config import get_settings
 from backend.database import SessionLocal
 from backend.models import AuditLog, Consultation, PatientProfile, Referral
 from backend.resilience import get_breaker
+from backend.mcp_security import DelegationVerifier, PatientAuthorization
 
-mcp = FastMCP("MedAgent Medical MCP Server", instructions="医疗工具返回仅供医生参考。")
+mcp = FastMCP("MedAgent Medical MCP Server", instructions="医疗工具返回仅供医生参考。", auth=DelegationVerifier(), middleware=[PatientAuthorization()], mask_error_details=True)
 
 EXTERNAL_TOOL_NAMES = [
     "analyze_symptoms", "suggest_department", "get_disease_info",
@@ -30,6 +32,11 @@ EXTERNAL_TOOL_NAMES = [
 ]
 INTERNAL_TOOL_NAMES = ["save_patient_history", "load_patient_history", "save_medical_record"]
 ALL_TOOL_NAMES = EXTERNAL_TOOL_NAMES + INTERNAL_TOOL_NAMES
+
+
+@mcp.custom_route("/health/live", methods=["GET"])
+async def liveness(request):
+    return JSONResponse({"status": "alive"})
 
 
 class HospitalAPIError(RuntimeError):
@@ -76,7 +83,7 @@ async def _hospital_post(base_url: str, path: str, payload: dict[str, Any], *, r
         reraise=True,
     ):
         with attempt:
-            return await get_breaker(f"hospital:{base_url}").call(request)
+            return await get_breaker(f"hospital:{base_url}").call(request, is_failure=_is_transient)
 
 
 @mcp.tool(annotations={"readOnlyHint": True, "openWorldHint": True})
@@ -142,6 +149,10 @@ async def get_treatment_protocol(disease: str) -> dict[str, Any]:
 @mcp.tool()
 async def save_patient_history(patient_id: str, history_data: dict[str, Any]) -> dict[str, Any]:
     """按 patient_id 将患者画像字段保存至院内数据库。"""
+    from backend.schemas import HistoryUpdate
+    history_data = HistoryUpdate.model_validate(history_data).model_dump(exclude_none=True)
+    if not history_data:
+        raise ValueError("必须提供至少一项病史字段")
     async with SessionLocal() as db:
         profile = await db.scalar(select(PatientProfile).where(PatientProfile.patient_id == patient_id))
         if not profile:
@@ -169,6 +180,8 @@ async def load_patient_history(patient_id: str) -> dict[str, Any]:
 @mcp.tool()
 async def save_medical_record(patient_id: str, record_data: dict[str, Any]) -> dict[str, Any]:
     """保存本次真实 Agent 院内临床辅助记录。"""
+    from backend.schemas import RecordWrite
+    record_data = RecordWrite.model_validate(record_data).model_dump()
     async with SessionLocal() as db:
         db.add(Consultation(patient_id=patient_id, title=str(record_data.get("title") or "临床辅助任务")[:128], symptoms=json.dumps(record_data.get("input", {}), ensure_ascii=False), response=str(record_data.get("response") or ""), intent=str(record_data.get("intent") or "未知")[:32], suggested_department=record_data.get("department")))
         await db.commit()
@@ -178,7 +191,11 @@ async def save_medical_record(patient_id: str, record_data: dict[str, Any]) -> d
 @mcp.tool()
 async def generate_referral(patient_id: str, department: str, reason: str) -> dict[str, Any]:
     """在 HIS 生成待医生确认的转诊单并记录编号。"""
-    result = await _hospital_post(get_settings().his_api_base_url, "/v1/referrals", {"patient_id": patient_id, "department": department, "reason": reason}, retry_safe=False)
+    if not department.strip() or len(department) > 64 or not reason.strip() or len(reason) > 4000:
+        raise ValueError("转诊科室或原因无效")
+    result = await _hospital_post(get_settings().his_api_base_url, "/v1/referrals", {"patient_id": patient_id, "department": department, "reason": reason, "require_confirmation": True}, retry_safe=False)
+    if not result.get("referral_id") or result.get("status") not in {"pending_confirmation", "draft", "待医生确认"}:
+        raise ValueError("HIS 未确认转诊草稿编号或待确认状态，请核对下游结果")
     async with SessionLocal() as db:
         referral = Referral(patient_id=patient_id, department=department, reason=reason, external_id=str(result.get("referral_id", "")), status="待医生确认")
         db.add(referral); await db.commit(); await db.refresh(referral)
@@ -189,10 +206,13 @@ if __name__ == "__main__":
     # The banner performs an optional version-cache write. Disabling it keeps
     # the service runnable in locked-down hospital hosts without changing MCP.
     settings = get_settings()
+    from backend.service_auth import validate_service_secret
+    validate_service_secret()
     mcp.run(
         transport="http",
         host=settings.mcp_host,
         port=settings.mcp_port,
         path="/mcp",
         show_banner=False,
+        stateless_http=True,
     )

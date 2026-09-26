@@ -15,7 +15,11 @@ def upgrade() -> None:
     inspector = sa.inspect(bind)
     tables = set(inspector.get_table_names())
     if not {"users", "patient_profiles"}.issubset(tables):
-        # Empty installations are created from current SQLAlchemy metadata when the API starts.
+        if tables - {"alembic_version"}:
+            raise RuntimeError("数据库结构不完整，请先核对已有表并备份")
+        from backend.database import Base
+        from backend import models  # noqa: F401
+        Base.metadata.create_all(bind)
         return
 
     if "patient_access" not in tables:

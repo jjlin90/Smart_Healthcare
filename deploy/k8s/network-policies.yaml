@@ -1,0 +1,93 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: medagent-api-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: medagent-api
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          medagent-gateway-access: 'true'
+    - namespaceSelector:
+        matchLabels:
+          medagent-metrics-access: 'true'
+    ports:
+    - protocol: TCP
+      port: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: medagent-a2a-ingress
+spec:
+  podSelector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - symptom-agent
+      - drug-agent
+      - guide-agent
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: medagent-api
+    ports:
+    - protocol: TCP
+      port: 8011
+    - protocol: TCP
+      port: 8012
+    - protocol: TCP
+      port: 8013
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: medagent-mcp-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: medagent-mcp
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - medagent-api
+          - symptom-agent
+          - drug-agent
+          - guide-agent
+    ports:
+    - protocol: TCP
+      port: 8002
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: medagent-redis-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: redis
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: medagent-api
+    ports:
+    - protocol: TCP
+      port: 6379

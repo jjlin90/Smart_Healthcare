@@ -1,6 +1,6 @@
 # MedAgent AI 医院内部临床辅助多 Agent 平台
 
-面向医院医生、药师、医务管理人员和信息科的院内多服务项目。工作台与对外 API 要求员工登录和授权患者范围；内部 A2A/MCP 服务当前仍依赖可信网络隔离，尚未独立验证调用方身份。应用服务可部署在院内；主模型通过配置的 SiliconFlow 云端接口调用，因此不能将整条推理链称为完全私有化部署。运行链路为：
+面向医院医生、药师、医务管理人员和信息科的院内多服务项目。工作台与对外 API 要求员工登录和授权患者范围；内部 A2A/MCP 服务验证短期签名委托，并在执行前复核员工状态、患者和工具范围。应用服务可部署在院内；主模型通过配置的 SiliconFlow 云端接口调用，因此不能将整条推理链称为完全私有化部署。运行链路为：
 
 ```text
 Streamlit 工作台 → FastAPI/JWT/SSE → 急症规则 → 医疗范围守卫 → 四层意图识别 → 关键槽位澄清
@@ -9,12 +9,12 @@ Streamlit 工作台 → FastAPI/JWT/SSE → 急症规则 → 医疗范围守卫 
                                   ↓ A2A
              SymptomAgent / DrugAgent / GuideAgent
                                   ↓ MCP
-          HIS / 药品库 / 指南库 / LIS / EMR / MySQL
+          HIS / 药品库 / 指南库 / LIS / MySQL
 ```
 
-系统没有医学 Mock 数据或规则式正常临床辅助回答。模型、A2A、MCP、医院接口或数据库未配置时会明确失败，不会生成伪造医学结果。紧急症状拦截属于安全规则，会在调用模型前提示拨打 120。
+系统没有医学 Mock 数据或规则式正常临床辅助回答。模型、A2A、MCP、医院接口或数据库未配置时会明确失败，不会生成伪造医学结果。紧急症状拦截属于安全规则，会在调用模型前提示医务人员启动院内急救流程。
 
-项目讲解、面试追问、真实踩坑和生产化边界见 [MedAgent AI 多 Agent 项目话术](docs/MedAgent_AI_多Agent项目话术.md)；旧模型清理、指标复核和待补强项见 [2026-09-24 核查记录](docs/audit-2026-09-24.md)。
+项目讲解、面试追问、真实踩坑和生产化边界见 [MedAgent AI 多 Agent 项目话术](docs/MedAgent_AI_多Agent项目话术.md)；最新修复与验证见 [2026-09-26 核查记录](docs/audit-2026-09-26.md)，真实上线条件见 [生产验收清单](docs/production-readiness.md)。
 
 常用术语：Agent（智能体）、A2A（智能体间通信）、MCP（模型上下文协议）、JWT（身份令牌）、SSE（服务器发送事件）、BERT（双向编码器表示模型）、BGE-M3（文本向量模型）、HMAC（基于密钥的消息认证码）、TTL（过期时间）。更多缩写及中文含义见项目话术末尾的术语表。
 
@@ -32,11 +32,11 @@ Streamlit 工作台 → FastAPI/JWT/SSE → 急症规则 → 医疗范围守卫 
 - 记忆：Redis 多实例会话/阶段 checkpoint（未配置时使用本地 TTLCache）+ MySQL 长期档案/临床辅助记录
 - Agent 上下文：专科 Agent 无独立长期记忆，每次运行接收同一患者会话的只读快照；运行上下文和工具调用指纹按 Agent 任务隔离，协调器去重计划并只在最终答复后统一写回会话
 - 可观测：Prometheus 指标、Grafana 数据源和隐藏医疗输入/输出的 LangSmith trace
-- 发布：Dockerfile、K8s stable/canary、10% NGINX Ingress 灰度和 HPA
+- 发布参考：Dockerfile、K8s stable/canary（稳定版/金丝雀版）、Gateway API（网关接口）90/10 权重与 HPA（水平自动扩缩容）；未执行部署
 - 认证：院内员工工号 + PBKDF2 密码，预留医院 SSO/OIDC 对接边界
 - 授权：员工—患者访问关系、JWT、patient_id 服务端校验、审计日志和急诊拦截
 
-内部 A2A/MCP 端点目前没有独立的服务身份认证；若部署到多租户或不可信网络，必须在这些端点增加服务认证与授权，不能只依赖工作台入口的 JWT（身份令牌）。
+内部服务使用独立 `INTERNAL_SERVICE_SECRET`，校验令牌有效期、目标服务和委托范围。生产仍需 TLS 或 mTLS、网络策略和密钥轮换；共享服务密钥不能抵御已经取得该密钥的服务主体。
 
 ## 配置
 
@@ -50,11 +50,11 @@ Streamlit 工作台 → FastAPI/JWT/SSE → 急症规则 → 医疗范围守卫 
 - `INTENT_VECTOR_MODEL_PATH`：本地 BGE-M3 / SentenceTransformer 模型目录
 - `INTENT_BERT_THRESHOLD`、`INTENT_VECTOR_THRESHOLD`、`INTENT_VECTOR_MARGIN`
 - `DATABASE_URL` 与 MySQL Docker 参数
-- `DRUG_API_BASE_URL`、`GUIDELINE_API_BASE_URL`、`LIS_API_BASE_URL`、`EMR_API_BASE_URL`、`HIS_API_BASE_URL`
+- `DRUG_API_BASE_URL`、`GUIDELINE_API_BASE_URL`、`LIS_API_BASE_URL`、`HIS_API_BASE_URL`
 - `HOSPITAL_APP_KEY`、`HOSPITAL_APP_SECRET`
-- 高强度随机 `SECRET_KEY`
+- 两个不同的高强度随机密钥 `SECRET_KEY` 和 `INTERNAL_SERVICE_SECRET`，生产各至少 32 字符
 
-可选生产配置包括 `REDIS_URL`、`LANGSMITH_API_KEY`、`LANGSMITH_TRACING` 与 `GRAFANA_ADMIN_PASSWORD`。LangSmith 仅记录经过处理的外层步骤摘要；LangChain 子运行已在代码中关闭远端追踪，避免上传工具参数、Observation、患者原文、患者 ID 和医疗答复。
+生产需要 `APP_ENV=production`、共享 `REDIS_URL`、MySQL、HTTPS 医院接口及经过医院批准的 `CLOUD_LLM_ALLOWED=true`。`LANGSMITH_API_KEY`、`LANGSMITH_TRACING` 与 `GRAFANA_ADMIN_PASSWORD` 按实际监控启用；默认关闭远端追踪。LangSmith 仅记录经过处理的外层步骤摘要；LangChain 子运行已在代码中关闭远端追踪，避免上传工具参数、Observation、患者原文、患者 ID 和医疗答复。
 
 检查配置：
 
@@ -69,7 +69,7 @@ python scripts/check_config.py
 
 ```powershell
 conda activate Smart_Healthcare
-python -m pip install -r requirements.txt
+python -m pip install -r requirements.txt -c constraints.txt
 ```
 
 首次使用前，基于本地 `bert-base-chinese` 训练当前项目的十类医疗意图分类头。仓库提供 3,800 条可复现的合成启动数据：训练 2,000 条、验证 400 条、测试 1,000 条、专项挑战 400 条；数据生成脚本会检查类别平衡和跨集合精确重复。合成数据只用于启动训练和工程回归，正式指标仍需独立人工复核的匿名真实测试集：
@@ -89,7 +89,7 @@ python scripts/train_intent_bert.py `
 python scripts/build_intent_dataset.py
 ```
 
-`python scripts/check_config.py` 只检查本地核心链路，医院接口未配置时会给出提示但不阻止启动；生产联调前使用 `python scripts/check_config.py --strict`，要求 HIS/LIS/EMR、药品和指南服务全部配置。未配置的真实工具会明确失败，不会用模拟医学数据兜底。
+`python scripts/check_config.py` 只检查本地核心链路，医院接口未配置时会给出提示但不阻止启动；生产联调前使用 `python scripts/check_config.py --strict`，要求 HIS/LIS、药品和指南服务全部配置。未配置的真实工具会明确失败，不会用模拟医学数据兜底。
 
 向量层从独立的 `evaluation/intent_prototypes.jsonl` 加载单意图样本作为版本化原型，避免与 `evaluation/intent_eval.jsonl` 回归集直接重合造成数据泄漏；使用 `INTENT_VECTOR_MODEL_PATH` 指向的本地 SentenceTransformer 模型计算余弦相似度。多意图提示、低置信度和冲突样本会进入 SiliconFlow 主模型兜底。该级联提高覆盖率，但不承诺所有真实表达都能 100% 正确分类。
 
@@ -117,7 +117,7 @@ python scripts/evaluate_intent_bert.py --model models\medical_intent_bert_tob_v3
 
 ```powershell
 conda activate Smart_Healthcare
-python -m pip install -r requirements.txt
+python -m pip install -r requirements.txt -c constraints.txt
 docker compose up -d mysql
 docker compose up -d redis
 python -m alembic upgrade head
@@ -149,7 +149,15 @@ python scripts/upsert_patient.py --patient-id patient_001 --name patient_name --
 python scripts/create_staff.py --employee-id D10086 --username doctor_name --role doctor --patient-id patient_001
 ```
 
-生产环境中员工账号应接入医院统一身份认证，患者访问授权由 HIS/EMR 动态下发；服务端会在读取档案、历史记录和执行 Agent 前再次校验授权范围。
+生产的统一身份认证和 HIS/EMR 动态授权需按医院契约另行对接，当前使用本地员工及授权表。API、A2A 和 MCP 均重新核对实时权限；医务管理员为医院级读取角色，写工具仅对已确认动作及允许的临床角色开放。
+
+## 写操作与会话安全
+
+界面每次请求单独勾选病史保存、辅助材料保存或转诊创建；切换患者和新建任务会清除勾选。医生/药师可保存内部材料，转诊只允许医生。确认只绑定动作范围，不是最终参数逐项审批。
+
+`request_id` 与员工、工具组成持久化操作键，同键同参数复用完成结果，冲突或未知状态拒绝重放。异常后用 `GET /api/operations/{request_id}` 核对本人写操作；下游 HIS 没有契约保证时不声称全局恰好一次。
+
+会话按员工、患者、会话隔离，整轮锁防止并发覆盖；数据库提交、消息成对写入、阶段保存后发送 SSE 完成事件。默认整轮 120 秒、模型单次 30 秒、输出 2,048 词元；没有工具证据或存在工具失败时不返回正常临床结论。
 
 ## 验证
 
@@ -194,3 +202,5 @@ docker compose --profile observability up -d prometheus grafana
 ## 重要边界
 
 本项目不会自行提供处方剂量，也不会把模型输出当作确诊结果。医院 API 字段结构需要按甲方 OpenAPI 文档对 `backend/mcp_tools.py` 中的路径与字段映射做最后适配；在这些真实接口尚未提供前，对应功能会返回“接口未配置”，不会使用假数据替代。
+
+EMR 配置曾是未调用的预留项，现已删除。14 个工具中没有独立 EMR 连接器；报告工具对接 LIS，正式电子病历写入、影像识别与参数级审批需按医院需求独立验收。

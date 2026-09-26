@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, AsyncIterator, Literal
+from weakref import WeakKeyDictionary
 
 from langchain.agents import create_agent
 from langchain.agents.middleware import ModelCallLimitMiddleware, ToolCallLimitMiddleware
@@ -19,10 +20,13 @@ from langsmith import traceable, tracing_context
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field
 from python_a2a import A2AClient
+from fastmcp import Client as MCPClient
 
 from backend.config import get_settings
 from backend.observability import AGENT_CALLS, AGENT_LATENCY, MCP_TOOL_CALLS, SCOPE_DECISIONS
 from backend.resilience import get_breaker
+from backend.service_auth import issue_delegation, request_context
+from backend.access import WRITE_TOOLS
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +109,7 @@ class IntentDecision(BaseModel):
 
 class PlanStep(BaseModel):
     agent: Literal["SymptomAgent", "DrugAgent", "GuideAgent"]
-    task: str = Field(min_length=1, max_length=1000)
+    task: str = Field(min_length=1, max_length=4000)
 
 
 class ExecutionPlan(BaseModel):
@@ -145,7 +149,7 @@ def deidentify_payload(value: Any, profile: dict[str, Any] | None = None) -> Any
     }
     if isinstance(value, dict):
         return {
-            key: "[已脱敏]" if key.lower() in protected_keys else deidentify_payload(item, profile)
+            key: "[已脱敏]" if str(key).lower() in protected_keys else deidentify_payload(item, profile)
             for key, item in value.items()
         }
     if isinstance(value, list):
@@ -163,12 +167,25 @@ def _json_from_text(text: str) -> dict[str, Any]:
     return json.loads(match.group(0))
 
 
+_model_connections = WeakKeyDictionary()
+
+
+async def close_model_connections() -> None:
+    clients = _model_connections.pop(asyncio.get_running_loop(), {})
+    for client in clients.values():
+        await client.close()
+
+
 class ModelClients:
     def __init__(self) -> None:
         settings = get_settings()
         if not settings.siliconflow_api_key:
             raise ConfigurationError("SILICONFLOW_API_KEY 未配置")
-        self.main = AsyncOpenAI(api_key=settings.siliconflow_api_key, base_url=settings.siliconflow_base_url)
+        connections = _model_connections.setdefault(asyncio.get_running_loop(), {})
+        key = (settings.siliconflow_api_key, settings.siliconflow_base_url, settings.model_timeout_seconds)
+        if key not in connections:
+            connections[key] = AsyncOpenAI(api_key=settings.siliconflow_api_key, base_url=settings.siliconflow_base_url, timeout=settings.model_timeout_seconds, max_retries=0)
+        self.main = connections[key]
 
 
 INTENT_REGEX_RULES: dict[str, tuple[str, ...]] = {
@@ -554,7 +571,7 @@ class IntentClassifier:
 6. 明确要求多个不同交付物时返回多个意图。
 
 JSON 字段：intents、complex_task、normalized_terms、reason。
-用户输入：{message}"""
+用户输入：{deidentify(message)}"""
         response = await clients.main.chat.completions.create(
             model=settings.siliconflow_model,
             messages=[{"role": "user", "content": prompt}],
@@ -655,7 +672,7 @@ class Planner:
     @staticmethod
     def _synthesis_prompt(message: str, results: list[dict[str, Any]], profile: dict[str, Any]) -> str:
         return f"""你是 MedAgent 主助手。根据三个子 Agent 的真实工具结果汇总中文答复。
-硬性边界：不直接确诊；不推荐处方药剂量；出现紧急信号建议 120/急诊；引用指南必须带版本日期；末尾原样附上“{DISCLAIMER}”。
+硬性边界：不直接确诊；不推荐处方药剂量；出现紧急信号提示医务人员启动院内急救流程；引用指南必须带版本日期；末尾原样附上“{DISCLAIMER}”。
 院内员工请求（已脱敏）：{deidentify(message, profile)}
 子 Agent 结果：{json.dumps(deidentify_payload(results, profile), ensure_ascii=False)}"""
 
@@ -666,7 +683,7 @@ class Planner:
 按文档采用短任务链和串行 ReAct，每步只能分派给 SymptomAgent、DrugAgent、GuideAgent。不要加入无关步骤。
 已识别意图：{decision.intents}
 院内员工请求（已脱敏）：{deidentify(message, profile)}"""
-        response = await clients.main.chat.completions.create(model=settings.siliconflow_model, messages=[{"role": "user", "content": prompt}], temperature=0, response_format={"type": "json_object"})
+        response = await clients.main.chat.completions.create(model=settings.siliconflow_model, messages=[{"role": "user", "content": prompt}], temperature=0, max_tokens=settings.model_max_tokens, response_format={"type": "json_object"})
         try:
             candidate = ExecutionPlan.model_validate(_json_from_text(response.choices[0].message.content or ""))
         except (ValueError, TypeError) as exc:
@@ -678,7 +695,7 @@ class Planner:
     async def synthesize(self, message: str, results: list[dict[str, Any]], profile: dict[str, Any]) -> str:
         clients = ModelClients(); settings = get_settings()
         prompt = self._synthesis_prompt(message, results, profile)
-        response = await clients.main.chat.completions.create(model=settings.siliconflow_model, messages=[{"role": "user", "content": prompt}], temperature=0.2)
+        response = await clients.main.chat.completions.create(model=settings.siliconflow_model, messages=[{"role": "user", "content": prompt}], temperature=0.2, max_tokens=settings.model_max_tokens)
         answer = response.choices[0].message.content or ""
         return answer if DISCLAIMER in answer else f"{answer}\n\n{DISCLAIMER}"
 
@@ -696,13 +713,17 @@ class Planner:
             messages=[{"role": "user", "content": self._synthesis_prompt(message, results, profile)}],
             temperature=0.2,
             stream=True,
+            max_tokens=settings.model_max_tokens,
         )
         full_answer: list[str] = []
-        async for chunk in stream:
-            delta = chunk.choices[0].delta.content if chunk.choices else None
-            if delta:
-                full_answer.append(delta)
-                yield delta
+        try:
+            async for chunk in stream:
+                delta = chunk.choices[0].delta.content if chunk.choices else None
+                if delta:
+                    full_answer.append(delta)
+                    yield delta
+        finally:
+            await stream.close()
         if DISCLAIMER not in "".join(full_answer):
             yield f"\n\n{DISCLAIMER}"
 
@@ -738,10 +759,17 @@ class MCPToolAgent:
             base_url=settings.siliconflow_base_url,
             temperature=0.1,
             max_retries=0,
+            timeout=settings.model_timeout_seconds,
+            max_tokens=settings.model_max_tokens,
         )
 
-        async with MCPAdapter(settings.mcp_server_url) as adapter:
-            discovered = [tool for tool in await adapter.list_tools() if tool.name in AGENT_TOOLS[self.name]]
+        context = request_context.get() or {}
+        approved = set(context.get("approved_actions", []))
+        allowed_tools = [name for name in AGENT_TOOLS[self.name] if name not in WRITE_TOOLS or name in approved]
+        token = issue_delegation("medagent-mcp", self.name, allowed_tools)
+        client = MCPClient(settings.mcp_server_url, auth=token, timeout=settings.model_timeout_seconds)
+        async with MCPAdapter(client) as adapter:
+            discovered = [tool for tool in await adapter.list_tools() if tool.name in allowed_tools]
             protected_tools: list[StructuredTool] = []
             for source_tool in discovered:
                 async def invoke_tool(_source=source_tool, **kwargs: Any) -> str:
@@ -777,7 +805,8 @@ class MCPToolAgent:
                         trace.append({"agent": self.name, "tool": _source.name, "status": "failed"})
                         MCP_TOOL_CALLS.labels(self.name, _source.name, "failed").inc()
                         return json.dumps({
-                            "error": str(exc),
+                            "error": "工具调用失败",
+                            "error_type": type(exc).__name__,
                             "instruction": "真实数据源调用失败，禁止编造结果",
                         }, ensure_ascii=False)
 
@@ -807,6 +836,8 @@ class MCPToolAgent:
                     config={"recursion_limit": settings.agent_max_iterations * 2 + 1},
                 )
 
+        if not any(item["status"] == "completed" for item in trace) or any(item["status"] == "failed" for item in trace):
+            raise RuntimeError("工具证据不完整，无法形成临床辅助结论")
         final_message = result["messages"][-1]
         content = final_message.content
         if isinstance(content, list):
@@ -828,7 +859,11 @@ class MedicalCoordinator:
         settings = get_settings()
         urls = {"SymptomAgent": settings.symptom_agent_url, "DrugAgent": settings.drug_agent_url, "GuideAgent": settings.guide_agent_url}
         async def request() -> dict[str, Any]:
-            raw = await asyncio.to_thread(A2AClient(urls[agent_name]).ask, json.dumps(payload, ensure_ascii=False))
+            token = issue_delegation(f"medagent-a2a:{agent_name}", agent_name, AGENT_TOOLS[agent_name])
+            def call_sync():
+                client = A2AClient(urls[agent_name], headers={"Authorization": f"Bearer {token}"}, timeout=settings.request_timeout_seconds)
+                return client.ask(json.dumps(payload, ensure_ascii=False))
+            raw = await asyncio.to_thread(call_sync)
             parsed = json.loads(raw)
             if not isinstance(parsed, dict):
                 raise RuntimeError(f"{agent_name} 返回格式错误")
@@ -852,7 +887,7 @@ class MedicalCoordinator:
 
     async def run(self, message: str, patient_id: str, profile: dict[str, Any], history: list[dict[str, str]] | None = None) -> AgentResult:
         if any(word in message for word in EMERGENCY_WORDS):
-            return AgentResult(intent="症状评估", agent="SafetyBoundary", answer=f"检测到可能的紧急症状，请立即拨打 120 或前往最近的急诊科。\n\n{DISCLAIMER}", department="急诊科", trace=[{"agent": "SafetyBoundary", "tool": "emergency_triage", "status": "completed"}], cards=[{"type": "emergency", "title": "立即就医", "content": "拨打 120 或前往急诊科"}])
+            return AgentResult(intent="症状评估", agent="SafetyBoundary", answer=f"检测到高风险症状，请立即通知责任医生并启动院内急救流程，按医院规范联系急诊或急救团队。\n\n{DISCLAIMER}", department="急诊科", trace=[{"agent": "SafetyBoundary", "tool": "emergency_triage", "status": "completed"}], cards=[{"type": "emergency", "title": "启动院内急救", "content": "通知责任医生，联系院内急救团队"}])
         scope = await DomainGuard().assess(message, profile)
         if scope.scope == "non_medical":
             return AgentResult(
@@ -872,7 +907,7 @@ class MedicalCoordinator:
             )
 
         medical_message = scope.medical_request or message
-        decision = await IntentClassifier().classify(medical_message)
+        decision = await IntentClassifier().classify(deidentify(medical_message, profile))
         readiness = TaskReadinessGuard.assess(medical_message, decision)
         if not readiness.ready:
             return AgentResult(
@@ -911,10 +946,10 @@ class MedicalCoordinator:
     ) -> AsyncIterator[tuple[str, dict[str, Any]]]:
         """Run the Agent chain and stream the final model response as native deltas."""
         if any(word in message for word in EMERGENCY_WORDS):
-            answer = f"检测到可能的紧急症状，请立即拨打 120 或前往最近的急诊科。\n\n{DISCLAIMER}"
+            answer = f"检测到高风险症状，请立即通知责任医生并启动院内急救流程，按医院规范联系急诊或急救团队。\n\n{DISCLAIMER}"
             yield "meta", {"intent": "症状评估", "agent": "SafetyBoundary", "stream_mode": "deterministic_safety"}
             yield "trace", {"agent": "SafetyBoundary", "tool": "emergency_triage", "status": "completed"}
-            yield "card", {"type": "emergency", "title": "立即就医", "content": "拨打 120 或前往急诊科"}
+            yield "card", {"type": "emergency", "title": "启动院内急救", "content": "通知责任医生，联系院内急救团队"}
             yield "delta", {"text": answer}
             yield "done", {"department": "急诊科", "disclaimer": DISCLAIMER}
             return
@@ -936,7 +971,7 @@ class MedicalCoordinator:
             return
 
         medical_message = scope.medical_request or message
-        decision = await IntentClassifier().classify(medical_message)
+        decision = await IntentClassifier().classify(deidentify(medical_message, profile))
         readiness = TaskReadinessGuard.assess(medical_message, decision)
         if not readiness.ready:
             answer = readiness.question or CLARIFICATION_REPLY

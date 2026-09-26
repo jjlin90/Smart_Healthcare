@@ -5,41 +5,75 @@ metadata:
 spec:
   replicas: 1
   selector:
-    matchLabels: {app: redis}
+    matchLabels:
+      app: redis
   template:
     metadata:
-      labels: {app: redis}
+      labels:
+        app: redis
     spec:
       containers:
-        - name: redis
-          image: redis:7.4-alpine
-          args: ["redis-server", "--appendonly", "yes"]
-          ports: [{containerPort: 6379}]
-          readinessProbe:
-            exec: {command: ["redis-cli", "ping"]}
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          volumeMounts: [{name: data, mountPath: /data}]
-      volumes:
+      - name: redis
+        image: redis:7.4-alpine
+        args:
+        - redis-server
+        - --appendonly
+        - 'yes'
+        ports:
+        - containerPort: 6379
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
         - name: data
-          persistentVolumeClaim: {claimName: redis-data}
+          mountPath: /data
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: '1'
+            memory: 1Gi
+        livenessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          periodSeconds: 15
+          timeoutSeconds: 3
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: redis-data
+      automountServiceAccountToken: false
+  strategy:
+    type: Recreate
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: redis-data
 spec:
-  accessModes: [ReadWriteOnce]
+  accessModes:
+  - ReadWriteOnce
   resources:
-    requests: {storage: 5Gi}
+    requests:
+      storage: 5Gi
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: redis
 spec:
-  selector: {app: redis}
-  ports: [{port: 6379, targetPort: 6379}]
+  selector:
+    app: redis
+  ports:
+  - port: 6379
+    targetPort: 6379
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -48,27 +82,78 @@ metadata:
 spec:
   replicas: 2
   selector:
-    matchLabels: {app: medagent-mcp}
+    matchLabels:
+      app: medagent-mcp
   template:
     metadata:
-      labels: {app: medagent-mcp}
+      labels:
+        app: medagent-mcp
     spec:
       containers:
-        - name: mcp
-          image: YOUR_REGISTRY/medagent-ai:stable
-          command: ["python", "-m", "backend.mcp_tools"]
-          ports: [{containerPort: 8002}]
-          envFrom:
-            - configMapRef: {name: medagent-config}
-            - secretRef: {name: medagent-secrets}
+      - name: mcp
+        image: YOUR_REGISTRY/medagent-ai:stable
+        command:
+        - python
+        - -m
+        - backend.mcp_tools
+        ports:
+        - containerPort: 8002
+        envFrom:
+        - configMapRef:
+            name: medagent-config
+        - secretRef:
+            name: medagent-secrets
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        readinessProbe:
+          httpGet:
+            path: /health/live
+            port: 8002
+          periodSeconds: 10
+          timeoutSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8002
+          periodSeconds: 10
+          timeoutSeconds: 3
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: '2'
+            memory: 2Gi
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 256Mi
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: medagent-mcp
 spec:
-  selector: {app: medagent-mcp}
-  ports: [{port: 8002, targetPort: 8002}]
+  selector:
+    app: medagent-mcp
+  ports:
+  - port: 8002
+    targetPort: 8002
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -77,27 +162,84 @@ metadata:
 spec:
   replicas: 2
   selector:
-    matchLabels: {app: symptom-agent}
+    matchLabels:
+      app: symptom-agent
   template:
     metadata:
-      labels: {app: symptom-agent}
+      labels:
+        app: symptom-agent
     spec:
       containers:
-        - name: agent
-          image: YOUR_REGISTRY/medagent-ai:stable
-          command: ["python", "-m", "backend.a2a_server", "--agent", "symptom", "--host", "0.0.0.0", "--port", "8011"]
-          ports: [{containerPort: 8011}]
-          envFrom:
-            - configMapRef: {name: medagent-config}
-            - secretRef: {name: medagent-secrets}
+      - name: agent
+        image: YOUR_REGISTRY/medagent-ai:stable
+        command:
+        - python
+        - -m
+        - backend.a2a_server
+        - --agent
+        - symptom
+        - --host
+        - 0.0.0.0
+        - --port
+        - '8011'
+        ports:
+        - containerPort: 8011
+        envFrom:
+        - configMapRef:
+            name: medagent-config
+        - secretRef:
+            name: medagent-secrets
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        readinessProbe:
+          httpGet:
+            path: /health/live
+            port: 8011
+          periodSeconds: 10
+          timeoutSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8011
+          periodSeconds: 10
+          timeoutSeconds: 3
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: '2'
+            memory: 2Gi
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 256Mi
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: symptom-agent
 spec:
-  selector: {app: symptom-agent}
-  ports: [{port: 8011, targetPort: 8011}]
+  selector:
+    app: symptom-agent
+  ports:
+  - port: 8011
+    targetPort: 8011
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -106,27 +248,84 @@ metadata:
 spec:
   replicas: 2
   selector:
-    matchLabels: {app: drug-agent}
+    matchLabels:
+      app: drug-agent
   template:
     metadata:
-      labels: {app: drug-agent}
+      labels:
+        app: drug-agent
     spec:
       containers:
-        - name: agent
-          image: YOUR_REGISTRY/medagent-ai:stable
-          command: ["python", "-m", "backend.a2a_server", "--agent", "drug", "--host", "0.0.0.0", "--port", "8012"]
-          ports: [{containerPort: 8012}]
-          envFrom:
-            - configMapRef: {name: medagent-config}
-            - secretRef: {name: medagent-secrets}
+      - name: agent
+        image: YOUR_REGISTRY/medagent-ai:stable
+        command:
+        - python
+        - -m
+        - backend.a2a_server
+        - --agent
+        - drug
+        - --host
+        - 0.0.0.0
+        - --port
+        - '8012'
+        ports:
+        - containerPort: 8012
+        envFrom:
+        - configMapRef:
+            name: medagent-config
+        - secretRef:
+            name: medagent-secrets
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        readinessProbe:
+          httpGet:
+            path: /health/live
+            port: 8012
+          periodSeconds: 10
+          timeoutSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8012
+          periodSeconds: 10
+          timeoutSeconds: 3
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: '2'
+            memory: 2Gi
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 256Mi
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: drug-agent
 spec:
-  selector: {app: drug-agent}
-  ports: [{port: 8012, targetPort: 8012}]
+  selector:
+    app: drug-agent
+  ports:
+  - port: 8012
+    targetPort: 8012
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -135,24 +334,81 @@ metadata:
 spec:
   replicas: 2
   selector:
-    matchLabels: {app: guide-agent}
+    matchLabels:
+      app: guide-agent
   template:
     metadata:
-      labels: {app: guide-agent}
+      labels:
+        app: guide-agent
     spec:
       containers:
-        - name: agent
-          image: YOUR_REGISTRY/medagent-ai:stable
-          command: ["python", "-m", "backend.a2a_server", "--agent", "guide", "--host", "0.0.0.0", "--port", "8013"]
-          ports: [{containerPort: 8013}]
-          envFrom:
-            - configMapRef: {name: medagent-config}
-            - secretRef: {name: medagent-secrets}
+      - name: agent
+        image: YOUR_REGISTRY/medagent-ai:stable
+        command:
+        - python
+        - -m
+        - backend.a2a_server
+        - --agent
+        - guide
+        - --host
+        - 0.0.0.0
+        - --port
+        - '8013'
+        ports:
+        - containerPort: 8013
+        envFrom:
+        - configMapRef:
+            name: medagent-config
+        - secretRef:
+            name: medagent-secrets
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        readinessProbe:
+          httpGet:
+            path: /health/live
+            port: 8013
+          periodSeconds: 10
+          timeoutSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: /health/live
+            port: 8013
+          periodSeconds: 10
+          timeoutSeconds: 3
+        resources:
+          requests:
+            cpu: 250m
+            memory: 512Mi
+          limits:
+            cpu: '2'
+            memory: 2Gi
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+      - name: tmp
+        emptyDir:
+          sizeLimit: 256Mi
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: guide-agent
 spec:
-  selector: {app: guide-agent}
-  ports: [{port: 8013, targetPort: 8013}]
+  selector:
+    app: guide-agent
+  ports:
+  - port: 8013
+    targetPort: 8013
