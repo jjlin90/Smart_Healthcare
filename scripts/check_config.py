@@ -15,12 +15,12 @@ def resolve_project_path(value: str) -> Path:
 
 
 CORE_REQUIRED = [
-    "secret_key", "siliconflow_api_key", "intent_bert_model_path",
+    "secret_key", "internal_service_secret", "siliconflow_api_key", "intent_bert_model_path",
     "intent_vector_model_path", "intent_prototypes_path",
 ]
 INTEGRATION_REQUIRED = [
     "hospital_app_key", "hospital_app_secret", "drug_api_base_url",
-    "guideline_api_base_url", "lis_api_base_url", "emr_api_base_url",
+    "guideline_api_base_url", "lis_api_base_url",
     "his_api_base_url",
 ]
 
@@ -29,6 +29,8 @@ def missing_configuration(*, strict: bool = False) -> list[str]:
     settings = get_settings()
     required = CORE_REQUIRED + (INTEGRATION_REQUIRED if strict else [])
     missing = [name.upper() for name in required if not getattr(settings, name)]
+    if strict or settings.app_env == "production":
+        missing.extend(settings.production_errors())
     if "YOUR_PASSWORD" in settings.database_url:
         missing.append("DATABASE_URL（请替换 YOUR_PASSWORD）")
     for name in ("intent_bert_model_path", "intent_vector_model_path"):

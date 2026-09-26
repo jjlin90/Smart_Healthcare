@@ -10,6 +10,8 @@ from jose import JWTError, jwt
 
 from backend.config import get_settings
 from backend.schemas import UserContext
+from backend.database import get_db
+from backend.access import active_staff
 
 security = HTTPBearer(auto_error=False)
 ALGORITHM = "HS256"
@@ -24,6 +26,7 @@ def create_token(context: UserContext) -> str:
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(security),
+    db=Depends(get_db, scope="function"),
 ) -> UserContext:
     if not credentials:
         raise HTTPException(status_code=401, detail="请先登录")
@@ -37,7 +40,8 @@ async def get_current_user(
             algorithms=[ALGORITHM],
             options={"require_exp": True},
         )
-        return UserContext.model_validate(payload)
+        context = UserContext.model_validate(payload)
+        return await active_staff(db, context.user_id)
     except (JWTError, ValueError, RuntimeError) as exc:
         raise HTTPException(status_code=401, detail="登录状态已失效") from exc
 
@@ -52,7 +56,9 @@ def verify_password(password: str, encoded: str | None) -> bool:
     if not encoded:
         return False
     try:
-        _, rounds, salt_b64, digest_b64 = encoded.split("$", 3)
+        algorithm, rounds, salt_b64, digest_b64 = encoded.split("$", 3)
+        if algorithm != "pbkdf2_sha256" or not 100_000 <= int(rounds) <= 2_000_000:
+            return False
         actual = hashlib.pbkdf2_hmac("sha256", password.encode(), base64.b64decode(salt_b64), int(rounds))
         return hmac.compare_digest(actual, base64.b64decode(digest_b64))
     except (ValueError, TypeError):

@@ -30,6 +30,8 @@ FORBIDDEN_TRACKED_PARTS = {
 }
 FORBIDDEN_TRACKED_NAMES = {".env", "secrets.toml", "medagent.db"}
 FORBIDDEN_SUFFIXES = {
+    ".db",
+    ".pdf", ".docx", ".doc", ".bundle", ".bak", ".zip", ".onnx", ".bin",
     ".pem",
     ".key",
     ".p12",
@@ -46,6 +48,14 @@ FORBIDDEN_SUFFIXES = {
 }
 
 REQUIRED_TRACKED_PATHS = {
+    "constraints.txt",
+    "backend/access.py",
+    "backend/service_auth.py",
+    "backend/mcp_security.py",
+    "backend/rate_limit.py",
+    "migrations/versions/20260926_02_tool_executions.py",
+    "tests/test_enterprise_boundaries.py",
+    "tests/test_migrations.py",
     "alembic.ini",
     "migrations/env.py",
     "migrations/script.py.mako",
@@ -141,7 +151,9 @@ def check_forbidden_files(report: Report, tracked: list[Path]) -> None:
         lowered_parts = {part.lower() for part in relative.parts}
         if (
             relative.name.lower() in FORBIDDEN_TRACKED_NAMES
+            or (relative.name.startswith(".env.") and relative.name != ".env.example")
             or (relative.parts[0] == "scripts" and "resume" in relative.name.lower() and relative.suffix.lower() == ".py")
+            or (relative.suffix.lower() == ".html" and ("resume" in relative.name.lower() or "简历" in relative.name))
             or relative.suffix.lower() in FORBIDDEN_SUFFIXES
             or lowered_parts.intersection(FORBIDDEN_TRACKED_PARTS)
         ):

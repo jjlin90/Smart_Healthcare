@@ -8,19 +8,28 @@ data:
   SILICONFLOW_BASE_URL: https://api.siliconflow.cn/v1
   SILICONFLOW_MODEL: deepseek-ai/DeepSeek-V4-Flash
   INTENT_BERT_MODEL_PATH: /models/medical_intent_bert_tob_v3
-  INTENT_BERT_THRESHOLD: "0.95"
+  INTENT_BERT_THRESHOLD: '0.95'
   INTENT_VECTOR_MODEL_PATH: /models/bge-m3
-  INTENT_VECTOR_THRESHOLD: "0.78"
-  INTENT_VECTOR_MARGIN: "0.04"
+  INTENT_VECTOR_THRESHOLD: '0.78'
+  INTENT_VECTOR_MARGIN: '0.04'
   INTENT_PROTOTYPES_PATH: /app/evaluation/intent_prototypes.jsonl
-  LANGSMITH_TRACING: "true"
+  LANGSMITH_TRACING: 'false'
   LANGSMITH_PROJECT: medagent-ai
   MCP_SERVER_URL: http://medagent-mcp:8002/mcp
   MCP_HOST: 0.0.0.0
-  MCP_PORT: "8002"
+  MCP_PORT: '8002'
   SYMPTOM_AGENT_URL: http://symptom-agent:8011
   DRUG_AGENT_URL: http://drug-agent:8012
   GUIDE_AGENT_URL: http://guide-agent:8013
+  APP_ENV: production
+  CLOUD_LLM_ALLOWED: 'false'
+  REQUEST_TIMEOUT_SECONDS: '120'
+  MODEL_TIMEOUT_SECONDS: '30'
+  MODEL_MAX_TOKENS: '2048'
+  DRUG_API_BASE_URL: ''
+  GUIDELINE_API_BASE_URL: ''
+  LIS_API_BASE_URL: ''
+  HIS_API_BASE_URL: ''
 ---
 apiVersion: v1
 kind: Secret
@@ -34,6 +43,7 @@ stringData:
   LANGSMITH_API_KEY: REPLACE_ME
   HOSPITAL_APP_KEY: REPLACE_ME
   HOSPITAL_APP_SECRET: REPLACE_ME
+  INTERNAL_SERVICE_SECRET: REPLACE_WITH_INDEPENDENT_RANDOM_SECRET
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -47,41 +57,83 @@ spec:
       maxUnavailable: 0
       maxSurge: 1
   selector:
-    matchLabels: {app: medagent-api, track: stable}
+    matchLabels:
+      app: medagent-api
+      track: stable
   template:
     metadata:
-      labels: {app: medagent-api, track: stable}
+      labels:
+        app: medagent-api
+        track: stable
       annotations:
-        prometheus.io/scrape: "true"
+        prometheus.io/scrape: 'true'
         prometheus.io/path: /metrics
-        prometheus.io/port: "8000"
+        prometheus.io/port: '8000'
     spec:
       containers:
-        - name: api
-          image: YOUR_REGISTRY/medagent-ai:stable
-          ports: [{containerPort: 8000}]
-          envFrom:
-            - configMapRef: {name: medagent-config}
-            - secretRef: {name: medagent-secrets}
-          volumeMounts:
-            - name: intent-models
-              mountPath: /models
-              readOnly: true
-          readinessProbe:
-            httpGet: {path: /api/health/ready, port: 8000}
-            initialDelaySeconds: 10
-            periodSeconds: 10
-          livenessProbe:
-            httpGet: {path: /api/health/live, port: 8000}
-            initialDelaySeconds: 30
-            periodSeconds: 20
-          resources:
-            requests: {cpu: "1", memory: 4Gi}
-            limits: {cpu: "4", memory: 8Gi}
-      volumes:
+      - name: api
+        image: YOUR_REGISTRY/medagent-ai:stable
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: medagent-config
+        - secretRef:
+            name: medagent-secrets
+        volumeMounts:
         - name: intent-models
-          persistentVolumeClaim:
-            claimName: medagent-intent-models
+          mountPath: /models
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        readinessProbe:
+          httpGet:
+            path: /api/health/ready
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /api/health/live
+            port: 8000
+          periodSeconds: 20
+          timeoutSeconds: 3
+        resources:
+          requests:
+            cpu: '1'
+            memory: 4Gi
+          limits:
+            cpu: '4'
+            memory: 8Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        startupProbe:
+          httpGet:
+            path: /api/health/live
+            port: 8000
+          failureThreshold: 60
+          periodSeconds: 10
+          timeoutSeconds: 3
+      volumes:
+      - name: intent-models
+        persistentVolumeClaim:
+          claimName: medagent-intent-models
+      - name: tmp
+        emptyDir:
+          sizeLimit: 256Mi
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -90,100 +142,182 @@ metadata:
 spec:
   replicas: 1
   selector:
-    matchLabels: {app: medagent-api, track: canary}
+    matchLabels:
+      app: medagent-api
+      track: canary
   template:
     metadata:
-      labels: {app: medagent-api, track: canary}
+      labels:
+        app: medagent-api
+        track: canary
       annotations:
-        prometheus.io/scrape: "true"
+        prometheus.io/scrape: 'true'
         prometheus.io/path: /metrics
-        prometheus.io/port: "8000"
+        prometheus.io/port: '8000'
     spec:
       containers:
-        - name: api
-          image: YOUR_REGISTRY/medagent-ai:canary
-          ports: [{containerPort: 8000}]
-          envFrom:
-            - configMapRef: {name: medagent-config}
-            - secretRef: {name: medagent-secrets}
-          volumeMounts:
-            - name: intent-models
-              mountPath: /models
-              readOnly: true
-          readinessProbe:
-            httpGet: {path: /api/health/ready, port: 8000}
-            initialDelaySeconds: 10
-            periodSeconds: 10
-          resources:
-            requests: {cpu: "1", memory: 4Gi}
-            limits: {cpu: "4", memory: 8Gi}
-      volumes:
+      - name: api
+        image: YOUR_REGISTRY/medagent-ai:canary
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: medagent-config
+        - secretRef:
+            name: medagent-secrets
+        volumeMounts:
         - name: intent-models
-          persistentVolumeClaim:
-            claimName: medagent-intent-models
+          mountPath: /models
+          readOnly: true
+        - name: tmp
+          mountPath: /tmp
+        readinessProbe:
+          httpGet:
+            path: /api/health/ready
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 10
+        resources:
+          requests:
+            cpu: '1'
+            memory: 4Gi
+          limits:
+            cpu: '4'
+            memory: 8Gi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        startupProbe:
+          httpGet:
+            path: /api/health/live
+            port: 8000
+          failureThreshold: 60
+          periodSeconds: 10
+          timeoutSeconds: 3
+        livenessProbe:
+          httpGet:
+            path: /api/health/live
+            port: 8000
+          periodSeconds: 20
+          timeoutSeconds: 3
+      volumes:
+      - name: intent-models
+        persistentVolumeClaim:
+          claimName: medagent-intent-models
+      - name: tmp
+        emptyDir:
+          sizeLimit: 256Mi
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: medagent-api-stable
 spec:
-  selector: {app: medagent-api, track: stable}
-  ports: [{port: 80, targetPort: 8000}]
+  selector:
+    app: medagent-api
+    track: stable
+  ports:
+  - port: 80
+    targetPort: 8000
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: medagent-api-canary
 spec:
-  selector: {app: medagent-api, track: canary}
-  ports: [{port: 80, targetPort: 8000}]
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: medagent-api
-spec:
-  ingressClassName: nginx
-  rules:
-    - host: medagent.example.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service: {name: medagent-api-stable, port: {number: 80}}
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: medagent-api-canary
-  annotations:
-    nginx.ingress.kubernetes.io/canary: "true"
-    nginx.ingress.kubernetes.io/canary-weight: "10"
-spec:
-  ingressClassName: nginx
-  rules:
-    - host: medagent.example.com
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service: {name: medagent-api-canary, port: {number: 80}}
+  selector:
+    app: medagent-api
+    track: canary
+  ports:
+  - port: 80
+    targetPort: 8000
 ---
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: medagent-api-stable
 spec:
-  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: medagent-api-stable}
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: medagent-api-stable
   minReplicas: 3
   maxReplicas: 12
   behavior:
     scaleDown:
       stabilizationWindowSeconds: 300
   metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target: {type: Utilization, averageUtilization: 65}
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 65
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: medagent-gateway
+spec:
+  gatewayClassName: REPLACE_WITH_INSTALLED_GATEWAY_CLASS
+  listeners:
+  - name: https
+    protocol: HTTPS
+    port: 443
+    hostname: medagent.example.com
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - name: medagent-tls
+    allowedRoutes:
+      namespaces:
+        from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: medagent-api
+spec:
+  parentRefs:
+  - name: medagent-gateway
+    sectionName: https
+  hostnames:
+  - medagent.example.com
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /api
+    timeouts:
+      request: 150s
+      backendRequest: 145s
+    backendRefs:
+    - name: medagent-api-stable
+      port: 80
+      weight: 90
+    - name: medagent-api-canary
+      port: 80
+      weight: 10
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: medagent-api-stable
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: medagent-api
+      track: stable

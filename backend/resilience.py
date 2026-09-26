@@ -23,7 +23,7 @@ class AsyncCircuitBreaker:
         self._generation = 0
         self._lock = asyncio.Lock()
 
-    async def call(self, operation: Callable[[], Awaitable[T]]) -> T:
+    async def call(self, operation: Callable[[], Awaitable[T]], *, is_failure: Callable[[Exception], bool] | None = None) -> T:
         async with self._lock:
             if self.opened_at is not None:
                 elapsed = time.monotonic() - self.opened_at
@@ -43,9 +43,16 @@ class AsyncCircuitBreaker:
                 if is_probe and generation == self._generation:
                     self._half_open_probe = False
             raise
-        except Exception:
+        except Exception as exc:
             async with self._lock:
                 if generation == self._generation:
+                    if is_failure is not None and not is_failure(exc):
+                        if is_probe:
+                            self.opened_at = None
+                            self.failures = 0
+                            self._half_open_probe = False
+                            self._generation += 1
+                        raise
                     self.failures += 1
                     self._half_open_probe = False
                     if self.failures >= self.failure_threshold:

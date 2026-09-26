@@ -35,7 +35,7 @@ def test_clinical_request_requires_explicit_patient_scope():
 
 
 @pytest.mark.asyncio
-async def test_staff_patient_access_combines_mapping_and_legacy_scope():
+async def test_staff_patient_access_ignores_stale_token_scope():
     class FakeScalars:
         def all(self):
             return ["patient_002"]
@@ -50,7 +50,7 @@ async def test_staff_patient_access_combines_mapping_and_legacy_scope():
         role="doctor",
         legacy_patient_id="patient_001",
     )
-    assert await authorized_patient_ids(FakeDb(), user) == {"patient_001", "patient_002"}
+    assert await authorized_patient_ids(FakeDb(), user) == {"patient_002"}
 
 
 @pytest.mark.asyncio

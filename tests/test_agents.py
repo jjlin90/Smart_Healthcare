@@ -79,7 +79,7 @@ async def test_emergency_boundary_preempts_external_services():
     result = await MedicalCoordinator().run("我突然胸痛而且呼吸困难", "p1", {})
     assert result.agent == "SafetyBoundary"
     assert result.department == "急诊科"
-    assert "120" in result.answer
+    assert "院内急救流程" in result.answer
     assert DISCLAIMER in result.answer
 
 
@@ -166,7 +166,7 @@ async def test_mixed_scope_only_sends_extracted_medical_request_to_agent(monkeyp
 
 
 @pytest.mark.asyncio
-async def test_a2a_business_failure_is_not_treated_as_answer(monkeypatch):
+async def test_a2a_business_failure_is_not_treated_as_answer(monkeypatch, clinical_delegation):
     async def fake_to_thread(_callable, *_args):
         return json.dumps({
             "success": False,
@@ -255,19 +255,23 @@ async def test_unconfigured_hospital_tool_fails_instead_of_mocking(monkeypatch):
 
     settings = get_settings()
     monkeypatch.setattr(settings, "drug_api_base_url", "")
-    async with Client(mcp) as client:
-        with pytest.raises(Exception, match="医院接口未配置"):
-            await client.call_tool("query_drug_info", {"drug_name": "阿莫西林"})
+    from backend.mcp_tools import _hospital_post
+    with pytest.raises(RuntimeError, match="医院接口未配置"):
+        await _hospital_post(settings.drug_api_base_url, "/v1/drugs/query", {"drug_name": "阿莫西林"})
 
 
 @pytest.mark.asyncio
 async def test_synthesis_forwards_model_native_deltas(monkeypatch):
+    closed = []
     class FakeStream:
         def __init__(self):
             self.parts = iter(["第一段", "第二段", DISCLAIMER])
 
         def __aiter__(self):
             return self
+
+        async def close(self):
+            closed.append(True)
 
         async def __anext__(self):
             try:
@@ -285,6 +289,7 @@ async def test_synthesis_forwards_model_native_deltas(monkeypatch):
     monkeypatch.setattr("backend.agents.ModelClients", lambda: fake_clients)
     parts = [part async for part in Planner().synthesize_stream("问题", [{"answer": "工具事实"}], {})]
     assert parts == ["第一段", "第二段", DISCLAIMER]
+    assert closed == [True]
 
 
 @pytest.mark.parametrize(
@@ -384,7 +389,8 @@ def test_multi_intent_plan_rejects_extra_or_duplicate_agents():
 
 
 @pytest.mark.asyncio
-async def test_specialist_runtime_uses_create_agent_and_injects_patient_scope(monkeypatch):
+@pytest.mark.parametrize("tool_mode", ["success", "none", "fail"])
+async def test_specialist_runtime_uses_create_agent_and_injects_patient_scope(monkeypatch, clinical_delegation, tool_mode):
     from backend.config import get_settings
 
     monkeypatch.setattr(get_settings(), "siliconflow_api_key", "test-key")
@@ -392,6 +398,8 @@ async def test_specialist_runtime_uses_create_agent_and_injects_patient_scope(mo
 
     async def source(patient_id: str) -> dict:
         seen.append(patient_id)
+        if tool_mode == "fail":
+            raise RuntimeError("source unavailable")
         return {"patient_id": patient_id, "allergies": []}
 
     source_tool = StructuredTool.from_function(
@@ -420,7 +428,8 @@ async def test_specialist_runtime_uses_create_agent_and_injects_patient_scope(mo
         async def ainvoke(self, payload, config):
             assert payload["messages"][-1]["role"] == "user"
             assert config["recursion_limit"] > 1
-            await self.tools[0].ainvoke({"patient_id": "model_supplied_patient"})
+            if tool_mode != "none":
+                await self.tools[0].ainvoke({"patient_id": "model_supplied_patient"})
             return {"messages": [AIMessage(content="工具事实已读取")]}
 
     monkeypatch.setattr("backend.agents.MCPAdapter", FakeAdapter)
@@ -429,6 +438,10 @@ async def test_specialist_runtime_uses_create_agent_and_injects_patient_scope(mo
         "backend.agents.create_agent",
         lambda model, tools, system_prompt, middleware: FakeRuntime(tools),
     )
+    if tool_mode != "success":
+        with pytest.raises(RuntimeError, match="工具证据不完整"):
+            await MCPToolAgent("SymptomAgent").run("读取病史", "authorized_patient", {})
+        return
     result = await MCPToolAgent("SymptomAgent").run(
         "读取病史",
         "authorized_patient",
@@ -440,7 +453,7 @@ async def test_specialist_runtime_uses_create_agent_and_injects_patient_scope(mo
 
 
 @pytest.mark.asyncio
-async def test_specialist_blocks_duplicate_tool_call_with_same_arguments(monkeypatch):
+async def test_specialist_blocks_duplicate_tool_call_with_same_arguments(monkeypatch, clinical_delegation):
     from backend.config import get_settings
 
     monkeypatch.setattr(get_settings(), "siliconflow_api_key", "test-key")

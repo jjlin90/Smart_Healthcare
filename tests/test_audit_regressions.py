@@ -21,6 +21,51 @@ from backend.resilience import AsyncCircuitBreaker
 from backend.schemas import ChatRequest, UserContext
 
 
+async def test_model_clients_reuse_connection_and_close_on_shutdown(monkeypatch):
+    from backend import agents
+    await agents.close_model_connections()
+    fake = SimpleNamespace(close=AsyncMock())
+    monkeypatch.setattr(get_settings(), "siliconflow_api_key", "test-connection-key")
+    monkeypatch.setattr(agents, "AsyncOpenAI", lambda **kwargs: fake)
+    assert agents.ModelClients().main is agents.ModelClients().main
+    await agents.close_model_connections()
+    fake.close.assert_awaited_once()
+
+
+@pytest.mark.parametrize("name", ["private.pdf", "简历.html", "staff-resume.html", "output/file.txt", ".mimosa/state.json"])
+def test_git_scanner_rejects_force_added_private_artifacts(name):
+    from scripts import preflight_git as scanner
+    report = scanner.Report()
+    scanner.check_forbidden_files(report, [scanner.ROOT / name])
+    assert report.errors
+
+
+@pytest.mark.parametrize("result", [{}, {"referral_id": "r1"}, {"referral_id": "r1", "status": "executed"}])
+async def test_referral_missing_draft_acknowledgement_is_not_success(monkeypatch, result):
+    post = AsyncMock(return_value=result)
+    monkeypatch.setattr(mcp_tools, "_hospital_post", post)
+    with pytest.raises(ValueError, match="HIS"):
+        await mcp_tools.generate_referral("p1", "内科", "需要协同")
+    assert post.call_args.kwargs["retry_safe"] is False
+    assert post.call_args.args[2]["require_confirmation"] is True
+
+
+@pytest.mark.parametrize("history", [{}, {"allergies": "unknown"}, {"role": "doctor"}])
+async def test_invalid_history_write_rejected_before_database(history):
+    with pytest.raises(ValueError):
+        await mcp_tools.save_patient_history("p1", history)
+
+
+async def test_business_refusal_does_not_open_hospital_breaker():
+    breaker = AsyncCircuitBreaker("business", failure_threshold=1)
+    async def refused():
+        raise ValueError("business refusal")
+    with pytest.raises(ValueError):
+        await breaker.call(refused, is_failure=mcp_tools._is_transient)
+    assert breaker.opened_at is None
+    assert breaker.failures == 0
+
+
 async def test_late_success_cannot_close_newly_opened_breaker():
     breaker = AsyncCircuitBreaker("concurrent", failure_threshold=1)
     entered = asyncio.Event()
@@ -75,7 +120,7 @@ async def test_memory_keys_and_return_values_are_isolated():
     {"success": True, "agent": "DrugAgent", "answer": "wrong agent"},
     {"success": True, "agent": "SymptomAgent", "answer": {"invalid": True}},
 ])
-async def test_a2a_invalid_response_counts_as_breaker_failure(monkeypatch, payload):
+async def test_a2a_invalid_response_counts_as_breaker_failure(monkeypatch, payload, clinical_delegation):
     breaker = AsyncCircuitBreaker("audit", failure_threshold=1)
     monkeypatch.setattr("backend.agents.get_breaker", lambda _: breaker)
     monkeypatch.setattr("backend.agents.asyncio.to_thread", AsyncMock(return_value=json.dumps(payload)))
@@ -135,6 +180,7 @@ async def test_stream_done_is_sent_only_after_successful_commit(monkeypatch, fai
 
     profile = SimpleNamespace(allergy_history="[]", past_medical_history="[]", current_medications="[]", name="test")
     monkeypatch.setattr(main, "require_profile", AsyncMock(return_value=profile))
+    monkeypatch.setattr(main, "active_staff", AsyncMock(return_value=UserContext(username="u", user_id="u", role="doctor")))
     monkeypatch.setattr(main, "SessionLocal", Writer)
     monkeypatch.setattr(main, "conversation_memory", ConversationMemory(use_redis=False))
     monkeypatch.setattr(main.coordinator, "stream_native", stream)
@@ -148,3 +194,5 @@ async def test_stream_done_is_sent_only_after_successful_commit(monkeypatch, fai
     assert ("event: done" in joined) is not fail_commit
     assert ("event: error" in joined) is fail_commit
     assert "private database details" not in joined
+    if fail_commit:
+        assert not main.conversation_memory._sessions

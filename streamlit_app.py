@@ -6,6 +6,7 @@ import json
 import os
 from html import escape
 from typing import Any, Iterator
+from uuid import uuid4
 
 import httpx
 import streamlit as st
@@ -23,6 +24,9 @@ st.set_page_config(
 
 
 def _init_state() -> None:
+    if st.session_state.pop("reset_approvals", False):
+        for action in ("save_patient_history", "save_medical_record", "generate_referral"):
+            st.session_state.pop(f"approve_{action}", None)
     defaults = {
         "token": None,
         "messages": [],
@@ -31,6 +35,8 @@ def _init_state() -> None:
         "profile": None,
         "patients": [],
         "patient_id": None,
+        "approved_actions": [],
+        "request_id": None,
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
@@ -85,9 +91,11 @@ def _put(path: str, payload: dict[str, Any]) -> Any:
 
 def _sse_events(message: str) -> Iterator[tuple[str, dict[str, Any]]]:
     payload = {
+        "request_id": st.session_state.request_id,
         "patient_id": st.session_state.patient_id,
         "message": message,
         "conversation_id": st.session_state.conversation_id,
+        "approved_actions": st.session_state.approved_actions,
     }
     with httpx.stream(
         "POST",
@@ -111,6 +119,7 @@ def _sse_events(message: str) -> Iterator[tuple[str, dict[str, Any]]]:
 
 
 def _logout() -> None:
+    st.session_state.reset_approvals = True
     for key in ("token", "messages", "conversation_id", "agent_trace", "profile", "patients", "patient_id"):
         st.session_state[key] = None if key in {"token", "conversation_id", "profile", "patient_id"} else []
     st.rerun()
@@ -166,7 +175,7 @@ def _render_login() -> None:
                 payload = {"employee_id": login_id, "password": credential}
                 submitted = st.form_submit_button("院内账号登录", type="primary", use_container_width=True)
             st.markdown(
-                '<div class="notice">医疗建议仅供医生参考，不替代诊断；紧急情况请立即拨打 120。</div>',
+                '<div class="notice">供院内医务人员使用；紧急情况请立即启动院内急救流程并联系责任医生。</div>',
                 unsafe_allow_html=True,
             )
     if submitted:
@@ -216,6 +225,7 @@ def _render_sidebar() -> None:
                 st.session_state.messages = []
                 st.session_state.conversation_id = None
                 st.session_state.agent_trace = []
+                st.session_state.reset_approvals = True
                 st.rerun()
         else:
             st.warning("当前员工没有患者访问授权")
@@ -223,6 +233,7 @@ def _render_sidebar() -> None:
             st.session_state.messages = []
             st.session_state.conversation_id = None
             st.session_state.agent_trace = []
+            st.session_state.reset_approvals = True
             st.rerun()
         st.markdown("#### 历史辅助记录")
         try:
@@ -247,7 +258,7 @@ def _render_profile(profile: dict[str, Any] | None) -> None:
         return
     for label, value in (
         ("姓名", profile.get("name") or "未登记"),
-        ("年龄", profile.get("age") or "未登记"),
+        ("年龄", profile.get("age") if profile.get("age") is not None else "未登记"),
         ("性别", profile.get("gender") or "未登记"),
         ("过敏史", "、".join(profile.get("allergies", [])) or "无记录"),
         ("既往病史", "、".join(profile.get("conditions", [])) or "无记录"),
@@ -294,13 +305,23 @@ def _render_workspace() -> None:
         if st.session_state.agent_trace:
             with st.expander("查看 ReAct 工具执行轨迹"):
                 st.json(st.session_state.agent_trace)
+        with st.expander("本次任务写操作确认"):
+            st.caption("按本次任务需要勾选。修改患者资料和创建转诊草稿仍会在服务端核对角色与患者授权。")
+            selections = []
+            for name, label in (("save_patient_history", "允许更新该患者病史"), ("save_medical_record", "允许另存本次辅助材料"), ("generate_referral", "允许创建待医生确认的转诊单")):
+                if st.checkbox(label, key=f"approve_{name}"):
+                    selections.append(name)
+            st.session_state.approved_actions = selections
         prompt = st.chat_input("录入临床辅助问题；结果仅供医务人员参考", disabled=not st.session_state.patient_id)
         if prompt:
+            st.session_state.request_id = uuid4().hex
+            st.session_state.reset_approvals = True
             st.session_state.messages.append({"role": "user", "content": prompt})
             with st.chat_message("user"):
                 st.markdown(prompt)
             answer = ""
             trace: list[dict[str, Any]] = []
+            completed = False
             try:
                 with st.chat_message("assistant", avatar="⚕"):
                     placeholder = st.empty()
@@ -313,12 +334,26 @@ def _render_workspace() -> None:
                             elif event == "delta":
                                 answer += data.get("text", "")
                                 placeholder.markdown(answer + "▌")
+                            elif event == "error":
+                                raise RuntimeError(data.get("message") or "任务未完成")
+                            elif event == "done":
+                                completed = True
+                        if not completed:
+                            raise RuntimeError("连接已中断，尚未收到任务完成确认")
                     placeholder.markdown(answer)
                 st.session_state.messages.append({"role": "assistant", "content": answer})
                 st.session_state.agent_trace = trace
                 st.rerun()
             except (httpx.HTTPError, RuntimeError, json.JSONDecodeError) as exc:
                 st.error(f"临床辅助服务调用失败：{exc}")
+                st.caption(f"任务编号：{st.session_state.request_id}。如已允许写操作，请先核对结果再提交新任务。")
+                try:
+                    operations = _get(f"/api/operations/{st.session_state.request_id}")
+                    labels = {"pending": "执行中或待核对", "completed": "已完成", "unknown": "结果待核对"}
+                    for operation in operations:
+                        st.warning(f"写操作 {operation['tool']}：{labels.get(operation['status'], '待核对')}")
+                except (httpx.HTTPError, RuntimeError):
+                    st.warning("暂时无法查询写操作结果，请联系管理员核对。")
     with profile_col:
         _render_profile(profile)
 
