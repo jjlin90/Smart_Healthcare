@@ -118,6 +118,16 @@ def _sse_events(message: str) -> Iterator[tuple[str, dict[str, Any]]]:
                 yield event_name, json.loads(raw)
 
 
+def _render_card(card: dict[str, Any]) -> None:
+    title = str(card.get("title") or "提示")
+    content = str(card.get("content") or "")
+    message = f"**{title}**\n\n{content}"
+    if card.get("type") == "emergency":
+        st.warning(message)
+    else:
+        st.info(message)
+
+
 def _logout() -> None:
     st.session_state.reset_approvals = True
     for key in ("token", "messages", "conversation_id", "agent_trace", "profile", "patients", "patient_id"):
@@ -301,6 +311,8 @@ def _render_workspace() -> None:
             st.info("请选择授权患者，可同时录入症状、当前用药、检验异常和科室诉求；多意图任务会生成跨 Agent 短链计划。")
         for item in st.session_state.messages:
             with st.chat_message(item["role"], avatar="⚕" if item["role"] == "assistant" else None):
+                for card in item.get("cards", []):
+                    _render_card(card)
                 st.markdown(item["content"])
         if st.session_state.agent_trace:
             with st.expander("查看 ReAct 工具执行轨迹"):
@@ -321,9 +333,11 @@ def _render_workspace() -> None:
                 st.markdown(prompt)
             answer = ""
             trace: list[dict[str, Any]] = []
+            cards: list[dict[str, Any]] = []
             completed = False
             try:
                 with st.chat_message("assistant", avatar="⚕"):
+                    card_area = st.container()
                     placeholder = st.empty()
                     with st.status("正在进行医疗范围判断与受控处理…", expanded=False):
                         for event, data in _sse_events(prompt):
@@ -331,6 +345,10 @@ def _render_workspace() -> None:
                                 st.session_state.conversation_id = data.get("conversation_id")
                             elif event == "trace":
                                 trace.append(data)
+                            elif event == "card":
+                                cards.append(data)
+                                with card_area:
+                                    _render_card(data)
                             elif event == "delta":
                                 answer += data.get("text", "")
                                 placeholder.markdown(answer + "▌")
@@ -341,7 +359,7 @@ def _render_workspace() -> None:
                         if not completed:
                             raise RuntimeError("连接已中断，尚未收到任务完成确认")
                     placeholder.markdown(answer)
-                st.session_state.messages.append({"role": "assistant", "content": answer})
+                st.session_state.messages.append({"role": "assistant", "content": answer, "cards": cards})
                 st.session_state.agent_trace = trace
                 st.rerun()
             except (httpx.HTTPError, RuntimeError, json.JSONDecodeError) as exc:
