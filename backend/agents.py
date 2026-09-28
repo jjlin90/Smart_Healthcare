@@ -241,7 +241,7 @@ scope 只能是 medical、non_medical、mixed、uncertain：
 - mixed：同时要求医疗交付物和非医疗交付物。
 - uncertain：信息不足，无法确认要处理的医疗任务。
 
-只输出 JSON：{{"scope":"...","medical_segments":["从原文逐字复制的医疗请求片段"],"reason":"简短理由"}}。
+只输出 JSON：{"scope":"...","medical_segments":["从原文逐字复制的医疗请求片段"],"reason":"简短理由"}。
 mixed 必须只复制医疗片段，禁止改写、补充或生成原文不存在的信息；其他 scope 的 medical_segments 返回空数组。"""
         response = await clients.main.chat.completions.create(
             model=settings.siliconflow_model,
@@ -856,6 +856,11 @@ class MCPToolAgent:
 
 class MedicalCoordinator:
     async def _call_a2a(self, agent_name: str, payload: dict[str, Any]) -> dict[str, Any]:
+        from backend.a2a_context import bounded_history
+        # The specialist reloads the trusted profile from its own database.
+        history = bounded_history(payload.get("history", []))
+        payload = {key: payload[key] for key in ("task", "patient_id")}
+        payload["history"] = history
         settings = get_settings()
         urls = {"SymptomAgent": settings.symptom_agent_url, "DrugAgent": settings.drug_agent_url, "GuideAgent": settings.guide_agent_url}
         async def request() -> dict[str, Any]:

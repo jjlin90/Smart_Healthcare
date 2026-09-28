@@ -13,8 +13,8 @@
 {"text":"根据患者症状建议院内接诊科室","expected_intents":["院内分诊建议"]}
 {"text":"请给出该病例的院内分诊建议","expected_intents":["院内分诊建议"]}
 {"text":"评估这些表现应由哪个科室接诊","expected_intents":["院内分诊建议"]}
-{"text":"为高血压出院患者制定复查和回访计划","expected_intents":["随访管理"]}
-{"text":"梳理糖尿病患者的复诊周期和随访项目","expected_intents":["随访管理"]}
+{"text":"汇总慢病随访登记中的到期复查事项","expected_intents":["随访管理"]}
+{"text":"为出院后的定期回访安排随访任务","expected_intents":["随访管理"]}
 {"text":"评估慢病患者依从性和失访风险","expected_intents":["随访管理"]}
 {"text":"结合该患者档案审核这几种药能否合用","expected_intents":["用药审核"]}
 {"text":"核对漏服后的处置要点和用药风险","expected_intents":["用药审核"]}

@@ -177,7 +177,7 @@ async def test_a2a_business_failure_is_not_treated_as_answer(monkeypatch, clinic
 
     monkeypatch.setattr("backend.agents.asyncio.to_thread", fake_to_thread)
     with pytest.raises(RuntimeError, match="AGENT_EXECUTION_FAILED"):
-        await MedicalCoordinator()._call_a2a("SymptomAgent", {"task": "test"})
+        await MedicalCoordinator()._call_a2a("SymptomAgent", {"task": "test", "patient_id": "patient"})
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,7 @@
 import asyncio
 import hashlib
 import json
+import logging
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -17,7 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from prometheus_client import make_asgi_app
 from redis.exceptions import RedisError
 
-from backend.agents import ConfigurationError, _load_bert_bundle, _load_vector_bundle, coordinator, close_model_connections
+from backend.agents import ConfigurationError, _load_bert_bundle, _load_vector_bundle, _resolve_project_path, coordinator, close_model_connections
 from backend.auth import create_token, get_current_user, verify_password, hash_password
 from backend.config import get_settings
 from backend.database import SessionLocal, get_db, init_db, engine
@@ -28,6 +29,15 @@ from backend.schemas import ChatRequest, ProfileUpdate, StaffLoginRequest, Token
 from backend.access import active_staff, patient_ids, require_patient, require_write_role
 from backend.service_auth import delegated_context
 from backend.rate_limit import login_limiter
+
+logger = logging.getLogger(__name__)
+
+
+def _log_stream_failure(stage: str, request_id: str, exc: Exception) -> None:
+    # Preserve stack locations without leaking SDK messages, clinical input,
+    # secrets or frame locals to the service log.
+    import traceback
+    logger.error("SSE failure stage=%s request_id=%s error_type=%s\n%s", stage, request_id, type(exc).__name__, "".join(traceback.format_tb(exc.__traceback__)))
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -107,9 +117,9 @@ def _health_snapshot() -> dict[str, Any]:
         "jwt_secret": bool(settings.secret_key),
         "service_auth": bool(settings.internal_service_secret),
         "main_model": bool(settings.siliconflow_api_key),
-        "intent_bert": bool(settings.intent_bert_model_path) and Path(settings.intent_bert_model_path).is_dir(),
-        "intent_vector": bool(settings.intent_vector_model_path) and Path(settings.intent_vector_model_path).is_dir(),
-        "intent_prototypes": Path(settings.intent_prototypes_path).is_file(),
+        "intent_bert": bool(settings.intent_bert_model_path) and _resolve_project_path(settings.intent_bert_model_path).is_dir(),
+        "intent_vector": bool(settings.intent_vector_model_path) and _resolve_project_path(settings.intent_vector_model_path).is_dir(),
+        "intent_prototypes": _resolve_project_path(settings.intent_prototypes_path).is_file(),
         "intent_llm_fallback": bool(settings.siliconflow_api_key),
     }
     integration_checks = {
@@ -409,11 +419,12 @@ async def chat_stream(
             yield coordinator._event("done", {**completion, "conversation_id": conversation_id})
         except Exception as exc:
             # Translate SDK/transport failures at the SSE boundary too.
+            _log_stream_failure("execution", request.request_id, exc)
             # CancelledError remains uncaught so disconnect cancellation propagates.
             try:
                 await conversation_memory.save_checkpoint(patient_id, memory_id, {"phase": "failed", "error_type": type(exc).__name__})
-            except RedisError:
-                pass
+            except RedisError as checkpoint_exc:
+                _log_stream_failure("failure_checkpoint", request.request_id, checkpoint_exc)
             yield coordinator._event("error", {"message": "临床辅助请求未完成，请稍后重试或联系管理员。", "error_type": type(exc).__name__})
 
     async def event_stream():
@@ -424,7 +435,8 @@ async def chat_stream(
                     async with asyncio.timeout(get_settings().request_timeout_seconds):
                         async for event in run_events():
                             yield event
-        except Exception:
+        except Exception as exc:
+            _log_stream_failure("session", request.request_id, exc)
             yield coordinator._event("error", {"message": "任务超时、会话繁忙或服务不可用，请核对任务状态后重试。"})
 
     return StreamingResponse(

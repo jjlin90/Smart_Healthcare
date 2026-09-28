@@ -1,0 +1,22 @@
+#!/usr/bin/env sh
+set -eu
+cd "$(git rev-parse --show-toplevel)"
+interpreter=$(git config --local --get medagent.python || true)
+if [ -n "$interpreter" ]; then
+    if ! "$interpreter" --version >/dev/null 2>&1; then
+        echo "Git hook: configured Python is unavailable; rerun scripts/install_git_hooks.py with the project interpreter." >&2
+        exit 1
+    fi
+else
+    for candidate in python python3; do
+        if command -v "$candidate" >/dev/null 2>&1 && "$candidate" --version >/dev/null 2>&1; then
+            interpreter=$candidate
+            break
+        fi
+    done
+    if [ -z "$interpreter" ]; then
+        echo "Git hook: activate the project environment and run scripts/install_git_hooks.py." >&2
+        exit 1
+    fi
+fi
+exec "$interpreter" scripts/preflight_git.py "$@"
