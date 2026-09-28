@@ -14,13 +14,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from flask import g, jsonify, request
 from jose import JWTError
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from starlette.middleware.wsgi import WSGIMiddleware
 import uvicorn
 
 from python_a2a import A2AServer, AgentCard, AgentSkill, Message, MessageRole, TextContent
 
 from backend.agents import AGENT_TOOLS, MCPToolAgent
+from backend.a2a_context import HISTORY_BYTES, history_size
 from backend.access import active_staff, require_patient
 from backend.config import get_settings
 from backend.database import SessionLocal
@@ -87,6 +88,13 @@ class SpecialistRequest(BaseModel):
     task: str = Field(min_length=1, max_length=4000)
     patient_id: str = Field(min_length=1, max_length=64)
     history: list[dict[str, str]] = Field(default_factory=list, max_length=20)
+
+    @field_validator("history")
+    @classmethod
+    def validate_history_size(cls, value):
+        if history_size(value) > HISTORY_BYTES:
+            raise ValueError("Conversation history exceeds byte budget")
+        return value
 
 
 def create_app(server: MedicalA2AServer) -> FastAPI:

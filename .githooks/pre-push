@@ -1,3 +1,4 @@
 #!/usr/bin/env sh
 set -eu
-python scripts/preflight_git.py
+set --
+. "$(git rev-parse --show-toplevel)/.githooks/run-preflight"

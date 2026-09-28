@@ -125,7 +125,7 @@ async def test_a2a_invalid_response_counts_as_breaker_failure(monkeypatch, paylo
     monkeypatch.setattr("backend.agents.get_breaker", lambda _: breaker)
     monkeypatch.setattr("backend.agents.asyncio.to_thread", AsyncMock(return_value=json.dumps(payload)))
     with pytest.raises(RuntimeError):
-        await MedicalCoordinator()._call_a2a("SymptomAgent", {})
+        await MedicalCoordinator()._call_a2a("SymptomAgent", {"task": "test", "patient_id": "patient"})
     assert breaker.opened_at is not None
 
 

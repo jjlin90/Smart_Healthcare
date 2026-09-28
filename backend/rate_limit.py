@@ -24,6 +24,8 @@ class LoginLimiter:
         ]
         allowed = True
         if settings.redis_url and self.redis_url != settings.redis_url:
+            if self.redis:
+                await self.redis.aclose()
             self.redis = Redis.from_url(settings.redis_url)
             self.redis_url = settings.redis_url
         for value, limit in keys:

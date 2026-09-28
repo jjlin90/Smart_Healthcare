@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import json
+import hashlib
 import statistics
 import sys
 import time
@@ -94,6 +95,8 @@ async def evaluate(cases: list[dict], dataset: Path | None = None) -> dict:
         "bert_model_path": get_settings().intent_bert_model_path,
         "vector_model_path": get_settings().intent_vector_model_path,
         "dataset": str((dataset or Path("evaluation/intent_eval.jsonl")).as_posix()),
+        "dataset_sha256": hashlib.sha256((dataset or Path("evaluation/intent_eval.jsonl")).read_bytes()).hexdigest(),
+        "prototypes_sha256": hashlib.sha256((Path(__file__).resolve().parents[1] / get_settings().intent_prototypes_path).read_bytes()).hexdigest(),
         "dataset_note": "工程回归集，非临床标注基准；不能外推为真实医疗场景准确率。",
         "case_count": len(rows),
         "intent_exact_match_accuracy": round(sum(row["intent_exact_match"] for row in rows) / len(rows), 4),

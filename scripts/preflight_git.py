@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import re
 import subprocess
+import tempfile
 import sys
 from pathlib import Path
 
@@ -48,6 +50,10 @@ FORBIDDEN_SUFFIXES = {
 }
 
 REQUIRED_TRACKED_PATHS = {
+    "backend/a2a_context.py",
+    ".githooks/run-preflight",
+    "tests/test_review_fixes.py",
+    "docs/audit-2026-09-28.md",
     "constraints.txt",
     "backend/access.py",
     "backend/service_auth.py",
@@ -194,6 +200,40 @@ def check_required_project_files_tracked(report: Report, tracked: list[Path]) ->
         report.ok("迁移、数据集、模型脚本和关键测试均已加入 Git 索引")
 
 
+def check_local_imports_tracked(report: Report, tracked: list[Path]) -> None:
+    """Reject static imports of project modules absent from the Git index."""
+    tracked_names = {path.relative_to(ROOT).as_posix() for path in tracked}
+    missing: set[str] = set()
+    for source in tracked:
+        if source.suffix != ".py" or not source.is_file():
+            continue
+        try:
+            tree = ast.parse(source.read_text(encoding="utf-8-sig"))
+        except (SyntaxError, UnicodeError):
+            continue  # The syntax check reports malformed source separately.
+        package = list(source.relative_to(ROOT).parent.parts)
+        for node in ast.walk(tree):
+            modules: list[str] = []
+            if isinstance(node, ast.Import):
+                modules = [alias.name for alias in node.names]
+            elif isinstance(node, ast.ImportFrom):
+                base = package[:len(package) - node.level + 1] if node.level else []
+                if node.module:
+                    base += node.module.split(".")
+                modules = [".".join(base)] + [".".join([*base, alias.name]) for alias in node.names if alias.name != "*"]
+            for module in modules:
+                if not module:
+                    continue
+                relative = Path(*module.split("."))
+                for dependency in (ROOT / relative.with_suffix(".py"), ROOT / relative / "__init__.py"):
+                    if dependency.is_file() and dependency.relative_to(ROOT).as_posix() not in tracked_names:
+                        missing.add(f"{source.relative_to(ROOT).as_posix()} -> {dependency.relative_to(ROOT).as_posix()}")
+    if missing:
+        report.error("已跟踪代码导入了未加入 Git 索引的本地模块：" + ", ".join(sorted(missing)))
+    else:
+        report.ok("已跟踪 Python 代码的静态本地模块依赖均已加入 Git 索引")
+
+
 def text_content(path: Path) -> str | None:
     if not path.is_file() or path.stat().st_size > MAX_TEXT_BYTES:
         return None
@@ -314,8 +354,15 @@ def check_absolute_local_paths(report: Report, candidates: list[Path]) -> None:
 
 
 def run_quality_commands(report: Report) -> None:
+    # Use an isolated base instead of sharing pytest-of-USER across sandbox
+    # sessions. testpaths restricts collection, not teardown permissions.
+    with tempfile.TemporaryDirectory(prefix="medagent-preflight-") as temporary:
+        _run_quality_commands(report, str(Path(temporary) / "pytest"))
+
+
+def _run_quality_commands(report: Report, basetemp: str) -> None:
     checks = [
-        ([sys.executable, "-m", "pytest", "-q"], "pytest"),
+        ([sys.executable, "-m", "pytest", "-q", "--basetemp", basetemp], "pytest"),
         ([sys.executable, "-m", "pip", "check"], "pip check"),
     ]
     for command, label in checks:
@@ -369,6 +416,7 @@ def main() -> int:
     check_forbidden_files(report, tracked)
     check_history_artifacts(report)
     check_required_project_files_tracked(report, tracked)
+    check_local_imports_tracked(report, tracked)
     check_secret_content(report, candidates)
     check_index_content(report, tracked)
     check_large_files(report, candidates)

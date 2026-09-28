@@ -14,7 +14,7 @@ Streamlit 工作台 → FastAPI/JWT/SSE → 急症规则 → 医疗范围守卫 
 
 系统没有医学 Mock 数据或规则式正常临床辅助回答。模型、A2A、MCP、医院接口或数据库未配置时会明确失败，不会生成伪造医学结果。紧急症状拦截属于安全规则，会在调用模型前提示医务人员启动院内急救流程。
 
-项目流程详解、面试追问和工程细节按顺序写在 [MedAgent AI 多 Agent 项目话术](docs/MedAgent_AI_多Agent项目话术.md) 中；也可单独阅读 [从零理解项目指南](docs/MedAgent_项目理解指南.md)。最新修复与验证见 [2026-09-26 核查记录](docs/audit-2026-09-26.md)，真实上线条件见 [生产验收清单](docs/production-readiness.md)。
+项目流程详解、面试追问和工程细节按顺序写在 [MedAgent AI 多 Agent 项目话术](docs/MedAgent_AI_多Agent项目话术.md) 中；也可单独阅读 [从零理解项目指南](docs/MedAgent_项目理解指南.md)。最新修复与验证见 [2026-09-28 核查记录](docs/audit-2026-09-28.md)，真实上线条件见 [生产验收清单](docs/production-readiness.md)。
 
 常用术语：Agent（智能体）、A2A（智能体间通信）、MCP（模型上下文协议）、JWT（身份令牌）、SSE（服务器发送事件）、BERT（双向编码器表示模型）、BGE-M3（文本向量模型）、HMAC（基于密钥的消息认证码）、TTL（过期时间）。更多缩写及中文含义见项目话术末尾的术语表。
 
@@ -91,7 +91,7 @@ python scripts/build_intent_dataset.py
 
 `python scripts/check_config.py` 只检查本地核心链路，医院接口未配置时会给出提示但不阻止启动；生产联调前使用 `python scripts/check_config.py --strict`，要求 HIS/LIS、药品和指南服务全部配置。未配置的真实工具会明确失败，不会用模拟医学数据兜底。
 
-向量层从独立的 `evaluation/intent_prototypes.jsonl` 加载单意图样本作为版本化原型，避免与 `evaluation/intent_eval.jsonl` 回归集直接重合造成数据泄漏；使用 `INTENT_VECTOR_MODEL_PATH` 指向的本地 SentenceTransformer 模型计算余弦相似度。多意图提示、低置信度和冲突样本会进入 SiliconFlow 主模型兜底。该级联提高覆盖率，但不承诺所有真实表达都能 100% 正确分类。
+向量层从独立的 `evaluation/intent_prototypes.jsonl` 加载单意图样本作为版本化原型，2026-09-28 替换了与回归集重合的两条原型，并以测试检查原型与回归及四份合成数据集无精确文本重合；精确去重不能证明不存在语义或模板泄漏；使用 `INTENT_VECTOR_MODEL_PATH` 指向的本地 SentenceTransformer 模型计算余弦相似度。多意图提示、低置信度和冲突样本会进入 SiliconFlow 主模型兜底。该级联提高覆盖率，但不承诺所有真实表达都能 100% 正确分类。
 
 阈值校准与完整回归：
 
@@ -159,6 +159,10 @@ python scripts/create_staff.py --employee-id D10086 --username doctor_name --rol
 
 会话按员工、患者、会话隔离，整轮锁防止并发覆盖；数据库提交、消息成对写入、阶段保存后发送 SSE 完成事件。默认整轮 120 秒、模型单次 30 秒、输出 2,048 词元；没有工具证据或存在工具失败时不返回正常临床结论。
 
+A2A 传输历史采用最近消息优先裁剪：每条内容最多 4 KiB，历史 JSON 的 UTF-8 总量最多 16 KiB；完整会话存储仍最多 20 条。裁剪只用于可选上下文，当前任务单独传递，专科从数据库重新读取可信患者档案。裁剪可能丢失较早上下文，不应把历史作为关键临床参数的唯一来源。
+
+SSE 异常会记录阶段、请求标识、异常类型和栈位置，不记录原始异常消息或临床内容。健康检查的相对模型路径按仓库根目录解析。
+
 ## 验证
 
 ```powershell
@@ -166,7 +170,7 @@ python -m pytest -q
 python -m compileall -q backend scripts streamlit_app.py
 ```
 
-测试会确认：14 个 FastMCP 工具真实注册、未配置的医院接口明确失败、敏感标识脱敏、急诊边界优先执行、员工—患者授权、多意图保留和患者会话隔离。
+2026-09-28 本地 103 项测试通过。pytest 默认仅收集 `tests/`；如系统 pytest 临时目录无权限，使用新的 `--basetemp`。测试会确认：14 个 FastMCP 工具真实注册、未配置的医院接口明确失败、敏感标识脱敏、急诊边界优先执行、员工—患者授权、多意图保留和患者会话隔离。
 
 意图回归评测：
 
@@ -191,7 +195,7 @@ python scripts/preflight_git.py
 python scripts/preflight_git.py --quick
 ```
 
-执行一次 `python scripts/install_git_hooks.py` 可启用仓库内的 hooks：提交前运行快速检查，推送前运行完整检查。真实 `.env`、数据库、运行日志、模型权重、压测报告、简历产物和 `.mimosa/` 运行状态应留在本地；`.gitignore` 与预检约束当前 Git 索引。预检会提示这些本地文件是否曾进入 Git 历史，但不审查历史内容或远端可见性。已经进入历史或远端的文件不会因后来取消跟踪而消失。
+在项目环境执行一次 `python scripts/install_git_hooks.py` 可启用 hooks 并将当前解释器保存到本地 Git 配置；切换或迁移环境后需重新安装：提交前运行快速检查，推送前运行完整检查。真实 `.env`、数据库、运行日志、模型权重、压测报告、简历产物和 `.mimosa/` 运行状态应留在本地；`.gitignore` 与预检约束当前 Git 索引。预检会提示这些本地文件是否曾进入 Git 历史，但不审查历史内容或远端可见性。已经进入历史或远端的文件不会因后来取消跟踪而消失。
 
 启动监控服务：
 
@@ -204,3 +208,9 @@ docker compose --profile observability up -d prometheus grafana
 本项目不会自行提供处方剂量，也不会把模型输出当作确诊结果。医院 API 字段结构需要按甲方 OpenAPI 文档对 `backend/mcp_tools.py` 中的路径与字段映射做最后适配；在这些真实接口尚未提供前，对应功能会返回“接口未配置”，不会使用假数据替代。
 
 EMR 配置曾是未调用的预留项，现已删除。14 个工具中没有独立 EMR 连接器；报告工具对接 LIS，正式电子病历写入、影像识别与参数级审批需按医院需求独立验收。
+
+## 兼容性与验证边界
+
+当前 A2A 使用已弃用的 Starlette WSGI 桥；constraints 固定 Starlette 1.6.0、Flask 3.1.3，迁移适配器前须复测真实 HTTP 链路。Docker 冷启动探针宽限为 600 秒。固定窗口登录限流不保证任意滚动 300 秒均只有 10 次。pending/unknown 写操作需人工核对 HIS，不自动重试。
+
+评测记录：2026-09-28 原型替换后已重新评测；最新本地明细为 `artifacts/intent_eval_tob_v3.json`，可入库摘要为 [33 条回归记录](evaluation/intent_regression_summary.json)。摘要包含生成时间、数据集与原型 SHA-256、逐条结果；未包含本机模型路径。

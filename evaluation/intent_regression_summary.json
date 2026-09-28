@@ -1,0 +1,626 @@
+{
+  "generated_at": "2026-09-28T06:59:50.893667+00:00",
+  "pipeline": "regex -> bert -> vector -> llm",
+  "dataset": "evaluation/intent_eval.jsonl",
+  "dataset_sha256": "e92e62e22c8586e217ae829861f5279fb4450fd6efe8d032a1e17c9c3572a710",
+  "prototypes_sha256": "7ac8b133a4ef8852e62762bb796893d2ef58c9ed57fa457980f7c7e1eabf87b3",
+  "dataset_note": "工程回归集，非临床标注基准；不能外推为真实医疗场景准确率。",
+  "case_count": 33,
+  "intent_exact_match_accuracy": 1.0,
+  "complex_flag_accuracy": 1.0,
+  "micro_precision": 1.0,
+  "micro_recall": 1.0,
+  "micro_f1": 1.0,
+  "errors": 0,
+  "source_counts": {
+    "regex": 32,
+    "vector": 1
+  },
+  "cases": [
+    {
+      "id": "symptom-01",
+      "expected_intents": [
+        "症状评估"
+      ],
+      "predicted_intents": [
+        "症状评估"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "symptom-02",
+      "expected_intents": [
+        "症状评估"
+      ],
+      "predicted_intents": [
+        "症状评估"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "symptom-03",
+      "expected_intents": [
+        "症状评估"
+      ],
+      "predicted_intents": [
+        "症状评估"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "drug-01",
+      "expected_intents": [
+        "药品信息查询"
+      ],
+      "predicted_intents": [
+        "药品信息查询"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "drug-02",
+      "expected_intents": [
+        "药品信息查询"
+      ],
+      "predicted_intents": [
+        "药品信息查询"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "drug-03",
+      "expected_intents": [
+        "药品信息查询"
+      ],
+      "predicted_intents": [
+        "药品信息查询"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "guide-01",
+      "expected_intents": [
+        "临床指南检索"
+      ],
+      "predicted_intents": [
+        "临床指南检索"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "guide-02",
+      "expected_intents": [
+        "临床指南检索"
+      ],
+      "predicted_intents": [
+        "临床指南检索"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "guide-03",
+      "expected_intents": [
+        "临床指南检索"
+      ],
+      "predicted_intents": [
+        "临床指南检索"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "lab-01",
+      "expected_intents": [
+        "检验结果辅助解读"
+      ],
+      "predicted_intents": [
+        "检验结果辅助解读"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "lab-02",
+      "expected_intents": [
+        "检验结果辅助解读"
+      ],
+      "predicted_intents": [
+        "检验结果辅助解读"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "lab-03",
+      "expected_intents": [
+        "检验结果辅助解读"
+      ],
+      "predicted_intents": [
+        "检验结果辅助解读"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "triage-01",
+      "expected_intents": [
+        "院内分诊建议"
+      ],
+      "predicted_intents": [
+        "院内分诊建议"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "triage-02",
+      "expected_intents": [
+        "院内分诊建议"
+      ],
+      "predicted_intents": [
+        "院内分诊建议"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "triage-03",
+      "expected_intents": [
+        "院内分诊建议"
+      ],
+      "predicted_intents": [
+        "院内分诊建议"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "followup-01",
+      "expected_intents": [
+        "随访管理"
+      ],
+      "predicted_intents": [
+        "随访管理"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "followup-02",
+      "expected_intents": [
+        "随访管理"
+      ],
+      "predicted_intents": [
+        "随访管理"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "followup-03",
+      "expected_intents": [
+        "随访管理"
+      ],
+      "predicted_intents": [
+        "随访管理"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "vector",
+      "predicted_route": [
+        "regex",
+        "bert",
+        "vector"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "medication-01",
+      "expected_intents": [
+        "用药审核"
+      ],
+      "predicted_intents": [
+        "用药审核"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": true,
+      "predicted_complex": true,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "medication-02",
+      "expected_intents": [
+        "用药审核"
+      ],
+      "predicted_intents": [
+        "用药审核"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": true,
+      "predicted_complex": true,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "medication-03",
+      "expected_intents": [
+        "用药审核"
+      ],
+      "predicted_intents": [
+        "用药审核"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": true,
+      "predicted_complex": true,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "knowledge-01",
+      "expected_intents": [
+        "临床知识查询"
+      ],
+      "predicted_intents": [
+        "临床知识查询"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "knowledge-02",
+      "expected_intents": [
+        "临床知识查询"
+      ],
+      "predicted_intents": [
+        "临床知识查询"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "knowledge-03",
+      "expected_intents": [
+        "临床知识查询"
+      ],
+      "predicted_intents": [
+        "临床知识查询"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": false,
+      "predicted_complex": false,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "referral-01",
+      "expected_intents": [
+        "转诊协同"
+      ],
+      "predicted_intents": [
+        "转诊协同"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": true,
+      "predicted_complex": true,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "referral-02",
+      "expected_intents": [
+        "转诊协同"
+      ],
+      "predicted_intents": [
+        "转诊协同"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": true,
+      "predicted_complex": true,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "referral-03",
+      "expected_intents": [
+        "转诊协同"
+      ],
+      "predicted_intents": [
+        "转诊协同"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": true,
+      "predicted_complex": true,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "report-01",
+      "expected_intents": [
+        "检查报告辅助解读"
+      ],
+      "predicted_intents": [
+        "检查报告辅助解读"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": true,
+      "predicted_complex": true,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "report-02",
+      "expected_intents": [
+        "检查报告辅助解读"
+      ],
+      "predicted_intents": [
+        "检查报告辅助解读"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": true,
+      "predicted_complex": true,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "report-03",
+      "expected_intents": [
+        "检查报告辅助解读"
+      ],
+      "predicted_intents": [
+        "检查报告辅助解读"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": true,
+      "predicted_complex": true,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "multi-01",
+      "expected_intents": [
+        "症状评估",
+        "用药审核",
+        "院内分诊建议"
+      ],
+      "predicted_intents": [
+        "症状评估",
+        "院内分诊建议",
+        "用药审核"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": true,
+      "predicted_complex": true,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "multi-02",
+      "expected_intents": [
+        "检验结果辅助解读",
+        "院内分诊建议"
+      ],
+      "predicted_intents": [
+        "检验结果辅助解读",
+        "院内分诊建议"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": true,
+      "predicted_complex": true,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "id": "multi-03",
+      "expected_intents": [
+        "临床指南检索",
+        "临床知识查询"
+      ],
+      "predicted_intents": [
+        "临床指南检索",
+        "临床知识查询"
+      ],
+      "intent_exact_match": true,
+      "expected_complex": true,
+      "predicted_complex": true,
+      "predicted_source": "regex",
+      "predicted_route": [
+        "regex"
+      ],
+      "complex_match": true,
+      "error": null
+    }
+  ],
+  "evaluator_sha256": "717a3219dc4de2996c9ee1a8e10bfa4b876e7a7e5dd8dba5f84be96d36b73efe"
+}
