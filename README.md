@@ -91,6 +91,27 @@ python scripts/build_intent_dataset.py
 
 `python scripts/check_config.py` 只检查本地核心链路，医院接口未配置时会给出提示但不阻止启动；生产联调前使用 `python scripts/check_config.py --strict`，要求 HIS/LIS、药品和指南服务全部配置。未配置的真实工具会明确失败，不会用模拟医学数据兜底。
 
+### 克隆后的模型准备与指标复核
+
+模型权重不随 Git 分发。克隆后需准备基础 BERT、训练本项目十分类模型，并下载 BGE-M3；不能只克隆代码就复现历史模型指标。下载公开基础模型的示例（需联网；该命令会下载较大权重）：
+
+```powershell
+python -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='google-bert/bert-base-chinese', local_dir='models/bert-base-chinese')"
+python -c "from huggingface_hub import snapshot_download; snapshot_download(repo_id='BAAI/bge-m3', local_dir='models/bge-m3')"
+```
+
+将前文 `$BERT_BASE_MODEL` 设置为 `models/bert-base-chinese`，执行训练命令；在本地 `.env` 中设置 `INTENT_BERT_MODEL_PATH=models/medical_intent_bert_tob_v3`、`INTENT_VECTOR_MODEL_PATH=models/bge-m3`。公开下载例子取得当时的模型版本；若要求固定版本，需记录并传入 Hugging Face 的 `revision` 提交号。当前旧模型未记录上游提交，不能补造一个版本号。
+
+[模型文件指纹](evaluation/model_artifacts.json) 记录当前本地推理文件的大小与 SHA-256；[历史 BERT 指标摘要](evaluation/bert_historical_summary.json) 保存普通测试、挑战集各自的分母、阈值和数据集指纹。当前模型指纹是在 2026-09-29 补记，不等于历史评测当时已经完整记录环境。原训练脚本默认 seed=42、8 轮、batch=8、学习率 2e-5、最大长度 128；不同基础权重、依赖与设备可能产生不同结果，不承诺重新训练得到完全相同分数。
+
+```powershell
+python scripts/verify_model_artifacts.py --bert models/medical_intent_bert_tob_v3 --vector models/bge-m3
+python scripts/evaluate_intent_bert.py --model models/medical_intent_bert_tob_v3 --dataset evaluation/datasets/intent_test.jsonl --output artifacts/bert_test_new.json
+python scripts/evaluate_intent_bert.py --model models/medical_intent_bert_tob_v3 --dataset evaluation/datasets/intent_challenge.jsonl --output artifacts/bert_challenge_new.json
+```
+
+指纹不匹配不代表文件一定损坏，可能是新下载或新训练的版本；应以新评测报告描述该版本，不能沿用历史覆盖率。下载方法见 [Hugging Face 官方说明](https://huggingface.co/docs/huggingface_hub/en/guides/download)。
+
 向量层从独立的 `evaluation/intent_prototypes.jsonl` 加载单意图样本作为版本化原型，2026-09-28 替换了与回归集重合的两条原型，并以测试检查原型与回归及四份合成数据集无精确文本重合；精确去重不能证明不存在语义或模板泄漏；使用 `INTENT_VECTOR_MODEL_PATH` 指向的本地 SentenceTransformer 模型计算余弦相似度。多意图提示、低置信度和冲突样本会进入 SiliconFlow 主模型兜底。该级联提高覆盖率，但不承诺所有真实表达都能 100% 正确分类。
 
 阈值校准与完整回归：
@@ -100,12 +121,12 @@ python scripts/calibrate_intent_vector.py
 python scripts/evaluate_intent.py --output artifacts/intent_eval_tob_v3.json
 ```
 
-意图体系已调整为十类院内任务，并重新生成 3,800 条 ToB 合成启动数据。`medical_intent_bert_tob_v3` 已从原始 `bert-base-chinese` 重新初始化分类头并训练；不符合当前十类标签集合的权重会被运行时拒绝加载。当前 `0.95` 阈值下，1,000 条合成测试集覆盖率为 98.8%、接受样本准确率为 100%；100 条否定/模糊单意图挑战集覆盖率为 24%、接受样本准确率为 100%，50 条分布外样本全部拒绝。向量层在 236 条残余挑战样本上以 `0.78` 阈值接受 10 条且均判断正确。以上只用于工程校准，不能外推为临床准确率。范围守卫会在意图分类前终止非院内工作请求。
+意图体系已调整为十类院内任务，并重新生成 3,800 条 ToB 合成启动数据。`medical_intent_bert_tob_v3` 已从原始 `bert-base-chinese` 重新初始化分类头并训练；不符合当前十类标签集合的权重会被运行时拒绝加载。[历史 BERT 摘要](evaluation/bert_historical_summary.json) 中，`0.95` 阈值下的 1,000 条合成测试覆盖率为 98.8%、接受样本准确率为 100%；100 条否定/模糊单意图挑战集覆盖率为 24%、接受样本准确率为 100%，50 条分布外样本全部拒绝。2026-09-29 使用当前本地模型重新运行向量单标签 Top-1 阈值校准：236 条残余挑战样本中，以 `0.78` 阈值接受 10 条且均判断正确，[逐条记录及输入指纹](evaluation/vector_challenge_summary.json) 可查。该校准不等于完整多意图运行时评测。以上只用于工程验证，不能外推为临床准确率。范围守卫会在意图分类前终止非院内工作请求。
 
 在挑战集上复核已确定的 `0.78` 阈值（不要用该集重新调参）：
 
 ```powershell
-python scripts/calibrate_intent_vector.py --dataset evaluation/datasets/intent_challenge.jsonl --thresholds 0.78
+python scripts/calibrate_intent_vector.py --dataset evaluation/datasets/intent_challenge.jsonl --thresholds 0.78 --output evaluation/vector_challenge_summary.json
 ```
 
 BERT 独立评测命令：

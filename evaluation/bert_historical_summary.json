@@ -1,0 +1,64 @@
+{
+  "note": "Historical local BERT evaluations; not rerun for this publication. Current fingerprints were recorded later and do not independently prove the artifacts used by the historical run.",
+  "reports": {
+    "ordinary": {
+      "dataset": "evaluation\\datasets\\intent_test.jsonl",
+      "device": "cuda",
+      "threshold": 0.95,
+      "case_count": 1000,
+      "single_intent": {
+        "count": 1000,
+        "top1_accuracy": 1.0,
+        "coverage": 0.988,
+        "accepted_accuracy": 1.0
+      },
+      "multi_intent": {
+        "count": 0,
+        "raw_top1_hit_rate": null,
+        "accepted_coverage": null,
+        "note": "单标签 BERT 只能提供一个候选，多意图必须继续交给规则、向量或 LLM。"
+      },
+      "out_of_domain": {
+        "count": 0,
+        "rejection_rate": null
+      },
+      "outcomes": {
+        "correct": 988,
+        "not_resolved": 12
+      },
+      "source_report_sha256": "3f534a816552c139abe41c59c34e27b14859c92ff10bf15bb40efd4e0aca03f7",
+      "dataset_sha256": "e7a0e7a5f701f4cb952c4d70e7ca3d45451c879e23e3a1e35e82d01e3b78918d"
+    },
+    "challenge": {
+      "dataset": "evaluation\\datasets\\intent_challenge.jsonl",
+      "device": "cuda",
+      "threshold": 0.95,
+      "case_count": 400,
+      "single_intent": {
+        "count": 100,
+        "top1_accuracy": 0.6,
+        "coverage": 0.24,
+        "accepted_accuracy": 1.0
+      },
+      "multi_intent": {
+        "count": 250,
+        "raw_top1_hit_rate": 0.992,
+        "accepted_coverage": 0.168,
+        "note": "单标签 BERT 只能提供一个候选，多意图必须继续交给规则、向量或 LLM。"
+      },
+      "out_of_domain": {
+        "count": 50,
+        "rejection_rate": 1.0
+      },
+      "outcomes": {
+        "ood_rejected": 50,
+        "multi_top1_miss": 208,
+        "not_resolved": 76,
+        "correct": 24,
+        "multi_top1_hit": 42
+      },
+      "source_report_sha256": "d9e839f241ba321a3edd55594add9e5dc9b33e8d9904be098e482d27715ed449",
+      "dataset_sha256": "e6db637dfdd7418a300a66b251806b12d293f57410c7d5dc9bf8e3fa9dba03d1"
+    }
+  }
+}

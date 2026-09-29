@@ -1,0 +1,2208 @@
+{
+  "generated_at": "2026-09-29T12:30:38.228172+00:00",
+  "scope": "Single-label vector top-1 threshold calibration after regex/BERT filtering; not the full multi-intent runtime route or a clinical benchmark.",
+  "dataset_sha256": "e6db637dfdd7418a300a66b251806b12d293f57410c7d5dc9bf8e3fa9dba03d1",
+  "prototypes_sha256": "7ac8b133a4ef8852e62762bb796893d2ef58c9ed57fa457980f7c7e1eabf87b3",
+  "bert_threshold": 0.95,
+  "dataset_cases": 400,
+  "vector_residual_cases": 236,
+  "thresholds": [
+    {
+      "threshold": 0.78,
+      "accepted": 10,
+      "correct": 10,
+      "coverage": 0.0423728813559322,
+      "accepted_accuracy": 1.0
+    }
+  ],
+  "cases": [
+    {
+      "id": "challenge-ood-021",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.5273680090904236,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-121",
+      "expected": [
+        "症状评估",
+        "检查报告辅助解读"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6613978147506714,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-038",
+      "expected": [
+        "临床指南检索",
+        "院内分诊建议"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7590345144271851,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-221",
+      "expected": [
+        "症状评估",
+        "检验结果辅助解读"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.7052599191665649,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-200",
+      "expected": [
+        "症状评估",
+        "检查报告辅助解读"
+      ],
+      "predicted": "症状评估",
+      "score": 0.61775141954422,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-125",
+      "expected": [
+        "检验结果辅助解读",
+        "院内分诊建议"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6428494453430176,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-234",
+      "expected": [
+        "院内分诊建议",
+        "检查报告辅助解读"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6371696591377258,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-147",
+      "expected": [
+        "临床指南检索",
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6480371356010437,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-054",
+      "expected": [
+        "院内分诊建议",
+        "检查报告辅助解读"
+      ],
+      "predicted": "症状评估",
+      "score": 0.7160128355026245,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-010",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.4821520745754242,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-025",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.4906616806983948,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-100",
+      "expected": [
+        "症状评估",
+        "随访管理"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6391487121582031,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-190",
+      "expected": [
+        "检验结果辅助解读",
+        "临床知识查询"
+      ],
+      "predicted": "转诊协同",
+      "score": 0.6417504549026489,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-220",
+      "expected": [
+        "检验结果辅助解读",
+        "随访管理"
+      ],
+      "predicted": "症状评估",
+      "score": 0.7070227265357971,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-026",
+      "expected": [],
+      "predicted": "检查报告辅助解读",
+      "score": 0.5248486995697021,
+      "correct": false
+    },
+    {
+      "id": "challenge-negation-029",
+      "expected": [
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.713420569896698,
+      "correct": false
+    },
+    {
+      "id": "challenge-ambiguous-016",
+      "expected": [
+        "症状评估"
+      ],
+      "predicted": "症状评估",
+      "score": 0.7910367250442505,
+      "correct": true
+    },
+    {
+      "id": "challenge-multi-064",
+      "expected": [
+        "临床指南检索",
+        "检查报告辅助解读"
+      ],
+      "predicted": "检查报告辅助解读",
+      "score": 0.6930583715438843,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-250",
+      "expected": [
+        "院内分诊建议",
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6985516548156738,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-229",
+      "expected": [
+        "随访管理",
+        "临床知识查询"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6784055233001709,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-109",
+      "expected": [
+        "临床指南检索",
+        "随访管理"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6549143195152283,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-114",
+      "expected": [
+        "临床指南检索",
+        "检验结果辅助解读"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.637619137763977,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-028",
+      "expected": [
+        "症状评估",
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6436846852302551,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-075",
+      "expected": [
+        "检验结果辅助解读",
+        "院内分诊建议"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6763806343078613,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-193",
+      "expected": [
+        "症状评估",
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6525018811225891,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-197",
+      "expected": [
+        "症状评估",
+        "院内分诊建议"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6785096526145935,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-060",
+      "expected": [
+        "临床指南检索",
+        "检验结果辅助解读"
+      ],
+      "predicted": "检查报告辅助解读",
+      "score": 0.6524013876914978,
+      "correct": false
+    },
+    {
+      "id": "challenge-ambiguous-009",
+      "expected": [
+        "药品信息查询"
+      ],
+      "predicted": "药品信息查询",
+      "score": 0.7085916996002197,
+      "correct": true
+    },
+    {
+      "id": "challenge-ood-022",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.4247256815433502,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-073",
+      "expected": [
+        "院内分诊建议",
+        "检查报告辅助解读"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7148932218551636,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-059",
+      "expected": [
+        "用药审核",
+        "转诊协同"
+      ],
+      "predicted": "转诊协同",
+      "score": 0.6755003929138184,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-005",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.4862590432167053,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-154",
+      "expected": [
+        "院内分诊建议",
+        "临床知识查询"
+      ],
+      "predicted": "症状评估",
+      "score": 0.5939189195632935,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-003",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.4803484082221985,
+      "correct": false
+    },
+    {
+      "id": "challenge-ambiguous-011",
+      "expected": [
+        "症状评估"
+      ],
+      "predicted": "症状评估",
+      "score": 0.7911786437034607,
+      "correct": true
+    },
+    {
+      "id": "challenge-ood-006",
+      "expected": [],
+      "predicted": "检查报告辅助解读",
+      "score": 0.5304190516471863,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-049",
+      "expected": [
+        "药品信息查询",
+        "用药审核"
+      ],
+      "predicted": "检查报告辅助解读",
+      "score": 0.6126731634140015,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-002",
+      "expected": [
+        "药品信息查询",
+        "用药审核"
+      ],
+      "predicted": "用药审核",
+      "score": 0.6334365606307983,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-036",
+      "expected": [
+        "药品信息查询",
+        "检验结果辅助解读"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6180960536003113,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-199",
+      "expected": [
+        "药品信息查询",
+        "临床指南检索"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6973515748977661,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-105",
+      "expected": [
+        "随访管理",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.755589485168457,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-088",
+      "expected": [
+        "临床知识查询",
+        "检查报告辅助解读"
+      ],
+      "predicted": "检查报告辅助解读",
+      "score": 0.6907270550727844,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-009",
+      "expected": [],
+      "predicted": "药品信息查询",
+      "score": 0.5540908575057983,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-014",
+      "expected": [],
+      "predicted": "检验结果辅助解读",
+      "score": 0.4981599450111389,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-136",
+      "expected": [
+        "检验结果辅助解读",
+        "用药审核"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.665165364742279,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-202",
+      "expected": [
+        "症状评估",
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6415309906005859,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-110",
+      "expected": [
+        "临床指南检索",
+        "随访管理"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7062180638313293,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-079",
+      "expected": [
+        "症状评估",
+        "临床知识查询"
+      ],
+      "predicted": "用药审核",
+      "score": 0.6297642588615417,
+      "correct": false
+    },
+    {
+      "id": "challenge-ambiguous-031",
+      "expected": [
+        "症状评估"
+      ],
+      "predicted": "症状评估",
+      "score": 0.7995187640190125,
+      "correct": true
+    },
+    {
+      "id": "challenge-multi-067",
+      "expected": [
+        "症状评估",
+        "检查报告辅助解读"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6396641731262207,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-137",
+      "expected": [
+        "随访管理",
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6652060747146606,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-084",
+      "expected": [
+        "院内分诊建议",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7789957523345947,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-006",
+      "expected": [
+        "药品信息查询",
+        "院内分诊建议"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6750169396400452,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-089",
+      "expected": [
+        "检验结果辅助解读",
+        "转诊协同"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.6660995483398438,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-019",
+      "expected": [],
+      "predicted": "药品信息查询",
+      "score": 0.5562829375267029,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-103",
+      "expected": [
+        "药品信息查询",
+        "随访管理"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6005940437316895,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-233",
+      "expected": [
+        "检验结果辅助解读",
+        "院内分诊建议"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6389895081520081,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-086",
+      "expected": [
+        "临床指南检索",
+        "检验结果辅助解读"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.6336854100227356,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-158",
+      "expected": [
+        "检验结果辅助解读",
+        "检查报告辅助解读"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6563760042190552,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-038",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.5248110294342041,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-104",
+      "expected": [
+        "用药审核",
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6173239350318909,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-223",
+      "expected": [
+        "随访管理",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.714277446269989,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-181",
+      "expected": [
+        "用药审核",
+        "检查报告辅助解读"
+      ],
+      "predicted": "检查报告辅助解读",
+      "score": 0.6961220502853394,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-036",
+      "expected": [],
+      "predicted": "检查报告辅助解读",
+      "score": 0.5343575477600098,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-017",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.5001370906829834,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-069",
+      "expected": [
+        "药品信息查询",
+        "临床知识查询"
+      ],
+      "predicted": "临床知识查询",
+      "score": 0.5891991257667542,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-185",
+      "expected": [
+        "药品信息查询",
+        "用药审核"
+      ],
+      "predicted": "用药审核",
+      "score": 0.730927050113678,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-179",
+      "expected": [
+        "临床指南检索",
+        "检验结果辅助解读"
+      ],
+      "predicted": "检查报告辅助解读",
+      "score": 0.6696134209632874,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-009",
+      "expected": [
+        "检验结果辅助解读",
+        "随访管理"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.6405099630355835,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-151",
+      "expected": [
+        "药品信息查询",
+        "用药审核"
+      ],
+      "predicted": "用药审核",
+      "score": 0.6207701563835144,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-031",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.5233562588691711,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-040",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.46033936738967896,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-023",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.48729372024536133,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-007",
+      "expected": [
+        "检验结果辅助解读",
+        "用药审核"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.6627659201622009,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-216",
+      "expected": [
+        "院内分诊建议",
+        "用药审核"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6432359218597412,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-231",
+      "expected": [
+        "用药审核",
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7393255829811096,
+      "correct": false
+    },
+    {
+      "id": "challenge-ambiguous-014",
+      "expected": [
+        "药品信息查询"
+      ],
+      "predicted": "药品信息查询",
+      "score": 0.7139354944229126,
+      "correct": true
+    },
+    {
+      "id": "challenge-ambiguous-019",
+      "expected": [
+        "药品信息查询"
+      ],
+      "predicted": "药品信息查询",
+      "score": 0.7097957134246826,
+      "correct": true
+    },
+    {
+      "id": "challenge-ood-047",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.48128920793533325,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-043",
+      "expected": [
+        "检验结果辅助解读",
+        "检查报告辅助解读"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.6283016204833984,
+      "correct": false
+    },
+    {
+      "id": "challenge-ambiguous-001",
+      "expected": [
+        "症状评估"
+      ],
+      "predicted": "症状评估",
+      "score": 0.7821615934371948,
+      "correct": true
+    },
+    {
+      "id": "challenge-multi-176",
+      "expected": [
+        "药品信息查询",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7270991206169128,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-012",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.43348610401153564,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-134",
+      "expected": [
+        "院内分诊建议",
+        "用药审核"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6220104694366455,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-212",
+      "expected": [
+        "药品信息查询",
+        "临床指南检索"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6343052983283997,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-018",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.5302669405937195,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-007",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.5008193254470825,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-241",
+      "expected": [
+        "临床指南检索",
+        "用药审核"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7002763748168945,
+      "correct": false
+    },
+    {
+      "id": "challenge-ambiguous-004",
+      "expected": [
+        "药品信息查询"
+      ],
+      "predicted": "药品信息查询",
+      "score": 0.7043443918228149,
+      "correct": true
+    },
+    {
+      "id": "challenge-multi-195",
+      "expected": [
+        "症状评估",
+        "随访管理"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6483399271965027,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-029",
+      "expected": [],
+      "predicted": "药品信息查询",
+      "score": 0.557097852230072,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-189",
+      "expected": [
+        "检验结果辅助解读",
+        "随访管理"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.6856001019477844,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-139",
+      "expected": [
+        "检验结果辅助解读",
+        "转诊协同"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.6238608956336975,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-130",
+      "expected": [
+        "药品信息查询",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6567241549491882,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-016",
+      "expected": [],
+      "predicted": "检查报告辅助解读",
+      "score": 0.5289448499679565,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-058",
+      "expected": [
+        "院内分诊建议",
+        "用药审核"
+      ],
+      "predicted": "症状评估",
+      "score": 0.7265256643295288,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-002",
+      "expected": [],
+      "predicted": "检查报告辅助解读",
+      "score": 0.4473319947719574,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-102",
+      "expected": [
+        "临床指南检索",
+        "随访管理"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6557552814483643,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-095",
+      "expected": [
+        "临床指南检索",
+        "检验结果辅助解读"
+      ],
+      "predicted": "症状评估",
+      "score": 0.7183827757835388,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-049",
+      "expected": [],
+      "predicted": "药品信息查询",
+      "score": 0.5550399422645569,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-149",
+      "expected": [
+        "临床知识查询",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6989555358886719,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-004",
+      "expected": [],
+      "predicted": "检验结果辅助解读",
+      "score": 0.5065132975578308,
+      "correct": false
+    },
+    {
+      "id": "challenge-ambiguous-021",
+      "expected": [
+        "症状评估"
+      ],
+      "predicted": "症状评估",
+      "score": 0.7921861410140991,
+      "correct": true
+    },
+    {
+      "id": "challenge-ood-030",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.457275927066803,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-180",
+      "expected": [
+        "随访管理",
+        "检查报告辅助解读"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6696388721466064,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-152",
+      "expected": [
+        "药品信息查询",
+        "院内分诊建议"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7143868207931519,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-015",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.5034244656562805,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-161",
+      "expected": [
+        "症状评估",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7192651033401489,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-153",
+      "expected": [
+        "药品信息查询",
+        "院内分诊建议"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.64527827501297,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-209",
+      "expected": [
+        "临床指南检索",
+        "检验结果辅助解读"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.666973888874054,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-228",
+      "expected": [
+        "临床指南检索",
+        "随访管理"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7387853860855103,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-025",
+      "expected": [
+        "症状评估",
+        "转诊协同"
+      ],
+      "predicted": "转诊协同",
+      "score": 0.6535385251045227,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-236",
+      "expected": [
+        "症状评估",
+        "检验结果辅助解读"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6747901439666748,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-041",
+      "expected": [
+        "临床指南检索",
+        "随访管理"
+      ],
+      "predicted": "随访管理",
+      "score": 0.6947258710861206,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-037",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.47950980067253113,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-246",
+      "expected": [
+        "随访管理",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7112106084823608,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-226",
+      "expected": [
+        "随访管理",
+        "检查报告辅助解读"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6776094436645508,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-196",
+      "expected": [
+        "用药审核",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6293318867683411,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-098",
+      "expected": [
+        "院内分诊建议",
+        "临床知识查询"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6957364678382874,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-172",
+      "expected": [
+        "临床知识查询",
+        "检查报告辅助解读"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6780099272727966,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-044",
+      "expected": [],
+      "predicted": "检验结果辅助解读",
+      "score": 0.47893279790878296,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-165",
+      "expected": [
+        "药品信息查询",
+        "检验结果辅助解读"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.7348465919494629,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-072",
+      "expected": [
+        "症状评估",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7081078886985779,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-027",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.4855470359325409,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-082",
+      "expected": [
+        "药品信息查询",
+        "检查报告辅助解读"
+      ],
+      "predicted": "检查报告辅助解读",
+      "score": 0.6273701190948486,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-115",
+      "expected": [
+        "症状评估",
+        "随访管理"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6493968367576599,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-144",
+      "expected": [
+        "药品信息查询",
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6980151534080505,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-045",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.4862441122531891,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-008",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.5318344235420227,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-097",
+      "expected": [
+        "检验结果辅助解读",
+        "院内分诊建议"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.712470293045044,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-133",
+      "expected": [
+        "院内分诊建议",
+        "检查报告辅助解读"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6885066628456116,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-016",
+      "expected": [
+        "院内分诊建议",
+        "检查报告辅助解读"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7082291841506958,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-210",
+      "expected": [
+        "用药审核",
+        "检查报告辅助解读"
+      ],
+      "predicted": "检查报告辅助解读",
+      "score": 0.6039283275604248,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-018",
+      "expected": [
+        "症状评估",
+        "临床指南检索"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6215521693229675,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-074",
+      "expected": [
+        "临床指南检索",
+        "院内分诊建议"
+      ],
+      "predicted": "症状评估",
+      "score": 0.7036572098731995,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-207",
+      "expected": [
+        "症状评估",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6874851584434509,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-033",
+      "expected": [
+        "药品信息查询",
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6941750049591064,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-224",
+      "expected": [
+        "检验结果辅助解读",
+        "院内分诊建议"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6212220788002014,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-083",
+      "expected": [
+        "临床指南检索",
+        "用药审核"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6832742094993591,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-155",
+      "expected": [
+        "临床指南检索",
+        "用药审核"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6756676435470581,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-166",
+      "expected": [
+        "药品信息查询",
+        "检验结果辅助解读"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.6371557116508484,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-131",
+      "expected": [
+        "随访管理",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7488622069358826,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-040",
+      "expected": [
+        "症状评估",
+        "检验结果辅助解读"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6321277618408203,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-008",
+      "expected": [
+        "随访管理",
+        "用药审核"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6823402643203735,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-108",
+      "expected": [
+        "临床指南检索",
+        "检验结果辅助解读"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.6657070517539978,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-070",
+      "expected": [
+        "症状评估",
+        "检查报告辅助解读"
+      ],
+      "predicted": "症状评估",
+      "score": 0.695522665977478,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-001",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.5181713104248047,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-033",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.4836390018463135,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-244",
+      "expected": [
+        "临床指南检索",
+        "随访管理"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6906879544258118,
+      "correct": false
+    },
+    {
+      "id": "challenge-ambiguous-046",
+      "expected": [
+        "症状评估"
+      ],
+      "predicted": "症状评估",
+      "score": 0.8002748489379883,
+      "correct": true
+    },
+    {
+      "id": "challenge-ood-046",
+      "expected": [],
+      "predicted": "检查报告辅助解读",
+      "score": 0.5298675894737244,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-163",
+      "expected": [
+        "用药审核",
+        "临床知识查询"
+      ],
+      "predicted": "检查报告辅助解读",
+      "score": 0.6412373185157776,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-112",
+      "expected": [
+        "检验结果辅助解读",
+        "随访管理"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6966201066970825,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-071",
+      "expected": [
+        "临床知识查询",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.714651346206665,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-111",
+      "expected": [
+        "临床指南检索",
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7130858302116394,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-094",
+      "expected": [
+        "症状评估",
+        "临床指南检索"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6193545460700989,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-248",
+      "expected": [
+        "症状评估",
+        "用药审核"
+      ],
+      "predicted": "检查报告辅助解读",
+      "score": 0.6599870920181274,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-019",
+      "expected": [
+        "药品信息查询",
+        "临床指南检索"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6850374937057495,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-120",
+      "expected": [
+        "症状评估",
+        "院内分诊建议"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6720914244651794,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-048",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.521615207195282,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-034",
+      "expected": [],
+      "predicted": "检验结果辅助解读",
+      "score": 0.5069745182991028,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-222",
+      "expected": [
+        "检验结果辅助解读",
+        "临床知识查询"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.6480002403259277,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-178",
+      "expected": [
+        "临床指南检索",
+        "随访管理"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7252305746078491,
+      "correct": false
+    },
+    {
+      "id": "challenge-ambiguous-024",
+      "expected": [
+        "药品信息查询"
+      ],
+      "predicted": "药品信息查询",
+      "score": 0.7169903516769409,
+      "correct": true
+    },
+    {
+      "id": "challenge-ood-035",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.4888034164905548,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-062",
+      "expected": [
+        "药品信息查询",
+        "临床指南检索"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6476531624794006,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-215",
+      "expected": [
+        "药品信息查询",
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6917712688446045,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-034",
+      "expected": [
+        "检验结果辅助解读",
+        "检查报告辅助解读"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.6314535140991211,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-030",
+      "expected": [
+        "检验结果辅助解读",
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.690918505191803,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-219",
+      "expected": [
+        "用药审核",
+        "临床知识查询"
+      ],
+      "predicted": "检查报告辅助解读",
+      "score": 0.700539231300354,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-170",
+      "expected": [
+        "药品信息查询",
+        "院内分诊建议"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7056993842124939,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-032",
+      "expected": [],
+      "predicted": "检查报告辅助解读",
+      "score": 0.4313846230506897,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-204",
+      "expected": [
+        "临床指南检索",
+        "用药审核"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.676053524017334,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-164",
+      "expected": [
+        "临床指南检索",
+        "用药审核"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6349866390228271,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-203",
+      "expected": [
+        "检验结果辅助解读",
+        "随访管理"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6906658411026001,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-061",
+      "expected": [
+        "症状评估",
+        "临床知识查询"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6629526019096375,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-127",
+      "expected": [
+        "症状评估",
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6576371788978577,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-235",
+      "expected": [
+        "检验结果辅助解读",
+        "用药审核"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6472131013870239,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-027",
+      "expected": [
+        "症状评估",
+        "检验结果辅助解读"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6731042861938477,
+      "correct": false
+    },
+    {
+      "id": "challenge-ambiguous-026",
+      "expected": [
+        "症状评估"
+      ],
+      "predicted": "症状评估",
+      "score": 0.7952286005020142,
+      "correct": true
+    },
+    {
+      "id": "challenge-ambiguous-036",
+      "expected": [
+        "症状评估"
+      ],
+      "predicted": "症状评估",
+      "score": 0.7974313497543335,
+      "correct": true
+    },
+    {
+      "id": "challenge-multi-037",
+      "expected": [
+        "症状评估",
+        "临床指南检索"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6908888816833496,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-004",
+      "expected": [
+        "症状评估",
+        "检查报告辅助解读"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6147910356521606,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-042",
+      "expected": [],
+      "predicted": "检查报告辅助解读",
+      "score": 0.4258558750152588,
+      "correct": false
+    },
+    {
+      "id": "challenge-ambiguous-029",
+      "expected": [
+        "药品信息查询"
+      ],
+      "predicted": "药品信息查询",
+      "score": 0.7142507433891296,
+      "correct": true
+    },
+    {
+      "id": "challenge-multi-198",
+      "expected": [
+        "药品信息查询",
+        "用药审核"
+      ],
+      "predicted": "用药审核",
+      "score": 0.690573513507843,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-187",
+      "expected": [
+        "临床指南检索",
+        "随访管理"
+      ],
+      "predicted": "临床指南检索",
+      "score": 0.6279604434967041,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-011",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.5215238332748413,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-141",
+      "expected": [
+        "临床指南检索",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7744183540344238,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-045",
+      "expected": [
+        "药品信息查询",
+        "用药审核"
+      ],
+      "predicted": "用药审核",
+      "score": 0.6825113296508789,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-039",
+      "expected": [],
+      "predicted": "药品信息查询",
+      "score": 0.561072051525116,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-119",
+      "expected": [
+        "症状评估",
+        "检验结果辅助解读"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.6844251155853271,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-140",
+      "expected": [
+        "药品信息查询",
+        "检验结果辅助解读"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.7130850553512573,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-065",
+      "expected": [
+        "药品信息查询",
+        "用药审核"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6516114473342896,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-217",
+      "expected": [
+        "院内分诊建议",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6793755292892456,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-005",
+      "expected": [
+        "临床知识查询",
+        "检查报告辅助解读"
+      ],
+      "predicted": "检查报告辅助解读",
+      "score": 0.7019858360290527,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-020",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.46501103043556213,
+      "correct": false
+    },
+    {
+      "id": "challenge-ambiguous-006",
+      "expected": [
+        "症状评估"
+      ],
+      "predicted": "症状评估",
+      "score": 0.7857626676559448,
+      "correct": true
+    },
+    {
+      "id": "challenge-multi-081",
+      "expected": [
+        "院内分诊建议",
+        "用药审核"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7095580697059631,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-225",
+      "expected": [
+        "用药审核",
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6578118205070496,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-043",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.4776385426521301,
+      "correct": false
+    },
+    {
+      "id": "challenge-negation-039",
+      "expected": [
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7216582894325256,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-148",
+      "expected": [
+        "症状评估",
+        "临床知识查询"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6505439281463623,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-041",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.5199954509735107,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-029",
+      "expected": [
+        "药品信息查询",
+        "用药审核"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.674787700176239,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-057",
+      "expected": [
+        "随访管理",
+        "用药审核"
+      ],
+      "predicted": "症状评估",
+      "score": 0.7107493877410889,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-113",
+      "expected": [
+        "临床知识查询",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7411629557609558,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-096",
+      "expected": [
+        "转诊协同",
+        "检查报告辅助解读"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7341129779815674,
+      "correct": false
+    },
+    {
+      "id": "challenge-ambiguous-049",
+      "expected": [
+        "药品信息查询"
+      ],
+      "predicted": "药品信息查询",
+      "score": 0.7114338874816895,
+      "correct": true
+    },
+    {
+      "id": "challenge-ood-024",
+      "expected": [],
+      "predicted": "检验结果辅助解读",
+      "score": 0.4718001186847687,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-182",
+      "expected": [
+        "临床指南检索",
+        "随访管理"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6970042586326599,
+      "correct": false
+    },
+    {
+      "id": "challenge-ambiguous-041",
+      "expected": [
+        "症状评估"
+      ],
+      "predicted": "症状评估",
+      "score": 0.8046178817749023,
+      "correct": true
+    },
+    {
+      "id": "challenge-multi-122",
+      "expected": [
+        "临床指南检索",
+        "院内分诊建议"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6708914041519165,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-245",
+      "expected": [
+        "药品信息查询",
+        "用药审核"
+      ],
+      "predicted": "用药审核",
+      "score": 0.6709734201431274,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-118",
+      "expected": [
+        "检验结果辅助解读",
+        "随访管理"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.6423912048339844,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-024",
+      "expected": [
+        "用药审核",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7154228091239929,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-232",
+      "expected": [
+        "临床指南检索",
+        "临床知识查询"
+      ],
+      "predicted": "临床指南检索",
+      "score": 0.6048258543014526,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-013",
+      "expected": [
+        "院内分诊建议",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7357283234596252,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-050",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.460616797208786,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-001",
+      "expected": [
+        "症状评估",
+        "检验结果辅助解读"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6780273914337158,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-028",
+      "expected": [],
+      "predicted": "转诊协同",
+      "score": 0.5313030481338501,
+      "correct": false
+    },
+    {
+      "id": "challenge-ambiguous-039",
+      "expected": [
+        "药品信息查询"
+      ],
+      "predicted": "药品信息查询",
+      "score": 0.713275134563446,
+      "correct": true
+    },
+    {
+      "id": "challenge-ambiguous-044",
+      "expected": [
+        "药品信息查询"
+      ],
+      "predicted": "药品信息查询",
+      "score": 0.7126715183258057,
+      "correct": true
+    },
+    {
+      "id": "challenge-multi-206",
+      "expected": [
+        "用药审核",
+        "转诊协同"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.7067289352416992,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-035",
+      "expected": [
+        "检验结果辅助解读",
+        "检查报告辅助解读"
+      ],
+      "predicted": "检查报告辅助解读",
+      "score": 0.6508139967918396,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-157",
+      "expected": [
+        "药品信息查询",
+        "检验结果辅助解读"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6417871713638306,
+      "correct": false
+    },
+    {
+      "id": "challenge-ood-013",
+      "expected": [],
+      "predicted": "院内分诊建议",
+      "score": 0.4863726794719696,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-063",
+      "expected": [
+        "症状评估",
+        "药品信息查询"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6967017650604248,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-162",
+      "expected": [
+        "药品信息查询",
+        "检查报告辅助解读"
+      ],
+      "predicted": "检查报告辅助解读",
+      "score": 0.7046266794204712,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-107",
+      "expected": [
+        "症状评估",
+        "检验结果辅助解读"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6620559692382812,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-177",
+      "expected": [
+        "检验结果辅助解读",
+        "随访管理"
+      ],
+      "predicted": "检验结果辅助解读",
+      "score": 0.6617047786712646,
+      "correct": false
+    },
+    {
+      "id": "challenge-ambiguous-034",
+      "expected": [
+        "药品信息查询"
+      ],
+      "predicted": "药品信息查询",
+      "score": 0.7107071876525879,
+      "correct": true
+    },
+    {
+      "id": "challenge-multi-188",
+      "expected": [
+        "转诊协同",
+        "检查报告辅助解读"
+      ],
+      "predicted": "转诊协同",
+      "score": 0.6787983775138855,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-184",
+      "expected": [
+        "症状评估",
+        "院内分诊建议"
+      ],
+      "predicted": "院内分诊建议",
+      "score": 0.6972779631614685,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-146",
+      "expected": [
+        "药品信息查询",
+        "用药审核"
+      ],
+      "predicted": "用药审核",
+      "score": 0.7259414196014404,
+      "correct": false
+    },
+    {
+      "id": "challenge-multi-239",
+      "expected": [
+        "症状评估",
+        "临床知识查询"
+      ],
+      "predicted": "症状评估",
+      "score": 0.6331790685653687,
+      "correct": false
+    }
+  ]
+}
