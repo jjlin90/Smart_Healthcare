@@ -1,6 +1,7 @@
 """Calibrate vector intent thresholds without reusing evaluation cases as prototypes."""
 
 import argparse
+import hashlib
 import json
 import sys
 from collections import defaultdict
@@ -28,6 +29,7 @@ def main() -> None:
     )
     parser.add_argument("--thresholds", default="0.50,0.60,0.65,0.68,0.70,0.72,0.75")
     parser.add_argument("--show-cases", action="store_true", help="输出每条到达向量层的样本")
+    parser.add_argument("--output", type=Path, help="保存数据/原型指纹、阈值统计和逐条校准结果")
     args = parser.parse_args()
 
     settings = get_settings()
@@ -72,12 +74,32 @@ def main() -> None:
 
     print(f"dataset_cases={len(all_cases)} vector_residual_cases={len(cases)}")
     print("threshold coverage accepted_accuracy accepted/cases")
+    summaries = []
     for threshold in [float(value) for value in args.thresholds.split(",")]:
         accepted = [row for row in rows if row["score"] >= threshold]
         correct = sum(row["correct"] for row in accepted)
         coverage = len(accepted) / len(rows)
         accuracy = correct / len(accepted) if accepted else 0.0
         print(f"{threshold:.2f} {coverage:.3f} {accuracy:.3f} {len(accepted)}/{len(rows)}")
+        summaries.append({"threshold": threshold, "accepted": len(accepted), "correct": correct,
+                          "coverage": coverage, "accepted_accuracy": accuracy if accepted else None})
+
+    if args.output:
+        from datetime import datetime, timezone
+        report = {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "scope": "Single-label vector top-1 threshold calibration after regex/BERT filtering; not the full multi-intent runtime route or a clinical benchmark.",
+            "dataset_sha256": hashlib.sha256(args.dataset.read_bytes()).hexdigest(),
+            "prototypes_sha256": hashlib.sha256(Path(settings.intent_prototypes_path).read_bytes()).hexdigest(),
+            "bert_threshold": settings.intent_bert_threshold,
+            "dataset_cases": len(all_cases),
+            "vector_residual_cases": len(rows),
+            "thresholds": summaries,
+            "cases": rows,
+        }
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        print(f"Saved {args.output.name}")
 
     if args.show_cases:
         print("\nPer-case top result:")
