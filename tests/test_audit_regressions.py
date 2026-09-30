@@ -99,6 +99,40 @@ def test_git_scanner_checks_staged_content_independently(monkeypatch):
     assert secret not in str(report.errors)
 
 
+@pytest.mark.parametrize("command", [
+    "[sys.executable, '-m', 'backend.worker']",
+    "[sys.executable, '-m', 'uvicorn', 'backend.worker:app']",
+])
+def test_preflight_checks_literal_module_launches(tmp_path, monkeypatch, command):
+    from scripts import preflight_git as scanner
+    monkeypatch.setattr(scanner, "ROOT", tmp_path)
+    (tmp_path / "backend").mkdir()
+    worker = tmp_path / "backend/worker.py"
+    worker.write_text("app = None\n")
+    launcher = tmp_path / "launch.py"
+    launcher.write_text("import sys\ncommand = " + command)
+    report = scanner.Report()
+    scanner.check_local_imports_tracked(report, [launcher], [launcher])
+    assert any("launch.py -> backend/worker.py" in error for error in report.errors)
+    fixed = scanner.Report()
+    scanner.check_local_imports_tracked(fixed, [launcher, worker], [launcher, worker])
+    assert not fixed.errors
+
+
+def test_preflight_scans_untracked_importers(tmp_path, monkeypatch):
+    from scripts import preflight_git as scanner
+    monkeypatch.setattr(scanner, "ROOT", tmp_path)
+    (tmp_path / "backend").mkdir()
+    worker = tmp_path / "backend/worker.py"
+    worker.write_text("app = None\n")
+    test = tmp_path / "test_worker.py"
+    test.write_text("from backend import worker\n")
+    report = scanner.Report()
+    scanner.check_local_imports_tracked(report, [], [test, worker])
+    assert any("test_worker.py -> backend/worker.py" in error for error in report.errors)
+    assert any("未跟踪 Python 文件" in error for error in report.errors)
+
+
 async def test_signed_token_without_expiration_is_rejected(monkeypatch):
     monkeypatch.setattr(get_settings(), "secret_key", "test-key")
     token = jwt.encode({"username": "staff", "user_id": "u", "role": "doctor"}, "test-key", algorithm="HS256")

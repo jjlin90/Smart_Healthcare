@@ -93,12 +93,21 @@ app.mount("/metrics", make_asgi_app())
 @app.middleware("http")
 async def prometheus_middleware(request, call_next):
     started = time.perf_counter()
-    response = await call_next(request)
-    route = request.scope.get("route")
-    path = getattr(route, "path", "unmatched")
-    HTTP_LATENCY.labels(request.method, path).observe(time.perf_counter() - started)
-    HTTP_REQUESTS.labels(request.method, path, str(response.status_code)).inc()
-    return response
+    status = None
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        return response
+    except Exception:
+        status = 500
+        raise
+    finally:
+        route = request.scope.get("route")
+        path = getattr(route, "path", "unmatched")
+        # Response creation only; streaming-body transmission is excluded.
+        if status is not None:
+            HTTP_LATENCY.labels(request.method, path).observe(time.perf_counter() - started)
+            HTTP_REQUESTS.labels(request.method, path, str(status)).inc()
 
 
 @app.get("/")

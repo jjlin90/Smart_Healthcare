@@ -406,6 +406,10 @@ def test_multi_intent_plan_rejects_extra_or_duplicate_agents():
 @pytest.mark.parametrize("tool_mode", ["success", "none", "fail"])
 async def test_specialist_runtime_uses_create_agent_and_injects_patient_scope(monkeypatch, clinical_delegation, tool_mode):
     from backend.config import get_settings
+    from backend.observability import MCP_TOOL_CALLS
+
+    metric = MCP_TOOL_CALLS.labels("SymptomAgent", "load_patient_history", "failed" if tool_mode == "fail" else "completed")
+    before_metric = metric._value.get()
 
     monkeypatch.setattr(get_settings(), "siliconflow_api_key", "test-key")
     seen: list[str] = []
@@ -455,6 +459,7 @@ async def test_specialist_runtime_uses_create_agent_and_injects_patient_scope(mo
     if tool_mode != "success":
         with pytest.raises(RuntimeError, match="工具证据不完整"):
             await MCPToolAgent("SymptomAgent").run("读取病史", "authorized_patient", {})
+        assert metric._value.get() == before_metric + (1 if tool_mode == "fail" else 0)
         return
     result = await MCPToolAgent("SymptomAgent").run(
         "读取病史",
@@ -462,6 +467,7 @@ async def test_specialist_runtime_uses_create_agent_and_injects_patient_scope(mo
         {"allergies": []},
     )
     assert seen == ["authorized_patient"]
+    assert metric._value.get() == before_metric + 1
     assert result["runtime"] == "langchain_create_agent"
     assert result["trace"][0]["status"] == "completed"
 
