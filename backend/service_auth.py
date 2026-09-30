@@ -41,10 +41,17 @@ def issue_delegation(audience: str, agent: str, tools: list[str]) -> str:
     if not context or not context.get("staff_id") or not context.get("patient_id"):
         raise RuntimeError("缺少员工患者授权上下文")
     now = datetime.now(UTC)
+    expires_at = now + timedelta(seconds=settings.request_timeout_seconds + 30)
+    # Child MCP delegations must not extend a verified A2A parent's lifetime.
+    if context.get("exp") is not None:
+        parent_expiry = datetime.fromtimestamp(float(context["exp"]), UTC)
+        expires_at = min(expires_at, parent_expiry)
+        if expires_at <= now:
+            raise ValueError("委托已过期，不能继续派发工具")
     claims = {
         **context, "sub": context["staff_id"], "iss": "medagent-internal",
         "aud": audience, "agent": agent, "tools": tools, "iat": now,
-        "exp": now + timedelta(seconds=settings.request_timeout_seconds + 30),
+        "exp": expires_at,
         "jti": uuid4().hex,
     }
     return jwt.encode(claims, signing_key, algorithm="HS256")

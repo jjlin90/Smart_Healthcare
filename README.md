@@ -191,7 +191,7 @@ python -m pytest -q
 python -m compileall -q backend scripts streamlit_app.py
 ```
 
-2026-09-28 本地 103 项测试通过；2026-09-30 补充临床预约背景与写参数预检回归后，113 项测试通过。pytest 默认仅收集 `tests/`；如系统 pytest 临时目录无权限，使用新的 `--basetemp`。测试会确认：14 个 FastMCP 工具真实注册、未配置的医院接口明确失败、敏感标识脱敏、急诊边界优先执行、员工—患者授权、多意图保留和患者会话隔离。
+2026-09-28 本地 103 项测试通过；2026-09-30 补充临床预约背景与写参数预检回归后，113 项测试通过；同日增加监控回归后为 115 项，再补充预检及异常指标回归后为 119 项；增加取消、流式中断与转发总超时测试后为 122 项；补充 Redis 锁及委托有效期回归后共 127 项通过。pytest 默认仅收集 `tests/`；如系统 pytest 临时目录无权限，使用新的 `--basetemp`。测试会确认：14 个 FastMCP 工具真实注册、未配置的医院接口明确失败、敏感标识脱敏、急诊边界优先执行、员工—患者授权、多意图保留和患者会话隔离。
 
 意图回归评测：
 
@@ -218,11 +218,23 @@ python scripts/preflight_git.py --quick
 
 在项目环境执行一次 `python scripts/install_git_hooks.py` 可启用 hooks 并将当前解释器保存到本地 Git 配置；切换或迁移环境后需重新安装：提交前运行快速检查，推送前运行完整检查。真实 `.env`、数据库、运行日志、模型权重、压测报告、简历产物和 `.mimosa/` 运行状态应留在本地；`.gitignore` 与预检约束当前 Git 索引。预检会提示这些本地文件是否曾进入 Git 历史，但不审查历史内容或远端可见性。已经进入历史或远端的文件不会因后来取消跟踪而消失。
 
-启动监控服务：
+启动监控时，用以下命令替代普通的 `python scripts/run_all.py`（已有进程需先停止），在另一终端启动容器：
 
 ```powershell
+python scripts/run_all.py --observability
+# 另一终端：
 docker compose --profile observability up -d prometheus grafana
 ```
+
+`--observability` 启动只读指标转发入口 `0.0.0.0:9100`，只允许固定的 API 和三个 A2A 进程指标路径；业务接口仍监听回环地址。9100 应仅允许可信监控网络访问。Prometheus 通过 `host.docker.internal:9100` 抓取四个 job，在 `http://127.0.0.1:9090/targets` 检查是否全部 UP；若连接失败，检查 Docker 到宿主机的路由和防火墙。
+
+API 进程提供 HTTP、路由与 A2A 调用指标，三个专科进程分别提供其发起的 MCP 工具调用指标。当前未单独暴露 MCP 服务进程指标，也不宣称所有下游均有独立监控。各进程的同名指标需按 job 区分。旧 `scripts/create_doctor.py` 仅为兼容命令入口；新部署统一使用 `scripts/create_staff.py --role doctor`。
+
+HTTP 延迟指标 `medagent_http_request_duration_seconds` 统计响应创建至响应头可用或普通异常抛出的时间，不包含 SSE 正文传输时长，也不等于首个模型 token 延迟或整轮耗时。响应创建阶段未处理的普通异常计入 500；响应头之前的任务取消不计入该 HTTP 状态指标，响应头之后的流式取消保留已记录的状态，流式错误需结合 SSE 事件与日志判断。指标入口的 `0.0.0.0` 绑定也可能允许局域网访问，访问范围由宿主机防火墙控制，并非代码自动限制为 Docker 网络。
+
+指标转发总截止时间为 5 秒，Prometheus `scrape_timeout` 为 10 秒；上游耗时超过 5 秒会由转发入口返回 503，而非等待抓取端超时。Git 预检要求 `backend/`、`scripts/`、`tests/`、`migrations/` 内的新 Python 文件入索引；其他候选 Python 文件仍扫描语法、敏感内容与静态依赖，但不因根目录存在临时脚本就要求其入库。动态拼接依赖仍需独立检查。
+
+Redis 锁已完成真实 Redis 容器验证；子 MCP 委托不得延长父 A2A 委托有效期。整轮预算尚未作为统一截止时间传播到专科，API 超时也不保证远端写入停止，具体见 [Redis 与超时核查](docs/redis-timeout-verification.md)。
 
 ## 重要边界
 

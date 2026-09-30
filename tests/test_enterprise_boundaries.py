@@ -89,6 +89,21 @@ def test_service_tokens_cannot_cross_audiences_or_be_forged():
         verify_delegation(token[:-8] + "invalid!", "medagent-mcp")
 
 
+def test_child_delegation_cannot_extend_parent_expiry():
+    import time
+    parent = {"staff_id": "staff", "patient_id": "patient", "request_id": "expiry-test", "exp": int(time.time()) + 20}
+    with delegated_context(parent):
+        token = issue_delegation("medagent-mcp", "SymptomAgent", ["load_patient_history"])
+    assert verify_delegation(token, "medagent-mcp")["exp"] == parent["exp"]
+
+
+def test_expired_parent_cannot_issue_child_delegation():
+    import time
+    with delegated_context({"staff_id": "staff", "patient_id": "patient", "request_id": "expired-test", "exp": int(time.time()) - 1}):
+        with pytest.raises(ValueError, match="委托已过期"):
+            issue_delegation("medagent-mcp", "SymptomAgent", ["load_patient_history"])
+
+
 def test_production_internal_endpoints_reject_placeholder_secret(monkeypatch):
     from backend.service_auth import validate_service_secret
     monkeypatch.setattr(get_settings(), "app_env", "production")

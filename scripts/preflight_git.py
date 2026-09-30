@@ -50,6 +50,9 @@ FORBIDDEN_SUFFIXES = {
 }
 
 REQUIRED_TRACKED_PATHS = {
+    "backend/metrics_bridge.py",
+    "tests/test_monitoring.py",
+    "docs/monitoring-verification.md",
     "backend/a2a_context.py",
     ".githooks/run-preflight",
     "tests/test_review_fixes.py",
@@ -206,13 +209,16 @@ def check_required_project_files_tracked(report: Report, tracked: list[Path]) ->
         report.ok("迁移、数据集、模型脚本和关键测试均已加入 Git 索引")
 
 
-def check_local_imports_tracked(report: Report, tracked: list[Path]) -> None:
-    """Reject static imports of project modules absent from the Git index."""
+def check_local_imports_tracked(report: Report, tracked: list[Path], candidates: list[Path] | None = None) -> None:
+    """Check candidate Python sources, static imports and literal launch argv."""
     tracked_names = {path.relative_to(ROOT).as_posix() for path in tracked}
     missing: set[str] = set()
-    for source in tracked:
+    for source in candidates if candidates is not None else tracked:
         if source.suffix != ".py" or not source.is_file():
             continue
+        source_name = source.relative_to(ROOT).as_posix()
+        if source_name not in tracked_names and source.relative_to(ROOT).parts[0] in {"backend", "scripts", "tests", "migrations"}:
+            missing.add(f"未跟踪 Python 文件：{source_name}")
         try:
             tree = ast.parse(source.read_text(encoding="utf-8-sig"))
         except (SyntaxError, UnicodeError):
@@ -227,6 +233,14 @@ def check_local_imports_tracked(report: Report, tracked: list[Path]) -> None:
                 if node.module:
                     base += node.module.split(".")
                 modules = [".".join(base)] + [".".join([*base, alias.name]) for alias in node.names if alias.name != "*"]
+            elif isinstance(node, (ast.List, ast.Tuple)):
+                # Literal subprocess argv, including `python -m uvicorn module:app`.
+                values = [item.value if isinstance(item, ast.Constant) and isinstance(item.value, str) else None for item in node.elts]
+                for index, value in enumerate(values[:-1]):
+                    if value == "-m" and values[index + 1]:
+                        modules.append(values[index + 1])
+                        if values[index + 1] == "uvicorn" and index + 2 < len(values) and values[index + 2]:
+                            modules.append(values[index + 2].split(":", 1)[0])
             for module in modules:
                 if not module:
                     continue
@@ -235,9 +249,9 @@ def check_local_imports_tracked(report: Report, tracked: list[Path]) -> None:
                     if dependency.is_file() and dependency.relative_to(ROOT).as_posix() not in tracked_names:
                         missing.add(f"{source.relative_to(ROOT).as_posix()} -> {dependency.relative_to(ROOT).as_posix()}")
     if missing:
-        report.error("已跟踪代码导入了未加入 Git 索引的本地模块：" + ", ".join(sorted(missing)))
+        report.error("候选 Python 文件或其本地依赖未加入 Git 索引：" + ", ".join(sorted(missing)))
     else:
-        report.ok("已跟踪 Python 代码的静态本地模块依赖均已加入 Git 索引")
+        report.ok("项目代码目录 Python 文件及候选代码的静态导入、字面量模块启动依赖均已加入 Git 索引")
 
 
 def text_content(path: Path) -> str | None:
@@ -422,7 +436,7 @@ def main() -> int:
     check_forbidden_files(report, tracked)
     check_history_artifacts(report)
     check_required_project_files_tracked(report, tracked)
-    check_local_imports_tracked(report, tracked)
+    check_local_imports_tracked(report, tracked, candidates)
     check_secret_content(report, candidates)
     check_index_content(report, tracked)
     check_large_files(report, candidates)

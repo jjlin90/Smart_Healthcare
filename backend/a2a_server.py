@@ -126,6 +126,8 @@ def create_app(server: MedicalA2AServer) -> FastAPI:
     async def live():
         return {"status": "alive"}
 
+    from prometheus_client import make_asgi_app
+    app.mount("/metrics", make_asgi_app())
     app.mount("/", WSGIMiddleware(flask_app))
     return app
 

@@ -1,15 +1,15 @@
-"""Prometheus metrics shared by the API, coordinator and MCP tool server."""
+"""Metric definitions used by API and specialist processes; values are process-local."""
 
 from prometheus_client import Counter, Histogram
 
 HTTP_REQUESTS = Counter(
     "medagent_http_requests_total",
-    "HTTP requests received by the API",
+    "HTTP response creation outcomes (headers available or ordinary exception); excludes cancellation before headers and streaming-body outcomes",
     ("method", "path", "status"),
 )
 HTTP_LATENCY = Histogram(
     "medagent_http_request_duration_seconds",
-    "HTTP response creation latency",
+    "HTTP response creation latency until headers or ordinary exception; excludes cancellation before headers and streaming-body duration",
     ("method", "path"),
 )
 AGENT_CALLS = Counter(

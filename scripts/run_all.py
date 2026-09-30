@@ -1,6 +1,7 @@
 """Start MCP, three A2A servers, FastAPI and the Streamlit UI."""
 
 import subprocess
+import argparse
 import sys
 import time
 from pathlib import Path
@@ -13,6 +14,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--observability", action="store_true", help="Expose metrics-only bridge on port 9100 for Docker Prometheus")
+    args = parser.parse_args()
     missing = missing_configuration()
     if missing:
         print("请先填写 .env：")
@@ -27,6 +31,8 @@ def main() -> None:
         [sys.executable, "-m", "uvicorn", "backend.main:app", "--host", "127.0.0.1", "--port", "8000"],
         [sys.executable, "-m", "streamlit", "run", "streamlit_app.py", "--server.address", "127.0.0.1", "--server.port", "8501", "--browser.gatherUsageStats", "false"],
     ]
+    if args.observability:
+        commands.append([sys.executable, "-m", "uvicorn", "backend.metrics_bridge:app", "--host", "0.0.0.0", "--port", "9100"])
     processes = []
     try:
         for command in commands:
