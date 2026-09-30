@@ -16,6 +16,7 @@ from backend.access import active_staff, require_patient, require_write_role, WR
 from backend.database import SessionLocal
 from backend.service_auth import verify_delegation
 from backend.models import ToolExecution
+from backend.schemas import validate_write_arguments
 
 
 class DelegationVerifier(TokenVerifier):
@@ -58,6 +59,10 @@ class PatientAuthorization(Middleware):
             raise ToolError("工具授权失败：请核对员工状态、患者范围和本次写操作确认") from exc
         if name not in WRITE_TOOLS:
             return await call_next(context)
+        try:
+            validate_write_arguments(name, arguments)
+        except ValueError as exc:
+            raise ToolError("写操作参数无效，尚未执行；修正参数后可重试") from exc
         operation_id = hashlib.sha256(json.dumps([claims["staff_id"], claims["request_id"], name]).encode()).hexdigest()
         argument_hash = hashlib.sha256(json.dumps(arguments, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
         async with SessionLocal() as db:

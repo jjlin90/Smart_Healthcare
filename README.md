@@ -110,7 +110,7 @@ python scripts/evaluate_intent_bert.py --model models/medical_intent_bert_tob_v3
 python scripts/evaluate_intent_bert.py --model models/medical_intent_bert_tob_v3 --dataset evaluation/datasets/intent_challenge.jsonl --output artifacts/bert_challenge_new.json
 ```
 
-指纹不匹配不代表文件一定损坏，可能是新下载或新训练的版本；应以新评测报告描述该版本，不能沿用历史覆盖率。下载方法见 [Hugging Face 官方说明](https://huggingface.co/docs/huggingface_hub/en/guides/download)。
+以上路径对应前文下载布局；若使用已有模型目录，请将 `--bert`、`--vector` 分别替换为本地 `.env` 中 `INTENT_BERT_MODEL_PATH`、`INTENT_VECTOR_MODEL_PATH` 指向的实际目录，脚本不会自动读取这两个配置。指纹不匹配不代表文件一定损坏，可能是新下载或新训练的版本；应以新评测报告描述该版本，不能沿用历史覆盖率。下载方法见 [Hugging Face 官方说明](https://huggingface.co/docs/huggingface_hub/en/guides/download)。
 
 向量层从独立的 `evaluation/intent_prototypes.jsonl` 加载单意图样本作为版本化原型，2026-09-28 替换了与回归集重合的两条原型，并以测试检查原型与回归及四份合成数据集无精确文本重合；精确去重不能证明不存在语义或模板泄漏；使用 `INTENT_VECTOR_MODEL_PATH` 指向的本地 SentenceTransformer 模型计算余弦相似度。多意图提示、低置信度和冲突样本会进入 SiliconFlow 主模型兜底。该级联提高覆盖率，但不承诺所有真实表达都能 100% 正确分类。
 
@@ -191,7 +191,7 @@ python -m pytest -q
 python -m compileall -q backend scripts streamlit_app.py
 ```
 
-2026-09-28 本地 103 项测试通过。pytest 默认仅收集 `tests/`；如系统 pytest 临时目录无权限，使用新的 `--basetemp`。测试会确认：14 个 FastMCP 工具真实注册、未配置的医院接口明确失败、敏感标识脱敏、急诊边界优先执行、员工—患者授权、多意图保留和患者会话隔离。
+2026-09-28 本地 103 项测试通过；2026-09-30 补充临床预约背景与写参数预检回归后，113 项测试通过。pytest 默认仅收集 `tests/`；如系统 pytest 临时目录无权限，使用新的 `--basetemp`。测试会确认：14 个 FastMCP 工具真实注册、未配置的医院接口明确失败、敏感标识脱敏、急诊边界优先执行、员工—患者授权、多意图保留和患者会话隔离。
 
 意图回归评测：
 

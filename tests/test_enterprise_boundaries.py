@@ -149,7 +149,7 @@ async def test_approved_write_replay_returns_recorded_result(records, monkeypatc
 async def test_unknown_write_result_is_not_executed_again(records, monkeypatch):
     name = "generate_referral"
     await token_context(monkeypatch, token_for([name], [name]))
-    context = SimpleNamespace(message=SimpleNamespace(name=name, arguments={"patient_id": "patient"}))
+    context = SimpleNamespace(message=SimpleNamespace(name=name, arguments={"patient_id": "patient", "department": "心内科", "reason": "专科评估"}))
     call = AsyncMock(side_effect=TimeoutError("lost response"))
     middleware = mcp_security.PatientAuthorization()
     with pytest.raises(TimeoutError):
@@ -170,6 +170,30 @@ async def test_turn_lock_and_atomic_question_answer_memory():
         await memory.append_turn("patient", "staff/conversation", "question", "answer")
     async with memory.turn("patient", "staff/conversation"):
         assert [x["role"] for x in await memory.get("patient", "staff/conversation")] == ["user", "assistant"]
+
+
+@pytest.mark.parametrize("name,bad,good", [
+    ("generate_referral", {"department": " ", "reason": "评估"}, {"department": "心内科", "reason": "评估"}),
+    ("generate_referral", {}, {"department": "心内科", "reason": "评估"}),
+    ("save_patient_history", {"history_data": {}}, {"history_data": {"allergies": []}}),
+    ("save_patient_history", {"history_data": {"allergies": "invalid"}}, {"history_data": {"allergies": []}}),
+    ("save_medical_record", {"record_data": {}}, {"record_data": {"response": "临床辅助记录"}}),
+])
+async def test_invalid_write_does_not_reserve_and_can_be_corrected(records, monkeypatch, name, bad, good):
+    await token_context(monkeypatch, token_for([name], [name]))
+    context = SimpleNamespace(message=SimpleNamespace(name=name, arguments={"patient_id": "patient", **bad}))
+    call = AsyncMock(return_value=ToolResult(content="saved"))
+    middleware = mcp_security.PatientAuthorization()
+    with pytest.raises(ToolError, match="尚未执行"):
+        await middleware.on_call_tool(context, call)
+    call.assert_not_awaited()
+    async with records() as db:
+        assert await db.scalar(select(ToolExecution)) is None
+    context.message.arguments = {"patient_id": "patient", **good}
+    await middleware.on_call_tool(context, call)
+    assert call.await_count == 1
+    async with records() as db:
+        assert (await db.scalar(select(ToolExecution))).status == "completed"
 
 
 async def test_login_attempts_are_bounded(monkeypatch):

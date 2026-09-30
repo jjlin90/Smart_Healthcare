@@ -214,7 +214,8 @@ NON_MEDICAL_CUE = re.compile(
     re.I,
 )
 NON_MEDICAL_SMALLTALK = re.compile(r"^(?:你好|您好|嗨|hello|hi|谢谢|再见|你是谁)[！!。.？?\s]*$", re.I)
-PATIENT_SELF_SERVICE_CUE = re.compile(r"(?:在线|手机|公众号|小程序|患者端)?.{0,6}(?:挂号|挂.{0,4}号|预约|取消预约|改约|缴费|退费|排队叫号|查询号源)")
+PATIENT_SELF_SERVICE_CUE = re.compile(r"挂号|挂.{0,4}号|取消预约|改约|缴费|退费|排队叫号|查询号源|(?:^|想|要)预约|(?:帮|请|怎么|如何).{0,8}预约")
+CLINICAL_FOLLOWUP_CUE = re.compile(r"随访|复查|术前|术后|检查.{0,12}注意")
 
 
 class DomainGuard:
@@ -222,7 +223,7 @@ class DomainGuard:
 
     @staticmethod
     def _has_medical_signal(message: str) -> bool:
-        if GENERIC_MEDICAL_CUE.search(message):
+        if GENERIC_MEDICAL_CUE.search(message) or CLINICAL_FOLLOWUP_CUE.search(message):
             return True
         return any(
             re.search(pattern, message, re.I)

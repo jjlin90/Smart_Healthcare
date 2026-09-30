@@ -48,6 +48,38 @@ class RecordWrite(BaseModel):
     department: str | None = Field(default=None, max_length=64)
 
 
+class WriteToolArguments(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    patient_id: str = Field(min_length=1, max_length=64)
+
+
+class HistoryToolArguments(WriteToolArguments):
+    history_data: HistoryUpdate
+
+
+class RecordToolArguments(WriteToolArguments):
+    record_data: RecordWrite
+
+
+class ReferralToolArguments(WriteToolArguments):
+    department: str = Field(min_length=1, max_length=64)
+    reason: str = Field(min_length=1, max_length=4000)
+
+
+def validate_write_arguments(name: str, arguments: dict) -> None:
+    """Validate deterministic input errors before reserving a write operation."""
+    schemas = {
+        "save_patient_history": HistoryToolArguments,
+        "save_medical_record": RecordToolArguments,
+        "generate_referral": ReferralToolArguments,
+    }
+    parsed = schemas[name].model_validate(arguments)
+    if isinstance(parsed, HistoryToolArguments) and not parsed.history_data.model_dump(exclude_none=True):
+        raise ValueError("必须提供至少一项病史字段")
+    if isinstance(parsed, ReferralToolArguments) and (not parsed.department.strip() or not parsed.reason.strip()):
+        raise ValueError("转诊科室或原因无效")
+
+
 class ProfileUpdate(BaseModel):
     name: str = Field(min_length=1, max_length=64)
     age: int = Field(ge=0, le=150)

@@ -194,7 +194,7 @@ def check_history_artifacts(report: Report) -> None:
     elif result.stdout.strip():
         report.warning("Git 历史包含简历或运行状态文件；取消跟踪不会删除既有提交，推送前需核查远端与历史")
     else:
-        report.ok("Git 历史未发现简历或运行状态文件")
+        report.ok("Git 引用可达历史未发现简历或运行状态文件（不含 reflog、不可达对象及私有备份）")
 
 
 def check_required_project_files_tracked(report: Report, tracked: list[Path]) -> None:
