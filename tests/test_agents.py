@@ -111,11 +111,25 @@ async def test_non_medical_request_is_rejected_before_a2a(monkeypatch):
     "帮我取消预约并办理退费",
     "请帮患者预约挂号并生成转诊单",
     "患者想预约心内科门诊并办理院内转诊",
+    "请预约明天的检查",
 ])
 async def test_patient_self_service_is_out_of_scope(message):
     decision = await DomainGuard().assess(message)
     assert decision.scope == "non_medical"
     assert "患者自助服务" in decision.reason
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("message", [
+    "出院后预约复查的随访计划怎么定",
+    "患者心律失常，已预约Holter检查，请审核用药",
+    "该患者预约了明天肠镜，术前用药需要注意什么",
+    "患者已预约心内科门诊，请审核当前用药",
+])
+async def test_booked_procedure_background_keeps_clinical_request(message):
+    decision = await DomainGuard().assess(message)
+    assert decision.scope == "medical"
+    assert decision.medical_request == message
 
 
 @pytest.mark.asyncio
