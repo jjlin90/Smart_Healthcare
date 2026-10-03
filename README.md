@@ -14,13 +14,13 @@ Streamlit 工作台 → FastAPI/JWT/SSE → 急症规则 → 医疗范围守卫 
 
 系统没有医学 Mock 数据或规则式正常临床辅助回答。模型、A2A、MCP、医院接口或数据库未配置时会明确失败，不会生成伪造医学结果。紧急症状拦截属于安全规则，会在调用模型前提示医务人员启动院内急救流程。
 
-项目流程详解、面试追问和工程细节按顺序写在 [MedAgent AI 多 Agent 项目话术](docs/MedAgent_AI_多Agent项目话术.md) 中；也可单独阅读 [从零理解项目指南](docs/MedAgent_项目理解指南.md)。最新修复与验证见 [2026-09-28 核查记录](docs/audit-2026-09-28.md)，真实上线条件见 [生产验收清单](docs/production-readiness.md)。
+项目流程详解、面试追问和工程细节见 [MedAgent AI 面试讲稿与完整题库](docs/MedAgent_AI_多Agent项目话术.md)，速读版见 [项目理解指南](docs/MedAgent_项目理解指南.md)。当前工程措施及真实上线条件见 [生产验收清单](docs/production-readiness.md)；后续专项验证见 [2026-09-30 Redis 锁与超时核查](docs/redis-timeout-verification.md)、[2026-09-30 本地监控验证](docs/monitoring-verification.md)。[2026-09-28 核查记录](docs/audit-2026-09-28.md)保留该轮历史修复与验证。
 
 常用术语：Agent（智能体）、A2A（智能体间通信）、MCP（模型上下文协议）、JWT（身份令牌）、SSE（服务器发送事件）、BERT（双向编码器表示模型）、BGE-M3（文本向量模型）、HMAC（基于密钥的消息认证码）、TTL（过期时间）。更多缩写及中文含义见项目话术末尾的术语表。
 
 ## 文档要求对应
 
-- 主模型：SiliconFlow OpenAI 兼容接口，默认 `deepseek-ai/DeepSeek-V4-Flash`
+- 主模型：SiliconFlow OpenAI 兼容接口，仓库默认配置值为 `deepseek-ai/DeepSeek-V4-Flash`；实际模型标识和目标账号可用性需联调确认
 - 意图识别：正则 → 本地十分类医疗 BERT → 本地 BGE-M3 意图原型相似度 → SiliconFlow DeepSeek 兜底；BERT 和向量层使用接受阈值，模型兜底结果经过意图枚举校验。分数不是经过校准的正确率，四层级联也不保证所有表达都能正确识别
 - 范围与澄清：意图识别前先区分医疗、非医疗、混合和不确定请求；非医疗固定拒识，混合请求只传递经原文校验的医疗片段，任务关键槽位不足时先追问且不调用 A2A/MCP
 - A2A：`python-a2a` 独立运行 SymptomAgent、DrugAgent、GuideAgent
