@@ -53,6 +53,88 @@ def token_for(tools, approved=(), patient="patient", audience="medagent-mcp", re
         return issue_delegation(audience, "SymptomAgent", tools)
 
 
+@pytest.fixture
+async def profile_api(records, monkeypatch):
+    from backend.main import app
+    from backend.database import get_db
+    monkeypatch.setattr(get_settings(), "secret_key", "profile-api-test-key")
+    async def database():
+        async with records() as db:
+            yield db
+    previous = app.dependency_overrides.copy()
+    app.dependency_overrides[get_db] = database
+    token = create_token(UserContext(username="doctor", user_id="staff", role="doctor"))
+    try:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app, raise_app_exceptions=False), base_url="http://test", headers={"Authorization": f"Bearer {token}"}) as client:
+            yield client
+    finally:
+        app.dependency_overrides.clear()
+        app.dependency_overrides.update(previous)
+
+
+@pytest.mark.parametrize("case,expected", [
+    ("doctor", 200), ("pharmacist", 200), ("medical_admin", 403), ("system_admin", 403),
+    ("revoked", 403), ("disabled", 401), ("anonymous", 401),
+    ("too_many_entries", 422), ("entry_too_long", 422),
+    ("empty_name", 422), ("long_name", 422), ("negative_age", 422),
+    ("excessive_age", 422), ("empty_gender", 422), ("long_gender", 422),
+])
+async def test_profile_put_permissions_validation_and_audit(records, profile_api, case, expected):
+    from backend.models import AuditLog
+    import json
+    payload = {"name": "Updated", "age": 35, "gender": "unknown", "allergies": ["test"], "conditions": [], "medications": []}
+    async with records() as db:
+        user = await db.scalar(select(User))
+        if case in {"doctor", "pharmacist", "medical_admin", "system_admin"}:
+            user.role = case
+        if case == "disabled":
+            user.active = 0
+        if case == "revoked":
+            await db.execute(delete(PatientAccess))
+        await db.commit()
+    if case == "anonymous":
+        profile_api.headers.pop("Authorization")
+    if case == "too_many_entries":
+        payload["allergies"] = ["x"] * 101
+    if case == "entry_too_long":
+        payload["conditions"] = ["x" * 501]
+    invalid_fields = {
+        "empty_name": ("name", ""), "long_name": ("name", "x" * 65),
+        "negative_age": ("age", -1), "excessive_age": ("age", 151),
+        "empty_gender": ("gender", ""), "long_gender": ("gender", "x" * 11),
+    }
+    if case in invalid_fields:
+        field, value = invalid_fields[case]
+        payload[field] = value
+    response = await profile_api.put("/api/patients/patient/profile", json=payload)
+    assert response.status_code == expected
+    async with records() as db:
+        profile = await db.scalar(select(PatientProfile))
+        audits = (await db.scalars(select(AuditLog))).all()
+        assert profile.name == ("Updated" if expected == 200 else "Test")
+        assert len(audits) == (1 if expected == 200 else 0)
+        if expected == 200:
+            assert profile.age == 35 and json.loads(profile.allergy_history) == ["test"]
+            assert audits[0].action == "profile_updated"
+            assert json.loads(audits[0].detail)["staff_user_id"] == "staff"
+        assert await db.scalar(select(ToolExecution)) is None
+
+
+async def test_profile_put_commit_failure_rolls_back_profile_and_audit(records, profile_api, monkeypatch):
+    from backend.models import AuditLog
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy.exc import SQLAlchemyError
+    async def failed_commit(db):
+        await db.flush()
+        raise SQLAlchemyError("injected commit failure")
+    monkeypatch.setattr(AsyncSession, "commit", failed_commit)
+    response = await profile_api.put("/api/patients/patient/profile", json={"name": "Changed", "age": 40, "gender": "unknown"})
+    assert response.status_code == 500
+    async with records() as db:
+        assert (await db.scalar(select(PatientProfile))).name == "Test"
+        assert await db.scalar(select(AuditLog)) is None
+
+
 async def token_context(monkeypatch, token):
     access_token = await mcp_security.DelegationVerifier().verify_token(token)
     assert access_token is not None

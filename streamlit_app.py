@@ -144,6 +144,7 @@ def _render_css() -> None:
         [data-testid="stHeader"] { background:transparent; }
         [data-testid="stSidebar"] { background:#10283a; }
         [data-testid="stSidebar"] * { color:#eef8f6; }
+        [data-testid="stSidebar"] [role="combobox"] { color:var(--navy); }
         [data-testid="stSidebar"] .stButton button {
           width:100%; border:1px solid #456173; background:#17384d; color:white;
         }
@@ -278,7 +279,7 @@ def _render_profile(profile: dict[str, Any] | None) -> None:
         safe_value = escape(str(value))
         st.markdown(f'<div class="profile-label">{safe_label}</div><div class="profile-value">{safe_value}</div>', unsafe_allow_html=True)
     with st.expander("编辑档案"):
-        with st.form("profile_form"):
+        with st.form(f"profile_form_{st.session_state.patient_id}"):
             name = st.text_input("姓名", value=profile.get("name") or "")
             age = st.number_input("年龄", min_value=0, max_value=150, value=int(profile.get("age") or 0))
             gender = st.text_input("性别", value=profile.get("gender") or "")

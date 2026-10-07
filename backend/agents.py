@@ -136,8 +136,8 @@ def deidentify(text: str, profile: dict[str, Any] | None = None) -> str:
             item = profile.get(key)
             if item:
                 value = value.replace(str(item), "[已脱敏]")
-    value = re.sub(r"1[3-9]\d{9}", "[手机号已脱敏]", value)
     value = re.sub(r"\d{17}[\dXx]", "[证件号已脱敏]", value)
+    value = re.sub(r"1[3-9]\d{9}", "[手机号已脱敏]", value)
     return value
 
 
@@ -155,6 +155,15 @@ def deidentify_payload(value: Any, profile: dict[str, Any] | None = None) -> Any
     if isinstance(value, list):
         return [deidentify_payload(item, profile) for item in value]
     if isinstance(value, str):
+        # MCP text blocks commonly contain serialized JSON. Sanitize the
+        # decoded fields before returning text to the external model.
+        if value.lstrip().startswith(("{", "[")):
+            try:
+                parsed = json.loads(value)
+            except (ValueError, RecursionError):
+                pass
+            else:
+                return json.dumps(deidentify_payload(parsed, profile), ensure_ascii=False)
         return deidentify(value, profile)
     return value
 
@@ -179,6 +188,7 @@ async def close_model_connections() -> None:
 class ModelClients:
     def __init__(self) -> None:
         settings = get_settings()
+        settings.require_cloud_llm()
         if not settings.siliconflow_api_key:
             raise ConfigurationError("SILICONFLOW_API_KEY 未配置")
         connections = _model_connections.setdefault(asyncio.get_running_loop(), {})
@@ -736,6 +746,7 @@ class MCPToolAgent:
     @traceable(name="react-tool-agent", run_type="chain", process_inputs=_redact_trace_inputs, process_outputs=_redact_trace_outputs)
     async def run(self, task: str, patient_id: str, profile: dict[str, Any], history: list[dict[str, str]] | None = None) -> dict[str, Any]:
         settings = get_settings()
+        settings.require_cloud_llm()
         settings.require("siliconflow_api_key")
         system = f"""你是 {self.name}，MedAgent AI 的专职医疗子代理。
 你必须通过 MCP 工具获取事实，禁止凭模型记忆编造药品、指南、检验或患者数据。
@@ -767,12 +778,17 @@ class MCPToolAgent:
         context = request_context.get() or {}
         approved = set(context.get("approved_actions", []))
         allowed_tools = [name for name in AGENT_TOOLS[self.name] if name not in WRITE_TOOLS or name in approved]
+        if "tools" in context:
+            allowed_tools = [name for name in allowed_tools if name in context["tools"]]
         token = issue_delegation("medagent-mcp", self.name, allowed_tools)
         client = MCPClient(settings.mcp_server_url, auth=token, timeout=settings.model_timeout_seconds)
         async with MCPAdapter(client) as adapter:
             discovered = [tool for tool in await adapter.list_tools() if tool.name in allowed_tools]
             protected_tools: list[StructuredTool] = []
             for source_tool in discovered:
+                # The MCP adapter normally converts isError into ordinary text.
+                # Propagate it so the evidence gate records a failed call.
+                source_tool.handle_tool_error = False
                 async def invoke_tool(_source=source_tool, **kwargs: Any) -> str:
                     if "patient_id" in _source.args:
                         kwargs["patient_id"] = patient_id

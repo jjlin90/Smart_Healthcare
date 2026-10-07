@@ -6,7 +6,9 @@ import re
 import subprocess
 import tempfile
 import sys
+import unicodedata
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -57,6 +59,7 @@ REQUIRED_TRACKED_PATHS = {
     ".githooks/run-preflight",
     "tests/test_review_fixes.py",
     "docs/audit-2026-09-28.md",
+    "docs/audit-2026-10-07.md",
     "constraints.txt",
     "backend/access.py",
     "backend/service_auth.py",
@@ -373,6 +376,74 @@ def check_absolute_local_paths(report: Report, candidates: list[Path]) -> None:
         report.ok("未发现会泄露本机目录的绝对路径")
 
 
+def _markdown_without_fences(body: str) -> str:
+    lines = []
+    fence = None
+    for line in body.splitlines(keepends=True):
+        marker = re.match(r"^\s{0,3}(`{3,}|~{3,})(.*)$", line)
+        if fence:
+            if marker and marker[1][0] == fence[0] and len(marker[1]) >= len(fence) and not marker[2].strip():
+                fence = None
+            lines.append("\n" if line.endswith("\n") else "")
+        elif marker:
+            fence = marker[1]
+            lines.append("\n" if line.endswith("\n") else "")
+        else:
+            lines.append(line)
+    return "".join(lines)
+
+
+def _markdown_headings(body: str) -> tuple[set[str], set[str]]:
+    titles = re.findall(r"^\s{0,3}#{1,6}\s+(.+?)\s*#*\s*$", _markdown_without_fences(body), re.M)
+    anchors: set[str] = set()
+    for title in titles:
+        plain = re.sub(r"<[^>]+>", "", title).lower()
+        slug = "".join(char for char in plain if char in "-_ " or unicodedata.category(char)[0] in "LNM").replace(" ", "-")
+        unique, index = slug, 0
+        while unique in anchors:
+            index += 1
+            unique = f"{slug}-{index}"
+        anchors.add(unique)
+    return set(titles), anchors
+
+
+def check_markdown_links(report: Report, candidates: list[Path]) -> None:
+    """Check rendered inline and Wiki local links in working-tree Markdown."""
+    documents = [path for path in candidates if path.suffix.lower() == ".md" and path.is_file()]
+    findings: list[str] = []
+    for document in documents:
+        body = _markdown_without_fences(document.read_text(encoding="utf-8-sig"))
+        # Inline code can contain illustrative links; retain line numbers.
+        body = re.sub(r"(`+)[^\n]*?\1", lambda match: " " * len(match[0]), body)
+        links = [(match.start(), match[1], False) for match in re.finditer(r'\[[^\]\n]+\]\(\s*(<[^>\n]+>|[^\s)]+)(?:\s+"[^"\n]*")?\s*\)', body)]
+        links += [(match.start(), match[1].split("|", 1)[0], True) for match in re.finditer(r"\[\[([^\]\n]+)\]\]", body)]
+        for position, destination, wiki in links:
+            destination = destination.strip().strip("<>")
+            parsed = urlsplit(destination)
+            if parsed.scheme or destination.startswith("//"):
+                continue
+            file, anchor = unquote(parsed.path), unquote(parsed.fragment)
+            if wiki and file and not Path(file).suffix:
+                file += ".md"
+            target = (document.parent / file).resolve() if file else document.resolve()
+            line = body[:position].count("\n") + 1
+            reason = None
+            if not target.is_relative_to(ROOT.resolve()):
+                reason = "目标位于仓库之外"
+            elif not target.is_file():
+                reason = "目标文件不存在"
+            elif anchor and target.suffix.lower() == ".md":
+                titles, anchors = _markdown_headings(target.read_text(encoding="utf-8-sig"))
+                if anchor not in (titles if wiki else anchors):
+                    reason = "章节锚点不存在"
+            if reason:
+                findings.append(f"{document.relative_to(ROOT).as_posix()}:{line} {destination}（{reason}）")
+    if findings:
+        report.error("工作区 Markdown 本地链接检查失败：" + "; ".join(findings))
+    else:
+        report.ok(f"工作区 Markdown 本地文件与章节链接检查通过（{len(documents)} 份文档）")
+
+
 def run_quality_commands(report: Report) -> None:
     # Use an isolated base instead of sharing pytest-of-USER across sandbox
     # sessions. testpaths restricts collection, not teardown permissions.
@@ -443,6 +514,7 @@ def main() -> int:
     check_env_template(report)
     check_python_syntax(report, candidates)
     check_absolute_local_paths(report, candidates)
+    check_markdown_links(report, candidates)
     if not args.quick:
         run_quality_commands(report)
     return print_report(report)

@@ -35,6 +35,8 @@ class ConversationMemory:
         else:
             acquired = key not in self._turns
             if acquired:
+                if len(self._turns) >= self._turns.maxsize:
+                    raise RuntimeError("会话执行容量已满，请稍后重试")
                 self._turns[key] = owner
         if not acquired:
             raise RuntimeError("该会话已有任务执行中，请等待完成")

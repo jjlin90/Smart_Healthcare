@@ -1,5 +1,15 @@
 {
   "note": "Historical local BERT evaluations; not rerun for this publication. Current fingerprints were recorded later and do not independently prove the artifacts used by the historical run.",
+  "source_report_verification_note": "On 2026-10-07, raw-byte SHA-256 checks matched source_report_sha256 for both copies of each preserved local report: ordinary = artifacts/intent_bert_test_tob_v3.json and artifacts/intent_bert_test_audit_20260924.json; challenge = artifacts/intent_bert_challenge_tob_v3.json and artifacts/intent_bert_challenge_audit_20260924.json. Each pair is byte-identical; the hash establishes content equality, not which file was generated first or whether it is the original output rather than a later copy. These files are ignored local artifacts and are not bundled in Git; this verification does not make the source reports independently available from a clone or constitute a new model evaluation.",
+  "metric_definitions_provenance": "Manually added on 2026-10-07 to explain historical metric semantics, consistent with scripts/evaluate_intent_bert.py. Original historical reports did not contain metric_definitions; no historical evaluations or numeric results were rerun or changed.",
+  "metric_definitions": {
+    "single_intent.top1_accuracy": "All single-intent cases before threshold filtering; challenge 60/100.",
+    "single_intent.accepted_accuracy": "Only accepted cases; challenge 24/24, coverage 24/100.",
+    "multi_intent.raw_top1_hit_rate": "Unfiltered top-1 label membership in expected set; challenge 248/250, not exact-set accuracy.",
+    "multi_intent.accepted_coverage": "Standalone BERT threshold acceptance, challenge 42/250; runtime multi-intent routing must continue.",
+    "outcomes.multi_top1_hit": "Legacy name: accepted AND label in expected set, challenge 42; not the raw 248 hits.",
+    "outcomes.multi_top1_miss": "Legacy name includes rejected and incorrect cases, challenge 208; not 208 raw classification errors."
+  },
   "reports": {
     "ordinary": {
       "dataset": "evaluation\\datasets\\intent_test.jsonl",
@@ -27,7 +37,10 @@
         "not_resolved": 12
       },
       "source_report_sha256": "3f534a816552c139abe41c59c34e27b14859c92ff10bf15bb40efd4e0aca03f7",
-      "dataset_sha256": "e7a0e7a5f701f4cb952c4d70e7ca3d45451c879e23e3a1e35e82d01e3b78918d"
+      "dataset_sha256": "e7a0e7a5f701f4cb952c4d70e7ca3d45451c879e23e3a1e35e82d01e3b78918d",
+      "dataset_sha256_note": "Historical dataset_sha256 matches the local CRLF bytes preserved before LF normalization, not the Git LF blob. On 2026-10-07, the repository LF bytes were verified to differ only in line endings; repository_dataset_sha256 records those bytes, not a new evaluation. source_report_sha256 refers to an original report verified locally as described in source_report_verification_note; that report is not bundled in Git, so a clone alone cannot verify it.",
+      "repository_dataset_sha256": "2dc34c043e137d66396e23abc16bc70521b58f0123b75b10f5bd03ec7f8e6003",
+      "repository_dataset_line_endings": "LF"
     },
     "challenge": {
       "dataset": "evaluation\\datasets\\intent_challenge.jsonl",
@@ -58,7 +71,10 @@
         "multi_top1_hit": 42
       },
       "source_report_sha256": "d9e839f241ba321a3edd55594add9e5dc9b33e8d9904be098e482d27715ed449",
-      "dataset_sha256": "e6db637dfdd7418a300a66b251806b12d293f57410c7d5dc9bf8e3fa9dba03d1"
+      "dataset_sha256": "e6db637dfdd7418a300a66b251806b12d293f57410c7d5dc9bf8e3fa9dba03d1",
+      "dataset_sha256_note": "Historical dataset_sha256 matches the local CRLF bytes preserved before LF normalization, not the Git LF blob. On 2026-10-07, the repository LF bytes were verified to differ only in line endings; repository_dataset_sha256 records those bytes, not a new evaluation. source_report_sha256 refers to an original report verified locally as described in source_report_verification_note; that report is not bundled in Git, so a clone alone cannot verify it.",
+      "repository_dataset_sha256": "87d75d1e48217016621702edda1398517fa18c9bfecc98d7155f1ed9a50ca850",
+      "repository_dataset_line_endings": "LF"
     }
   }
 }

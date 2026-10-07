@@ -50,22 +50,42 @@ def split_rows(rows: list[tuple[str, str]], seed: int) -> tuple[list[tuple[str, 
     return train, validation
 
 
+def check_split_isolation(train: list[tuple[str, str]], validation: list[tuple[str, str]]) -> None:
+    normalize = lambda text: text.strip().casefold()
+    train_texts = {normalize(text) for text, _ in train}
+    validation_texts = {normalize(text) for text, _ in validation}
+    if train_texts & validation_texts:
+        raise ValueError("训练集与验证集存在重复文本；请使用独立数据，避免评测泄漏")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="训练十类医疗意图 BERT")
     parser.add_argument("--base-model", type=Path, required=True, help="本地 bert-base-chinese 目录")
     parser.add_argument("--dataset", type=Path, default=Path("evaluation/datasets/intent_train.jsonl"))
-    parser.add_argument(
+    validation_options = parser.add_mutually_exclusive_group()
+    validation_options.add_argument(
         "--validation-dataset",
         type=Path,
         default=Path("evaluation/datasets/intent_validation.jsonl"),
-        help="独立验证集；传入空值不可用时才从训练集内部切分",
+        help="独立验证集",
     )
+    validation_options.add_argument("--split-validation", dest="validation_dataset", action="store_const", const=None,
+                                    help="不使用独立验证文件，改为从训练集内部切分")
     parser.add_argument("--output", type=Path, default=Path("models/medical_intent_bert_tob_v3"))
     parser.add_argument("--epochs", type=int, default=8)
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--learning-rate", type=float, default=2e-5)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
+    if args.epochs < 1 or args.batch_size < 1 or not 0 < args.learning_rate < float("inf"):
+        parser.error("epochs、batch-size 和 learning-rate 必须为有限正数")
+    rows = load_rows(args.dataset)
+    if args.validation_dataset:
+        train_rows = rows
+        validation_rows = load_rows(args.validation_dataset)
+    else:
+        train_rows, validation_rows = split_rows(rows, args.seed)
+    check_split_isolation(train_rows, validation_rows)
 
     import torch
     from torch.utils.data import DataLoader, Dataset
@@ -75,12 +95,6 @@ def main() -> int:
     torch.manual_seed(args.seed)
     label_to_id = {label: index for index, label in enumerate(INTENTS)}
     id_to_label = {index: label for label, index in label_to_id.items()}
-    rows = load_rows(args.dataset)
-    if args.validation_dataset:
-        train_rows = rows
-        validation_rows = load_rows(args.validation_dataset)
-    else:
-        train_rows, validation_rows = split_rows(rows, args.seed)
     tokenizer = AutoTokenizer.from_pretrained(args.base_model, local_files_only=True)
 
     class IntentDataset(Dataset):

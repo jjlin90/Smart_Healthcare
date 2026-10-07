@@ -40,6 +40,10 @@ def issue_delegation(audience: str, agent: str, tools: list[str]) -> str:
     context = request_context.get()
     if not context or not context.get("staff_id") or not context.get("patient_id"):
         raise RuntimeError("缺少员工患者授权上下文")
+    if context.get("agent") is not None and context["agent"] != agent:
+        raise ValueError("子委托不得改变父委托 Agent")
+    if "tools" in context and not set(tools).issubset(context["tools"]):
+        raise ValueError("子委托不得扩大父委托工具范围")
     now = datetime.now(UTC)
     expires_at = now + timedelta(seconds=settings.request_timeout_seconds + 30)
     # Child MCP delegations must not extend a verified A2A parent's lifetime.
@@ -66,6 +70,7 @@ def verify_delegation(token: str, audience: str) -> dict[str, Any]:
     )
     if not all(isinstance(claims.get(key), str) and claims[key] for key in ("staff_id", "patient_id", "agent", "request_id")):
         raise JWTError("Invalid delegation scope")
-    if claims["sub"] != claims["staff_id"] or not isinstance(claims.get("tools"), list):
+    if (claims["sub"] != claims["staff_id"] or not isinstance(claims.get("tools"), list)
+            or not all(isinstance(tool, str) and tool for tool in claims["tools"])):
         raise JWTError("Invalid delegation subject")
     return claims

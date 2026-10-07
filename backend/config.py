@@ -22,14 +22,14 @@ class Settings(BaseSettings):
     siliconflow_base_url: str = "https://api.siliconflow.cn/v1"
     siliconflow_model: str = "deepseek-ai/DeepSeek-V4-Flash"
     intent_bert_model_path: str = ""
-    intent_bert_threshold: float = 0.95
+    intent_bert_threshold: float = Field(default=0.95, ge=0, le=1)
     intent_vector_model_path: str = ""
-    intent_vector_threshold: float = 0.78
-    intent_vector_margin: float = 0.04
+    intent_vector_threshold: float = Field(default=0.78, ge=0, le=1)
+    intent_vector_margin: float = Field(default=0.04, ge=0, le=2)
     intent_prototypes_path: str = "evaluation/intent_prototypes.jsonl"
     mcp_server_url: str = "http://127.0.0.1:8002/mcp"
     mcp_host: str = "127.0.0.1"
-    mcp_port: int = 8002
+    mcp_port: int = Field(default=8002, ge=1, le=65535)
     symptom_agent_url: str = "http://127.0.0.1:8011"
     drug_agent_url: str = "http://127.0.0.1:8012"
     guide_agent_url: str = "http://127.0.0.1:8013"
@@ -39,11 +39,11 @@ class Settings(BaseSettings):
     his_api_base_url: str = ""
     hospital_app_key: str = ""
     hospital_app_secret: str = ""
-    session_ttl_seconds: int = 1800
+    session_ttl_seconds: int = Field(default=1800, ge=1)
     redis_url: str = ""
-    checkpoint_ttl_seconds: int = 86400
-    external_request_timeout: float = 10.0
-    agent_max_iterations: int = 6
+    checkpoint_ttl_seconds: int = Field(default=86400, ge=1)
+    external_request_timeout: float = Field(default=10.0, gt=0, allow_inf_nan=False)
+    agent_max_iterations: int = Field(default=6, ge=1)
     langsmith_api_key: str = ""
     langsmith_tracing: bool = False
     langsmith_project: str = "medagent-ai"
@@ -76,6 +76,10 @@ class Settings(BaseSettings):
         missing = [name for name in names if not getattr(self, name)]
         if missing:
             raise RuntimeError(f"缺少必要配置：{', '.join(missing)}")
+
+    def require_cloud_llm(self) -> None:
+        if self.app_env == "production" and not self.cloud_llm_allowed:
+            raise RuntimeError("CLOUD_LLM_ALLOWED：生产云端模型调用需经医院批准后显式启用")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
