@@ -198,28 +198,36 @@ README 安装主流程、本地启动和 GitHub 上传前检查均显式安装 r
 | 注入断言修复 | 加强现有 8 项测试的注入前后断言，项目测试总数保持 316 | artifacts/test_injection_review_20261010/ |
 | 核查证据修订 | 使用合法重复 RUN/CI step 和真实临时文件验证注入保护，未修改项目测试或安装入口 | artifacts/anchor_evidence_review_20261010/ |
 | 证据工具回归补强 | 新增 19 项仓库回归，恢复同步源文件及正文比对，项目测试总数由 316 增至 335 | artifacts/evidence_regression_review_20261010/ |
+| 拒绝分支回归补齐（2026-10-10） | 新增 15 项带具体错误信息断言的拒绝回归，工具回归共 34 项，项目测试总数由 335 增至 350 | artifacts/evidence_validation_review_20261010/ |
 
 **核查脚本范围。** 新核查脚本直接提取当前测试函数，在隔离目录中写入真实 Dockerfile/CI 文件，并将测试根目录指向该隔离目录；不替换全局 Path.read_text。重复场景分别追加合法 RUN 行或 CI step。所有 6 个场景先确认配置可被安装入口门接受，再核对正常配置通过、锚点缺失/重复在注入阶段失败。新结果替代旧脚本对重复 RUN 场景的证明；旧脚本及报告仅保留为历史记录。被忽略的本机核查脚本不计入交付的 pytest 用例。
 
-**当前验证记录。** 工具拒绝分支修复后已执行完整预检（含项目测试与 pip check），当前通过数量统一见 [README 验证记录](../README.md#验证)。本轮新增 15 项拒绝分支回归，证据工具回归合计 34 项；检查错误信息以确认触发具体分支。安装入口及原有业务测试保持原有内容。本轮验证结果集中在 artifacts/evidence_validation_review_20261010/，下表列出的结果均在本轮重新生成，早期目录保留对应历史记录。
+**工程验证记录与证据来源。** 当前工程通过数量统一见 [README 验证记录](../README.md#验证)。2026-10-10 拒绝分支回归阶段新增 15 项测试，工具回归合计 34 项；该阶段执行了完整预检及工程测试，结果保存于 artifacts/evidence_validation_review_20261010/。后续文档修订保留这些报告，不将读取既有记录描述成重新生成或重新运行全部测试。
 
-| 验证内容 | 本轮结果文件 |
-| --- | --- |
-| 完整预检、pytest 与 pip check | artifacts/evidence_validation_review_20261010/preflight.log |
-| 快速预检 | artifacts/evidence_validation_review_20261010/quick.log |
-| Docker/CI 注入锚点的 6 个隔离场景 | artifacts/evidence_validation_review_20261010/anchor_drift.json |
-| 仓库与桌面文档的本地链接检查 | artifacts/evidence_validation_review_20261010/document_links.json |
-| 同步投影及目标字节、两份主文档与仓库正文比较 | artifacts/evidence_validation_review_20261010/desktop_manifest.json |
-| 当前桌面文档及简历的目标哈希核对 | artifacts/evidence_validation_review_20261010/latest_desktop_receipt.json |
-| 针对提交 d97d3a5 时的核对快照（已有日志、报告及当时桌面目标） | artifacts/evidence_validation_review_20261010/evidence_summary_after_commit_d97d3a5.json |
+2026-10-11 本次仅修正文档的历史表、证据来源和核对范围说明，重新执行快速预检、文档链接检查，以及已有报告/当前桌面目标核对。此次未重新执行完整 pytest；历史测试数量来自下表保留的完整预检日志。各文件的生成或核对阶段分别列明：
 
-修改前快照与本轮桌面同步备份同样位于该目录。桌面收据保留各目标的同步来源，并重新核对当前字节；未改动的目标沿用先前同步来源。上述本机证据目录受 Git 忽略规则管理，克隆者可执行仓库预检和测试，不能从 Git 获取这些本机报告。
+| 验证内容 | 生成或核对阶段 | 保存文件 |
+| --- | --- | --- |
+| 完整预检、pytest 与 pip check | 2026-10-10 拒绝分支回归阶段，保留原始执行日志 | artifacts/evidence_validation_review_20261010/preflight.log |
+| 快速预检 | 同一回归阶段，保留原始执行日志 | artifacts/evidence_validation_review_20261010/quick.log |
+| Docker/CI 注入锚点的 6 个隔离场景 | 同一回归阶段生成，后续保留 | artifacts/evidence_validation_review_20261010/anchor_drift.json |
+| 仓库与桌面文档本地链接检查 | 同一回归阶段生成，后续保留 | artifacts/evidence_validation_review_20261010/document_links.json |
+| 同步投影及目标字节、主文档正文比对输入 | 同一回归阶段的同步快照，后续保留 | artifacts/evidence_validation_review_20261010/desktop_manifest.json |
+| 桌面文档及简历目标的同步哈希 | 同一回归阶段合并收据，后续保留 | artifacts/evidence_validation_review_20261010/latest_desktop_receipt.json |
+| 提交 d97d3a5 时的核对快照 | 读取既有报告并检查当时目标；没有重新执行全量测试 | artifacts/evidence_validation_review_20261010/evidence_summary_after_commit_d97d3a5.json |
+| 文档修订快速预检 | 2026-10-11 本次重新执行，单独保存 | artifacts/evidence_validation_review_20261010/post_commit_review/quick_20261011.log |
+| 文档修订后的仓库与桌面链接检查 | 2026-10-11 本次重新执行，单独保存 | artifacts/evidence_validation_review_20261010/post_commit_review/document_links_20261011.json |
+| 既有报告及当前桌面目标核对 | 2026-10-11 本次读取既有结果并检查目标，单独保存 | artifacts/evidence_validation_review_20261010/post_commit_review/target_verification_20261011.json |
+
+2026-10-10 回归阶段的修改前快照与桌面同步备份同样位于该目录。桌面收据保留各目标的同步来源；核对工具重新检查当前字节，未改动的目标沿用先前同步来源。上述本机证据目录受 Git 忽略规则管理，克隆者可执行仓库预检和测试，不能从 Git 获取这些本机报告。
 
 提交核对历史：evidence_summary.json 中的 e1304e2 对应提交前核对时刻；evidence_summary_after_commit_d97d3a5.json 对应 HEAD 为 d97d3a5 时的核对快照，两份记录均按各自时间保留。后者读取已记录的测试结果并检查当时桌面目标，不表示重新执行全量测试，也不证明日志来自该提交。后续提交不需要改写这些历史文件或生成新的汇总。检查现在的目标时执行下方命令，它会输出本次核对时的 HEAD 和结果；提交及推送状态始终以核对当时的 git status、Git 引用和推送记录为准。
 
 **证据汇总工具。** 仓库提供 scripts/verify_delivery_evidence.py；它从完整/快速预检日志读取通过数量，校验唯一的 pytest/pip check 成功记录及两种预检的静态检查结果一致，从链接报告与桌面收据读取文件数，并核对桌面目标的当前字节。desktop_manifest.json 为必需输入：每个声明的同步源文件须存在于本轮证据目录内，先比较源/目标字节，再校验清单/收据哈希，正文不同时明确报告字节不一致，避免该分支被前置哈希检查遮住。两份桌面主文档还直接与当前仓库正文比较，仅将文档链接按桌面映射转换；即使改写正文并同步改写收据和投影文件，也不能绕过正文校验。
 
-三种核对范围分别记录：latest_desktop_receipt.json 核对全部 11 个目标的当前哈希；本轮 desktop_manifest.json 核对其中 4 个同步源/目标（两份主文档及简历 HTML/PDF），汇总输出 desktop_manifest_targets_matched；其中两份主文档再与仓库正文逐字节比对，输出 repository_desktop_documents_matched。其余 7 个目标仅做收据哈希核对，不声称全部 11 个目标都完成仓库正文比对。
+三种核对范围分别记录：latest_desktop_receipt.json 核对全部 11 个目标的当前哈希；该回归阶段保留的 desktop_manifest.json 用于核对其中 4 个同步源/目标（两份主文档及简历 HTML/PDF），汇总输出 desktop_manifest_targets_matched；其中两份主文档再与仓库正文逐字节比对，输出 repository_desktop_documents_matched。其余 7 个目标仅做收据哈希核对，不声称全部 11 个目标都完成仓库正文比对。
+
+两份仓库正文比对仅对应 PRIMARY_DOCUMENTS 指定的项目理解指南和项目话术；检查时它们可以保持原有内容。README.md 及本文件通过仓库 Markdown 链接预检，属于另一个检查范围。本次只修订本文件，未改动桌面主文档；桌面比对通过表示这两份主文档仍一致，不作为本次文档修订已同步到桌面的证明。验证结果分别报告仓库文档检查和桌面目标核对。
 
 tests/test_delivery_evidence.py 中的回归覆盖动态计数、异常/重复日志、完整/快速静态检查不一致、缺失清单/源文件、仓库或桌面正文变化、缺失/重复主文档映射及输出保护，并补齐清单为空/目标缺失/源路径越界/哈希错误、收据数量/重复目标/哈希错误、锚点结果/配置有效性/场景完整性、链接问题/无效数量、零通过测试及 quick 重复通过记录的拒绝回归。测试只替换本工具的 verification_head 函数，不修改共享的 subprocess 模块。完整预检通过 pytest 执行这些测试，CI 使用同一完整预检入口；quick 只执行静态检查，不运行 pytest。可单独执行 `python -m pytest tests/test_delivery_evidence.py -q`。
 
