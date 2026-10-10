@@ -279,7 +279,7 @@ EMR 配置曾是未调用的预留项，现已删除。14 个工具中没有独�
 
 部署交付补充：Kubernetes 参考清单与 PVC 文档已同步到 v4 多标签 BERT 和 0.5 默认阈值；quick/完整预检均检查实际清单。当前模型指纹脚本同时验证 LF 验证数据、原 CRLF 指纹及有序训练输入，训练脚本后续自动输出对应字段。急症提示记录为安全事件，未冒充工具执行。详见[复核修复记录](docs/intent-fusion.md#2026-10-10-部署与指纹复核修复)。
 
-开发与预检环境使用 `python -m pip install -r requirements-dev.txt -c constraints.txt`；Docker 继续只安装运行依赖 requirements.txt。PyYAML 是 Kubernetes 清单检查的开发依赖，固定为本轮已验证的 6.0.3；CI 同样使用开发依赖入口。预检分别检查直接依赖是否固定，以及新增文件的暂存内容是否落后于工作区；完整 pytest 验证工作区，不等于验证任意已有文件的整个暂存快照。当前完整预检 20 项通过。
+开发与预检环境使用 `python -m pip install -r requirements-dev.txt -c constraints.txt`；Docker 继续只安装运行依赖 requirements.txt。PyYAML 是 Kubernetes 清单检查的开发依赖，固定为本轮已验证的 6.0.3；CI 同样使用开发依赖入口。预检分别检查直接依赖是否固定，以及新增文件的暂存内容是否落后于工作区；完整 pytest 验证工作区，不等于验证任意已有文件的整个暂存快照。当前验证数量和结果统一见[验证](#验证)。
 
 开发环境补强：缺少 PyYAML 时，quick、完整预检及提交钩子明确提示用同一 Python 安装 requirements-dev.txt，不把环境缺失混写成 Kubernetes 清单错误。直接依赖固定门只检查精确版本声明是否齐全，不证明固定值落在声明范围内；安装时的 pip 解析负责范围兼容性，pip check 检查已安装包的依赖一致性。临时目录与历史核查产物的管理统一见[测试临时数据与历史核查产物](docs/intent-fusion.md#测试临时数据与历史核查产物)。当前验证结果见[验证](#验证)。
 
