@@ -204,7 +204,7 @@ README 安装主流程、本地启动和 GitHub 上传前检查均显式安装 r
 
 **工程验证记录与证据来源。** 最近一次完整验证的通过数量统一见 [README 验证记录](../README.md#验证)。2026-10-10 拒绝分支回归阶段新增 15 项测试，工具回归合计 34 项；该阶段执行了完整预检及工程测试，结果保存于 artifacts/evidence_validation_review_20261010/。后续文档修订保留这些报告，不将读取既有记录描述成重新生成或重新运行全部测试。
 
-2026-10-11 文档修订检查分为初次检查和最终检查。初次检查后仍补充了说明文字，因此初次结果不能代表最终文档版本。最终检查在 README.md 与本文件的说明全部修改完成后执行；快速预检日志记录运行标识、UTC 起止时间、HEAD、命令及仓库检查输入的 SHA-256，链接报告记录相同运行信息及全部被检文档的 SHA-256。两种检查均核对运行前后输入是否保持一致，结果对应这些哈希标识的工作区文件，而非仅凭文件名或修改时间判断。此次未重新执行完整 pytest；历史测试数量来自下表保留的完整预检日志。这些本机元数据用于追溯运行及输入，不构成防篡改证明。各文件的生成或核对阶段分别列明：
+2026-10-11 文档修订检查分为初次检查和最终检查。初次检查后仍补充了说明文字，因此初次结果不能代表最终文档版本。当时的最终检查在 README.md 与本文件的说明全部修改完成后执行；快速预检日志与链接报告的运行标识、UTC、HEAD、命令及 SHA-256 均由未保存到仓库的本机临时包装代码追加，直接执行 preflight_git.py 不会自动产生这些字段。旧记录保留其实际来源，不作为仓库原生记录功能的证明。旧链接报告的 input_sha256 包含 31 份文档及 1 份本机检查器源码，共 32 项；源码哈希不计入文档数。当时两种检查均核对运行前后输入是否保持一致，结果对应这些哈希标识的工作区文件，而非仅凭文件名或修改时间判断。此次未重新执行完整 pytest；历史测试数量来自下表保留的完整预检日志。这些本机元数据用于追溯运行及输入，不构成防篡改证明。各文件的生成或核对阶段分别列明：
 
 | 验证内容 | 生成或核对阶段 | 保存文件 |
 | --- | --- | --- |
@@ -221,8 +221,20 @@ README 安装主流程、本地启动和 GitHub 上传前检查均显式安装 r
 | 文档修订初次快速预检 | 2026-10-11 初次检查，早于后续收尾文字修订；未记录运行元数据，不作为最终版本证据 | artifacts/evidence_validation_review_20261010/post_commit_review/quick_20261011.log |
 | 文档修订初次仓库与桌面链接检查 | 2026-10-11 初次检查，早于后续收尾文字修订；未记录运行元数据，不作为最终版本证据 | artifacts/evidence_validation_review_20261010/post_commit_review/document_links_20261011.json |
 | 既有报告及桌面目标核对 | 2026-10-11 初次读取既有结果并检查目标，单独保存 | artifacts/evidence_validation_review_20261010/post_commit_review/target_verification_20261011.json |
-| 文档修订最终快速预检 | 2026-10-11 全部说明修订完成后执行，附运行信息及输入哈希 | artifacts/evidence_validation_review_20261010/post_commit_review/quick_final_20261011.log |
-| 文档修订最终仓库与桌面链接检查 | 2026-10-11 全部说明修订完成后执行，附运行信息及文档哈希 | artifacts/evidence_validation_review_20261010/post_commit_review/document_links_final_20261011.json |
+| 前次文档修订最终快速预检 | 2026-10-11 前次说明修订后执行，本机未版本化包装代码追加元数据，保留历史记录 | artifacts/evidence_validation_review_20261010/post_commit_review/quick_final_20261011.log |
+| 前次文档修订最终仓库与桌面链接检查 | 2026-10-11 前次说明修订后执行，同一本机包装方式；31 份文档及检查器源码共 32 个哈希 | artifacts/evidence_validation_review_20261010/post_commit_review/document_links_final_20261011.json |
+| 仓库记录器快速预检 | 2026-10-11 使用 scripts/record_document_checks.py，保存可复现入口及输入哈希 | artifacts/evidence_validation_review_20261010/post_commit_review/quick_recorder_20261011.log |
+| 仓库记录器仓库与桌面链接检查 | 2026-10-11 使用同一仓库脚本，文档哈希与检查器源码哈希分别记录 | artifacts/evidence_validation_review_20261010/post_commit_review/document_links_recorder_20261011.json |
+
+**可复现的记录入口。** 仓库提供 [record_document_checks.py](../scripts/record_document_checks.py)，使用标准库执行快速预检或内置的本地文档链接检查，并保存元数据。快速模式实际调用 preflight_git.py --quick；links 模式默认检查仓库 Markdown，可显式指定 --desktop 追加两份桌面主文档及其项目子目录。链接模式的 input_sha256 只包含被检文档，检查器源码另存 checker_source_sha256；快速模式的 input_sha256 对应仓库候选工作区文件。脚本记录运行前后 HEAD 及输入哈希；输入变化、检查失败或输出文件已存在时返回非零，不覆盖旧证据。输出必须是被忽略的 artifacts/ 内的新文件；父目录需先创建。元数据属于工作区运行快照，不证明检查时工作区等于 HEAD，也不改变 preflight_git.py、提交钩子及 CI 的默认输出。
+
+```powershell
+# 首次运行使用新文件名；再次执行时改用其他名称。
+python scripts/record_document_checks.py --kind quick --output artifacts/evidence_validation_review_20261010/post_commit_review/quick_recorder_20261011.log
+python scripts/record_document_checks.py --kind links --desktop "$env:USERPROFILE/Desktop" --output artifacts/evidence_validation_review_20261010/post_commit_review/document_links_recorder_20261011.json
+```
+
+这次记录器修订仅涉及工程证据工具与本文说明，未重新执行完整 pytest，也未改动桌面主文档。最近一次完整测试仍对应 README 标明的日期；新保存的快速预检和链接报告只证明各自记录的检查范围。
 
 2026-10-10 回归阶段的修改前快照与桌面同步备份同样位于该目录。桌面收据保留各目标的同步来源；核对工具重新检查当前字节，未改动的目标沿用先前同步来源。上述本机证据目录受 Git 忽略规则管理，克隆者可执行仓库预检和测试，不能从 Git 获取这些本机报告。
 
@@ -232,7 +244,7 @@ README 安装主流程、本地启动和 GitHub 上传前检查均显式安装 r
 
 三种核对范围分别记录：latest_desktop_receipt.json 核对全部 11 个目标的当前哈希；该回归阶段保留的 desktop_manifest.json 用于核对其中 4 个同步源/目标（两份主文档及简历 HTML/PDF），汇总输出 desktop_manifest_targets_matched；其中两份主文档再与仓库正文逐字节比对，输出 repository_desktop_documents_matched。其余 7 个目标仅做收据哈希核对，不声称全部 11 个目标都完成仓库正文比对。
 
-两份仓库正文比对仅对应 PRIMARY_DOCUMENTS 指定的项目理解指南和项目话术；检查时它们可以保持原有内容。README.md 及本文件通过仓库 Markdown 链接预检，属于另一个检查范围。2026-10-11 这两次文档修订涉及 README.md 与本文件，未改动桌面主文档；桌面比对通过表示这两份主文档仍一致，不作为本次文档修订已同步到桌面的证明。验证结果分别报告仓库文档检查和桌面目标核对。
+两份仓库正文比对仅对应 PRIMARY_DOCUMENTS 指定的项目理解指南和项目话术；检查时它们可以保持原有内容。README.md 及本文件通过仓库 Markdown 链接预检，属于另一个检查范围。2026-10-11 前述文档修订涉及 README.md 与本文件，未改动桌面主文档；桌面比对通过表示这两份主文档仍一致，不作为本次文档修订已同步到桌面的证明。验证结果分别报告仓库文档检查和桌面目标核对。
 
 tests/test_delivery_evidence.py 中的回归覆盖动态计数、异常/重复日志、完整/快速静态检查不一致、缺失清单/源文件、仓库或桌面正文变化、缺失/重复主文档映射及输出保护，并补齐清单为空/目标缺失/源路径越界/哈希错误、收据数量/重复目标/哈希错误、锚点结果/配置有效性/场景完整性、链接问题/无效数量、零通过测试及 quick 重复通过记录的拒绝回归。测试只替换本工具的 verification_head 函数，不修改共享的 subprocess 模块。完整预检通过 pytest 执行这些测试，CI 使用同一完整预检入口；quick 只执行静态检查，不运行 pytest。可单独执行 `python -m pytest tests/test_delivery_evidence.py -q`。
 
