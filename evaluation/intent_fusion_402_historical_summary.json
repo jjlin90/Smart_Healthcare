@@ -1,0 +1,123 @@
+{
+  "generated_at": "2026-10-10T00:38:26.283756+00:00",
+  "pipeline": "regex + bert_sigmoid + vector -> fusion -> conditional_llm",
+  "dataset": "evaluation/intent_eval.jsonl",
+  "dataset_sha256": "e92e62e22c8586e217ae829861f5279fb4450fd6efe8d032a1e17c9c3572a710",
+  "prototypes_sha256": "7ac8b133a4ef8852e62762bb796893d2ef58c9ed57fa457980f7c7e1eabf87b3",
+  "dataset_note": "工程回归集，非临床标注基准；不能外推为真实医疗场景准确率。",
+  "case_count": 33,
+  "intent_exact_match_accuracy": 0.8485,
+  "complex_flag_accuracy": 0.8485,
+  "micro_precision": 1.0,
+  "micro_recall": 0.7568,
+  "micro_f1": 0.8615,
+  "latency_seconds": {
+    "mean": 0.72,
+    "p95": 0.152,
+    "max": 20.484
+  },
+  "errors": 5,
+  "source_counts": {
+    "fusion": 28
+  },
+  "model_version": "multilabel_v4",
+  "llm_review_attempts": 5,
+  "llm_review_attempt_rate": 0.15151515151515152,
+  "llm_successes": 0,
+  "llm_provider_failure": "HTTP 402 Payment Required",
+  "review_reason_counts": {
+    "candidate_disagreement:症状评估": 3,
+    "bert_boundary:院内分诊建议": 1,
+    "candidate_disagreement:检验结果辅助解读": 1,
+    "possible_missing_intent": 2,
+    "candidate_disagreement:临床知识查询": 1
+  },
+  "failed_review_cases": [
+    {
+      "id": "symptom-02",
+      "review_reasons": [
+        "candidate_disagreement:症状评估"
+      ],
+      "candidates": [
+        "症状评估"
+      ],
+      "live_error_code": "HTTP_402_PAYMENT_REQUIRED"
+    },
+    {
+      "id": "symptom-03",
+      "review_reasons": [
+        "candidate_disagreement:症状评估"
+      ],
+      "candidates": [
+        "症状评估"
+      ],
+      "live_error_code": "HTTP_402_PAYMENT_REQUIRED"
+    },
+    {
+      "id": "multi-01",
+      "review_reasons": [
+        "candidate_disagreement:症状评估",
+        "bert_boundary:院内分诊建议"
+      ],
+      "candidates": [
+        "症状评估",
+        "院内分诊建议",
+        "用药审核"
+      ],
+      "live_error_code": "HTTP_402_PAYMENT_REQUIRED"
+    },
+    {
+      "id": "multi-02",
+      "review_reasons": [
+        "candidate_disagreement:检验结果辅助解读",
+        "possible_missing_intent"
+      ],
+      "candidates": [
+        "检验结果辅助解读",
+        "院内分诊建议"
+      ],
+      "live_error_code": "HTTP_402_PAYMENT_REQUIRED"
+    },
+    {
+      "id": "multi-03",
+      "review_reasons": [
+        "candidate_disagreement:临床知识查询",
+        "possible_missing_intent"
+      ],
+      "candidates": [
+        "临床指南检索",
+        "临床知识查询"
+      ],
+      "live_error_code": "HTTP_402_PAYMENT_REQUIRED"
+    }
+  ],
+  "note": "33 synthetic live routing cases: 28 local successes; 5 cloud reviews blocked by HTTP 402. Review reasons subsequently collected with local models only; not a fully passing end-to-end benchmark.",
+  "source_report_sha256": "ac5ed32d406fc084603547e129928a989d434f0f4bfb6fd823ef5af9659c05b6",
+  "source_report_path": "artifacts/intent_fusion_eval.json",
+  "source_report_verification_note": "本机原报告已按原始字节校验；原报告被 Git 忽略，克隆后无法单独核验。哈希证明内容一致，不证明文件生成先后。",
+  "metric_definitions": "Micro-P/R/F1 count positive labels; zero denominators yield 0.0. For empty-truth OOD cases, exact_match is the empty-set rejection rate, not micro-F1.",
+  "field_provenance": {
+    "original_report_fields": [
+      "case_count",
+      "complex_flag_accuracy",
+      "dataset_note",
+      "dataset_sha256",
+      "errors",
+      "generated_at",
+      "intent_exact_match_accuracy",
+      "latency_seconds",
+      "micro_f1",
+      "micro_precision",
+      "micro_recall",
+      "pipeline",
+      "prototypes_sha256",
+      "source_counts"
+    ],
+    "review_reason_counts_and_failed_review_cases": {
+      "source": "artifacts/intent_fusion_review_diagnostics.json",
+      "sha256": "8427059225da5c92e6b5e70d79c1a87bac81a7ea05a9a985283cbc84f26144a5",
+      "scope": "随后使用本地模型重放诊断；非 HTTP 402 当次云端响应，未额外调用云端。"
+    },
+    "llm_review_attempts_and_provider_failure": "结合原报告错误及当时日志整理的派生字段"
+  }
+}

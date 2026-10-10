@@ -23,7 +23,6 @@ dependencies = [
   "langchain-openai>=1.6,<1.7",
   "langsmith>=0.13",
   "streamlit>=1.40",
-  "locust>=2.46",
   "redis>=8.1",
   "prometheus-client>=0.26",
   "torch>=2.5",
@@ -33,8 +32,10 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+  "PyYAML>=6.0,<7",
   "pytest>=9.1",
   "pytest-asyncio>=1.4",
+  "locust>=2.46",
 ]
 
 [tool.pytest.ini_options]

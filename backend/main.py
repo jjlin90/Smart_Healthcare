@@ -415,6 +415,7 @@ async def chat_stream(
                         "agent": metadata.get("agent"),
                         "scope": metadata.get("scope"),
                         "stream_mode": metadata.get("stream_mode"),
+                        "safety": metadata.get("safety"),
                     }, ensure_ascii=False),
                 ))
                 await write_db.commit()

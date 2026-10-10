@@ -1,5 +1,7 @@
 # Direct dependency versions verified on 2026-09-26 (Python 3.11).
 # Not a transitive hash lock; validate the target platform before release.
+# Development YAML parser verified on 2026-10-10; used by repository preflight.
+PyYAML==6.0.3
 fastapi==0.141.1
 uvicorn==0.53.0
 sqlalchemy==2.0.54

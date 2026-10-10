@@ -1,0 +1,55 @@
+{
+  "pipeline": "bert_sigmoid_multilabel_v4",
+  "model": "medical_intent_bert_multilabel_v4",
+  "dataset": "evaluation/datasets/multilabel_v4/intent_test.jsonl",
+  "dataset_sha256": "374b5e315b3e86b4ef211f31fceb28cb8f1788f01ada802cd79695969f5d28a8",
+  "thresholds": {
+    "症状评估": 0.5,
+    "药品信息查询": 0.5,
+    "临床指南检索": 0.5,
+    "检验结果辅助解读": 0.5,
+    "院内分诊建议": 0.5,
+    "随访管理": 0.5,
+    "用药审核": 0.5,
+    "临床知识查询": 0.5,
+    "转诊协同": 0.5,
+    "检查报告辅助解读": 0.5
+  },
+  "case_count": 1340,
+  "exact_match": 1.0,
+  "micro_precision": 1.0,
+  "micro_recall": 1.0,
+  "micro_f1": 1.0,
+  "false_positive_labels": 0,
+  "missed_labels": 0,
+  "groups": {
+    "single": {
+      "case_count": 1040,
+      "exact_match": 1.0,
+      "micro_precision": 1.0,
+      "micro_recall": 1.0,
+      "micro_f1": 1.0,
+      "false_positive_labels": 0,
+      "missed_labels": 0
+    },
+    "multi": {
+      "case_count": 300,
+      "exact_match": 1.0,
+      "micro_precision": 1.0,
+      "micro_recall": 1.0,
+      "micro_f1": 1.0,
+      "false_positive_labels": 0,
+      "missed_labels": 0
+    }
+  },
+  "warning": "合成工程数据指标，不能外推为临床效果；阈值仅使用验证集选择。",
+  "generated_on": "2026-10-10",
+  "model_sha256": "fa5c366d2c08ba04f858519e357daac41f123896f8c3b1fd59bb8377e9279386",
+  "source_report_sha256": "5c5c2836f180325804af6f0d9b1de7fd2fdebe3766e4418dcaa97ee1efe6e16b",
+  "source_report_path": "artifacts/bert_multilabel_test.json",
+  "source_report_verification_note": "本机原报告已按原始字节校验；原报告被 Git 忽略，克隆后无法单独核验。哈希证明内容一致，不证明文件生成先后。",
+  "metric_definitions": "Micro-P/R/F1 count positive labels; zero denominators yield 0.0. For empty-truth OOD cases, exact_match is the empty-set rejection rate, not micro-F1.",
+  "summary_transformation_note": "保留全部指标和分组；省略 cases，模型/数据路径改为可移植路径；generated_on 为整理日期而非报告时间，model_sha256 为整理时本地权重指纹。",
+  "repository_dataset_sha256": "ef3da135dc7e3c604bc6ed3becfd94433cf5888c5b9829c430511c5aeda88bb3",
+  "dataset_sha256_note": "dataset_sha256 为原评测报告的原始数据字节指纹；repository_dataset_sha256 为当前仓库 LF 文件。v4 测试文件仅由 CRLF 转为 LF，挑战文件原本 LF，内容未变。"
+}

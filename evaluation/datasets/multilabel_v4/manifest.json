@@ -1,0 +1,26 @@
+{
+  "version": "multilabel_v4",
+  "splits": {
+    "train": {
+      "count": 3100,
+      "multi_intent_count": 1000,
+      "sha256": "f8d1cf6d37cd9b9a826efa065c739d0df247b55dfb81bebb06b0178d0625d4f3",
+      "repository_sha256": "fcbae45bb63526b72e083edea1ed1c494565c74ac61d6978499382966daecadc"
+    },
+    "validation": {
+      "count": 640,
+      "multi_intent_count": 200,
+      "sha256": "b0bfca1cc5b22a8b5ec6b951d58ec5974b5c71c2ad64acbeb433749b97a6de25",
+      "repository_sha256": "af820ee5f4a2fca7e8f295453220e4c33e38311584f29d8c49d7984eca65b830"
+    },
+    "test": {
+      "count": 1340,
+      "multi_intent_count": 300,
+      "sha256": "374b5e315b3e86b4ef211f31fceb28cb8f1788f01ada802cd79695969f5d28a8",
+      "repository_sha256": "ef3da135dc7e3c604bc6ed3becfd94433cf5888c5b9829c430511c5aeda88bb3"
+    }
+  },
+  "exact_text_overlap": 0,
+  "note": "仅为合成工程数据；模板相近不等于真实泛化，旧挑战集未用于训练。",
+  "sha256_note": "sha256 保留 2026-10-10 生成及训练时 CRLF 原始字节指纹；repository_sha256 对应随后仅规范换行的仓库 LF 字节。正文与解析内容不变。以后生成脚本显式输出 LF。"
+}

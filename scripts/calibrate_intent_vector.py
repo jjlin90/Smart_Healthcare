@@ -11,7 +11,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from backend.agents import INTENTS, MULTI_INTENT_CUE, IntentClassifier, _load_vector_bundle
+from backend.agents import _load_vector_bundle
 from backend.config import get_settings
 
 
@@ -28,7 +28,7 @@ def main() -> None:
         help="独立校准集；不要使用最终回归/测试集调阈值",
     )
     parser.add_argument("--thresholds", default="0.50,0.60,0.65,0.68,0.70,0.72,0.75")
-    parser.add_argument("--show-cases", action="store_true", help="输出每条到达向量层的样本")
+    parser.add_argument("--show-cases", action="store_true", help="输出全量校准集每条样本的向量 Top-1 结果")
     parser.add_argument("--output", type=Path, help="保存数据/原型指纹、阈值统计和逐条校准结果")
     args = parser.parse_args()
 
@@ -38,18 +38,9 @@ def main() -> None:
         settings.intent_prototypes_path,
     )
     all_cases = load_cases(args.dataset)
-    cases: list[dict] = []
-    for case in all_cases:
-        regex_intents, _terms = IntentClassifier._regex_classify(case["text"])
-        needs_multi_check = bool(MULTI_INTENT_CUE.search(case["text"]))
-        if regex_intents and (len(regex_intents) > 1 or not needs_multi_check):
-            continue
-        bert_result = IntentClassifier._bert_classify_sync(case["text"])
-        if bert_result and bert_result[1] >= settings.intent_bert_threshold and not needs_multi_check:
-            continue
-        cases.append(case)
+    cases = all_cases
     if not cases:
-        raise RuntimeError("校准集中没有到达向量层的样本")
+        raise RuntimeError("校准集不能为空")
     embeddings = model.encode(
         [case["text"] for case in cases],
         normalize_embeddings=True,
@@ -69,42 +60,46 @@ def main() -> None:
             "expected": case["expected_intents"],
             "predicted": predicted,
             "score": top_score,
-            "correct": len(case["expected_intents"]) == 1 and predicted == case["expected_intents"][0],
+            "top1_in_expected": predicted in case["expected_intents"],
+            "singleton_exact_match": len(case["expected_intents"]) == 1 and predicted == case["expected_intents"][0],
         })
 
-    print(f"dataset_cases={len(all_cases)} vector_residual_cases={len(cases)}")
-    print("threshold coverage accepted_accuracy accepted/cases")
+    print(f"dataset_cases={len(all_cases)} vector_calibration_cases={len(cases)}")
+    print("threshold coverage accepted_top1_hit_rate accepted_singleton_exact_match accepted/cases")
     summaries = []
     for threshold in [float(value) for value in args.thresholds.split(",")]:
         accepted = [row for row in rows if row["score"] >= threshold]
-        correct = sum(row["correct"] for row in accepted)
+        hits = sum(row["top1_in_expected"] for row in accepted)
+        exact = sum(row["singleton_exact_match"] for row in accepted)
         coverage = len(accepted) / len(rows)
-        accuracy = correct / len(accepted) if accepted else 0.0
-        print(f"{threshold:.2f} {coverage:.3f} {accuracy:.3f} {len(accepted)}/{len(rows)}")
-        summaries.append({"threshold": threshold, "accepted": len(accepted), "correct": correct,
-                          "coverage": coverage, "accepted_accuracy": accuracy if accepted else None})
+        hit_rate = hits / len(accepted) if accepted else None
+        exact_rate = exact / len(accepted) if accepted else None
+        print(f"{threshold:.2f} {coverage:.3f} {hit_rate if hit_rate is not None else 'N/A'} {exact_rate if exact_rate is not None else 'N/A'} {len(accepted)}/{len(rows)}")
+        summaries.append({"threshold": threshold, "accepted": len(accepted), "top1_hits": hits,
+                          "singleton_exact_matches": exact, "coverage": coverage,
+                          "accepted_top1_hit_rate": hit_rate, "accepted_singleton_exact_match": exact_rate})
 
     if args.output:
         from datetime import datetime, timezone
         report = {
             "generated_at": datetime.now(timezone.utc).isoformat(),
-            "scope": "Single-label vector top-1 threshold calibration after regex/BERT filtering; not the full multi-intent runtime route or a clinical benchmark.",
+            "scope": "Standalone vector top-1 calibration over the entire independent validation set; not the full multi-intent runtime route or a clinical benchmark.",
             "dataset_sha256": hashlib.sha256(args.dataset.read_bytes()).hexdigest(),
             "prototypes_sha256": hashlib.sha256(Path(settings.intent_prototypes_path).read_bytes()).hexdigest(),
-            "bert_threshold": settings.intent_bert_threshold,
+            "metric_definitions": "Coverage is accepted/all cases. Top-1 hit means the predicted label belongs to the expected set. Singleton exact match requires the expected set to contain exactly that one label; multi-intent and OOD sets cannot match a single-label prediction. This does not evaluate full multi-intent fusion.",
             "dataset_cases": len(all_cases),
-            "vector_residual_cases": len(rows),
+            "vector_calibration_cases": len(rows),
             "thresholds": summaries,
             "cases": rows,
         }
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
         print(f"Saved {args.output.name}")
 
     if args.show_cases:
         print("\nPer-case top result:")
         for row in rows:
-            marker = "OK" if row["correct"] else "MISS"
+            marker = "TOP1_HIT" if row["top1_in_expected"] else "TOP1_MISS"
             print(f"{row['id']}: {row['predicted']} score={row['score']:.3f} {marker} expected={row['expected']}")
 
 

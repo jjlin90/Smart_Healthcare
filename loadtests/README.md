@@ -5,8 +5,11 @@
 历史原始证据已保存为 [汇总 CSV](results/2026-09-20_health_stats.csv) 和 [时间序列 CSV](results/2026-09-20_health_stats_history.csv)，克隆仓库即可查阅。这两份仅含健康接口汇总，不含患者、账号或密钥信息。时间序列记录跨度为 20 秒，汇总为 8,107 次请求、0 失败、约 401 RPS（每秒请求数）、P95（第 95 百分位响应时间）790 ms（毫秒）。这是 2026-09-20 的历史测试，不是本轮重测。下方命令使用相同的 `-t 20s` 时长；重新运行所得数值仍取决于当时环境，不能保证与历史报告相同。
 
 ```powershell
+python -m pip install -r requirements-dev.txt -c constraints.txt
 python -m locust -f loadtests/locustfile.py --host http://127.0.0.1:8000 `
   --headless -u 300 -r 100 -t 20s --csv artifacts/locust_api_300
 ```
+
+在仓库根目录安装开发依赖后再运行压测。pytest、pytest-asyncio、locust 与 PyYAML 均属于开发依赖，requirements-dev.txt 和 pyproject.toml 的 dev 分组保持一致；生产 Docker 使用的 requirements.txt 不直接包含这些工具。constraints.txt 保留开发与运行依赖的精确版本约束。
 
 完整 Agent（智能体）链路压测必须使用隔离的测试患者、测试环境医院接口和单独的模型配额，并分别统计 SSE（服务器发送事件）首段文本时间、完整响应时间和工具成功率，不应向生产医疗系统直接施压。

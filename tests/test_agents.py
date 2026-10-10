@@ -22,6 +22,18 @@ from backend.agents import (
     deidentify,
     deidentify_payload,
 )
+@pytest.fixture(autouse=True)
+def isolate_intent_models(monkeypatch):
+    # Other agent unit tests use deterministic scores instead of GPU or cloud services.
+    from backend.agents import INTENTS
+    def scores(message):
+        labels, _ = IntentClassifier._regex_classify(message)
+        return {label: 0.99 if label in labels else 0.01 for label in INTENTS}
+    monkeypatch.setattr(IntentClassifier, "_bert_classify_sync", staticmethod(scores))
+    monkeypatch.setattr(IntentClassifier, "_vector_classify_sync", staticmethod(scores))
+    monkeypatch.setattr(IntentClassifier, "_thresholds", staticmethod(lambda: (
+        {label: 0.5 for label in INTENTS}, {label: 0.78 for label in INTENTS})))
+
 from backend.mcp_tools import ALL_TOOL_NAMES, mcp
 from backend.a2a_server import MedicalA2AServer
 
@@ -321,8 +333,8 @@ async def test_synthesis_forwards_model_native_deltas(monkeypatch):
 async def test_high_precision_regex_intent_layer(message, expected):
     decision = await IntentClassifier().classify(message)
     assert decision.intents == expected
-    assert decision.source == "regex"
-    assert decision.route == ["regex"]
+    assert decision.source == "fusion"
+    assert decision.route == ["regex", "bert", "vector", "fusion"]
 
 
 @pytest.mark.asyncio
@@ -353,7 +365,8 @@ async def test_intent_cascade_reaches_llm_only_after_bert_and_vector(monkeypatch
     monkeypatch.setattr(classifier, "_vector_classify_sync", fake_vector)
     monkeypatch.setattr(classifier, "_llm_classify", fake_llm)
     decision = await classifier.classify("请给我一些日常建议")
-    assert calls == ["bert", "vector", "llm"]
+    assert sorted(calls[:-1]) == ["bert", "vector"]
+    assert calls[-1] == "llm"
     assert decision.intents == ["随访管理"]
     assert decision.source == "llm"
 
@@ -362,7 +375,7 @@ async def test_intent_cascade_reaches_llm_only_after_bert_and_vector(monkeypatch
 async def test_guideline_question_does_not_duplicate_health_intent():
     decision = await IntentClassifier().classify("糖尿病指南对运动管理有什么建议")
     assert decision.intents == ["临床指南检索"]
-    assert decision.source == "regex"
+    assert decision.source == "fusion"
 
 
 @pytest.mark.asyncio
@@ -371,7 +384,7 @@ async def test_multi_intent_keeps_medication_context():
         "患者头痛恶心，请评估可能方向，并审核当前布洛芬用药，还需给出院内分诊科室"
     )
     assert set(decision.intents) == {"症状评估", "用药审核", "院内分诊建议"}
-    assert decision.source == "regex"
+    assert decision.source == "fusion"
     assert decision.complex_task is True
 
 
@@ -381,7 +394,7 @@ async def test_multi_intent_keeps_explicit_knowledge_request_with_guideline():
         "查询高血压临床特征，再检索指南中的随访管理建议"
     )
     assert set(decision.intents) == {"临床指南检索", "临床知识查询"}
-    assert decision.source == "regex"
+    assert decision.source == "fusion"
     assert decision.complex_task is True
 
 

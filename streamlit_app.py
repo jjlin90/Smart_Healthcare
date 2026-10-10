@@ -302,7 +302,7 @@ def _render_workspace() -> None:
     _render_sidebar()
     profile = _load_profile()
     st.markdown(
-        '<div class="hero"><h1>院内临床辅助分析</h1><p>医疗范围守卫、四层意图识别、Planning + ReAct、多 Agent 与 MCP 医疗工具协同完成</p></div>',
+        '<div class="hero"><h1>院内临床辅助分析</h1><p>医疗范围守卫、三路融合意图识别、Planning + ReAct、多 Agent 与 MCP 医疗工具协同完成</p></div>',
         unsafe_allow_html=True,
     )
     chat_col, profile_col = st.columns([2.45, 1], gap="large")
@@ -316,7 +316,7 @@ def _render_workspace() -> None:
                     _render_card(card)
                 st.markdown(item["content"])
         if st.session_state.agent_trace:
-            with st.expander("查看 ReAct 工具执行轨迹"):
+            with st.expander("查看安全路由与工具执行记录"):
                 st.json(st.session_state.agent_trace)
         with st.expander("本次任务写操作确认"):
             st.caption("按本次任务需要勾选。修改患者资料和创建转诊草稿仍会在服务端核对角色与患者授权。")

@@ -1,0 +1,207 @@
+{
+  "rounds": 3,
+  "case_count": 15,
+  "exact_match_count": 15,
+  "complex_match_count": 15,
+  "errors": 0,
+  "dataset": "evaluation/intent_eval.jsonl",
+  "dataset_sha256": "e92e62e22c8586e217ae829861f5279fb4450fd6efe8d032a1e17c9c3572a710",
+  "provider_status": "HTTP 200 OK",
+  "validation_scope": "Same five synthetic regression requests repeated three times; not additional independent samples.",
+  "case_ids": [
+    "multi-01",
+    "multi-02",
+    "multi-03",
+    "symptom-02",
+    "symptom-03"
+  ],
+  "source_counts": {
+    "llm": 15
+  },
+  "cases": [
+    {
+      "iteration": 1,
+      "id": "symptom-02",
+      "predicted_intents": [
+        "症状评估"
+      ],
+      "source": "llm",
+      "exact_match": true,
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "iteration": 1,
+      "id": "symptom-03",
+      "predicted_intents": [
+        "症状评估"
+      ],
+      "source": "llm",
+      "exact_match": true,
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "iteration": 1,
+      "id": "multi-01",
+      "predicted_intents": [
+        "症状评估",
+        "院内分诊建议",
+        "用药审核"
+      ],
+      "source": "llm",
+      "exact_match": true,
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "iteration": 1,
+      "id": "multi-02",
+      "predicted_intents": [
+        "检验结果辅助解读",
+        "院内分诊建议"
+      ],
+      "source": "llm",
+      "exact_match": true,
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "iteration": 1,
+      "id": "multi-03",
+      "predicted_intents": [
+        "临床指南检索",
+        "临床知识查询"
+      ],
+      "source": "llm",
+      "exact_match": true,
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "iteration": 2,
+      "id": "symptom-02",
+      "predicted_intents": [
+        "症状评估"
+      ],
+      "source": "llm",
+      "exact_match": true,
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "iteration": 2,
+      "id": "symptom-03",
+      "predicted_intents": [
+        "症状评估"
+      ],
+      "source": "llm",
+      "exact_match": true,
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "iteration": 2,
+      "id": "multi-01",
+      "predicted_intents": [
+        "症状评估",
+        "院内分诊建议",
+        "用药审核"
+      ],
+      "source": "llm",
+      "exact_match": true,
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "iteration": 2,
+      "id": "multi-02",
+      "predicted_intents": [
+        "检验结果辅助解读",
+        "院内分诊建议"
+      ],
+      "source": "llm",
+      "exact_match": true,
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "iteration": 2,
+      "id": "multi-03",
+      "predicted_intents": [
+        "临床指南检索",
+        "临床知识查询"
+      ],
+      "source": "llm",
+      "exact_match": true,
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "iteration": 3,
+      "id": "symptom-02",
+      "predicted_intents": [
+        "症状评估"
+      ],
+      "source": "llm",
+      "exact_match": true,
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "iteration": 3,
+      "id": "symptom-03",
+      "predicted_intents": [
+        "症状评估"
+      ],
+      "source": "llm",
+      "exact_match": true,
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "iteration": 3,
+      "id": "multi-01",
+      "predicted_intents": [
+        "症状评估",
+        "院内分诊建议",
+        "用药审核"
+      ],
+      "source": "llm",
+      "exact_match": true,
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "iteration": 3,
+      "id": "multi-02",
+      "predicted_intents": [
+        "检验结果辅助解读",
+        "院内分诊建议"
+      ],
+      "source": "llm",
+      "exact_match": true,
+      "complex_match": true,
+      "error": null
+    },
+    {
+      "iteration": 3,
+      "id": "multi-03",
+      "predicted_intents": [
+        "临床指南检索",
+        "临床知识查询"
+      ],
+      "source": "llm",
+      "exact_match": true,
+      "complex_match": true,
+      "error": null
+    }
+  ],
+  "source_report_sha256": "34efd8e9061425bd4f6a27d70b6a9cc90b7a7394581a7912f17e79380672a7c5",
+  "source_report_path": "artifacts/intent_review_repeat_verified_20261010.json",
+  "source_report_verification_note": "本机原报告已按原始字节校验；原报告被 Git 忽略，克隆后无法单独核验。哈希证明内容一致，不证明文件生成先后。",
+  "metric_definitions": "Micro-P/R/F1 count positive labels; zero denominators yield 0.0. For empty-truth OOD cases, exact_match is the empty-set rejection rate, not micro-F1.",
+  "summarized_on": "2026-10-10",
+  "timestamp_note": "原重复复核报告无 generated_at；整理日期不是评测执行时间，未借用 33 条评测报告时间。",
+  "summary_transformation_note": "保留逐次标签、匹配和错误结果；省略原始 LLM content 与 finish_reason。样本、HTTP 状态及模型信息为整理上下文，不是原报告新增的执行记录。"
+}

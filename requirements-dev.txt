@@ -1,0 +1,6 @@
+# Repository checks and tests; production images use requirements.txt.
+-r requirements.txt
+PyYAML>=6.0,<7
+pytest>=9.1
+pytest-asyncio>=1.4
+locust>=2.46

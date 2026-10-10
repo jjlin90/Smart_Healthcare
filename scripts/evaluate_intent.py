@@ -1,4 +1,4 @@
-"""Evaluate the four-stage intent cascade against a versioned regression set."""
+"""Evaluate fused multi-label routing against a versioned regression set."""
 
 import argparse
 import asyncio
@@ -51,12 +51,14 @@ async def evaluate(cases: list[dict], dataset: Path | None = None) -> dict:
             predicted_complex = predicted.complex_task
             predicted_source = predicted.source
             predicted_route = predicted.route
+            review_reasons = predicted.review_reasons
         except Exception as exc:
             error = f"{type(exc).__name__}: {exc}"
             predicted_intents = []
             predicted_complex = None
             predicted_source = None
-            predicted_route = []
+            predicted_route = getattr(exc, "route", [])
+            review_reasons = getattr(exc, "review_reasons", [])
         latency = time.perf_counter() - started
         latencies.append(latency)
 
@@ -74,6 +76,7 @@ async def evaluate(cases: list[dict], dataset: Path | None = None) -> dict:
             "predicted_complex": predicted_complex,
             "predicted_source": predicted_source,
             "predicted_route": predicted_route,
+            "review_reasons": review_reasons,
             "complex_match": case["complex_task"] == predicted_complex,
             "latency_seconds": round(latency, 3),
             "error": error,
@@ -91,7 +94,7 @@ async def evaluate(cases: list[dict], dataset: Path | None = None) -> dict:
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
     return {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "pipeline": "regex -> bert -> vector -> llm",
+        "pipeline": "regex + bert_sigmoid + vector -> fusion -> conditional_llm",
         "bert_model_path": get_settings().intent_bert_model_path,
         "vector_model_path": get_settings().intent_vector_model_path,
         "dataset": str((dataset or Path("evaluation/intent_eval.jsonl")).as_posix()),
@@ -110,6 +113,9 @@ async def evaluate(cases: list[dict], dataset: Path | None = None) -> dict:
             "max": round(max(latencies), 3),
         },
         "errors": sum(row["error"] is not None for row in rows),
+        "llm_review_rate": round(sum(bool(set(row["predicted_route"]) & {"llm", "llm_failed"}) for row in rows) / len(rows), 4),
+        "llm_review_success_rate": round(sum(row["predicted_source"] == "llm" for row in rows) / len(rows), 4),
+        "review_reason_counts": dict(Counter(reason for row in rows for reason in row["review_reasons"])),
         "source_counts": dict(Counter(row["predicted_source"] for row in rows if row["predicted_source"])),
         "cases": rows,
     }
@@ -118,7 +124,7 @@ async def evaluate(cases: list[dict], dataset: Path | None = None) -> dict:
 async def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", type=Path, default=Path("evaluation/intent_eval.jsonl"))
-    parser.add_argument("--output", type=Path, default=Path("artifacts/intent_eval_tob_v3.json"))
+    parser.add_argument("--output", type=Path, default=Path("artifacts/intent_fusion_eval.json"))
     parser.add_argument("--limit", type=int)
     args = parser.parse_args()
     report = await evaluate(load_cases(args.dataset, args.limit), args.dataset)

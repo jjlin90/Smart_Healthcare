@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import ast
 import re
+import shlex
 import subprocess
 import tempfile
 import sys
@@ -14,6 +15,8 @@ from urllib.parse import unquote, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 MAX_TEXT_BYTES = 2 * 1024 * 1024
 MAX_REPOSITORY_FILE_BYTES = 25 * 1024 * 1024
+# Extend this explicit policy when adding a repository development tool.
+DEV_ONLY_TOOLS = frozenset({'pytest', 'pytest-asyncio', 'locust', 'pyyaml'})
 
 FORBIDDEN_TRACKED_PARTS = {
     "__pycache__",
@@ -52,6 +55,24 @@ FORBIDDEN_SUFFIXES = {
 }
 
 REQUIRED_TRACKED_PATHS = {
+    "requirements-dev.txt",
+    "backend/safety.py",
+    "tests/test_safety.py",
+    "backend/intent_fusion.py",
+    "tests/test_intent_fusion.py",
+    "scripts/intent_metrics.py",
+    "scripts/build_multilabel_intent_dataset.py",
+    "docs/intent-fusion.md",
+    "evaluation/datasets/multilabel_v4/manifest.json",
+    "evaluation/datasets/multilabel_v4/intent_train.jsonl",
+    "evaluation/datasets/multilabel_v4/intent_validation.jsonl",
+    "evaluation/datasets/multilabel_v4/intent_test.jsonl",
+    "evaluation/bert_multilabel_test_summary.json",
+    "evaluation/bert_multilabel_challenge_summary.json",
+    "evaluation/intent_fusion_summary.json",
+    "evaluation/intent_fusion_402_historical_summary.json",
+    "evaluation/intent_review_repeat_summary.json",
+    "evaluation/model_artifacts_v3_historical.json",
     "backend/metrics_bridge.py",
     "tests/test_monitoring.py",
     "docs/monitoring-verification.md",
@@ -124,7 +145,7 @@ class Report:
         self.passed.append(message)
 
 
-def run(command: list[str]) -> subprocess.CompletedProcess[str]:
+def run(command: list[str], *, input_text: str | None = None) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         command,
         cwd=ROOT,
@@ -132,6 +153,7 @@ def run(command: list[str]) -> subprocess.CompletedProcess[str]:
         encoding="utf-8",
         errors="replace",
         capture_output=True,
+        input=input_text,
         check=False,
     )
 
@@ -179,7 +201,7 @@ def check_forbidden_files(report: Report, tracked: list[Path]) -> None:
             relative.name.lower() in FORBIDDEN_TRACKED_NAMES
             or (relative.name.startswith(".env.") and relative.name != ".env.example")
             or (relative.parts[0] == "scripts" and "resume" in relative.name.lower() and relative.suffix.lower() == ".py")
-            or (relative.suffix.lower() == ".html" and ("resume" in relative.name.lower() or "简历" in relative.name))
+            or (relative.suffix.lower() == ".html" and ("resume" in relative.name.lower() or "简历" in relative.name or "算法工程师" in relative.name))
             or relative.suffix.lower() in FORBIDDEN_SUFFIXES
             or lowered_parts.intersection(FORBIDDEN_TRACKED_PARTS)
         ):
@@ -407,10 +429,11 @@ def _markdown_headings(body: str) -> tuple[set[str], set[str]]:
     return set(titles), anchors
 
 
-def check_markdown_links(report: Report, candidates: list[Path]) -> None:
+def check_markdown_links(report: Report, candidates: list[Path], tracked: list[Path] | None = None) -> None:
     """Check rendered inline and Wiki local links in working-tree Markdown."""
     documents = [path for path in candidates if path.suffix.lower() == ".md" and path.is_file()]
     findings: list[str] = []
+    tracked_targets = {path.resolve() for path in tracked} if tracked is not None else None
     for document in documents:
         body = _markdown_without_fences(document.read_text(encoding="utf-8-sig"))
         # Inline code can contain illustrative links; retain line numbers.
@@ -432,6 +455,8 @@ def check_markdown_links(report: Report, candidates: list[Path]) -> None:
                 reason = "目标位于仓库之外"
             elif not target.is_file():
                 reason = "目标文件不存在"
+            elif tracked_targets is not None and target not in tracked_targets:
+                reason = "目标尚未纳入 Git 索引，克隆后不可用"
             elif anchor and target.suffix.lower() == ".md":
                 titles, anchors = _markdown_headings(target.read_text(encoding="utf-8-sig"))
                 if anchor not in (titles if wiki else anchors):
@@ -442,6 +467,232 @@ def check_markdown_links(report: Report, candidates: list[Path]) -> None:
         report.error("工作区 Markdown 本地链接检查失败：" + "; ".join(findings))
     else:
         report.ok(f"工作区 Markdown 本地文件与章节链接检查通过（{len(documents)} 份文档）")
+
+
+def check_line_endings(report: Report, candidates: list[Path]) -> None:
+    result = run(["git", "check-attr", "-z", "--stdin", "eol"],
+                 input_text="\0".join(path.relative_to(ROOT).as_posix() for path in candidates) + "\0")
+    if result.returncode:
+        report.error("无法检查 Git 换行属性")
+        return
+    attributes = result.stdout.split("\0")
+    failures = [name for name, _, value in zip(attributes[::3], attributes[1::3], attributes[2::3])
+                if value == "lf" and (ROOT / name).is_file() and b"\r" in (ROOT / name).read_bytes()]
+    if failures:
+        report.error("声明 LF 的工作区文件含 CR：" + ", ".join(failures))
+    else:
+        report.ok("声明 LF 的工作区文件换行一致")
+
+
+def check_kubernetes_intent_config(report: Report) -> None:
+    """Inspect the deployable ConfigMap, independently of the local .env."""
+    try:
+        import yaml
+    except ImportError:
+        report.error(
+            "缺少开发依赖 PyYAML；请用运行预检/提交钩子的同一 Python 环境执行："
+            "python -m pip install -r requirements-dev.txt -c constraints.txt"
+        )
+        return
+    try:
+        documents = list(yaml.safe_load_all((ROOT / "deploy/k8s/medagent-api.yaml").read_text(encoding="utf-8")))
+        configs = [item for item in documents if isinstance(item, dict)
+                   and item.get("kind") == "ConfigMap"
+                   and item.get("metadata", {}).get("name") == "medagent-config"]
+        if len(configs) != 1:
+            raise ValueError("必须包含唯一的 medagent-config")
+        data = configs[0]["data"]
+        required = {
+            "INTENT_BERT_MODEL_PATH": "/models/medical_intent_bert_multilabel_v4",
+            "INTENT_VECTOR_MODEL_PATH": "/models/bge-m3",
+            "INTENT_PROTOTYPES_PATH": "/app/evaluation/intent_prototypes.jsonl",
+        }
+        for name, expected in required.items():
+            if data.get(name) != expected:
+                raise ValueError(f"{name} 与当前交付模型/原型不一致")
+        if float(data["INTENT_BERT_THRESHOLD"]) != 0.5:
+            raise ValueError("多标签 BERT 默认阈值应为 0.5，不能沿用旧 Softmax 阈值")
+        deployments = [item for item in documents if isinstance(item, dict) and item.get("kind") == "Deployment"]
+        for name in ("medagent-api-stable", "medagent-api-canary"):
+            matches = [item for item in deployments if item.get("metadata", {}).get("name") == name]
+            if len(matches) != 1:
+                raise ValueError(f"缺少唯一的 {name}")
+            spec = matches[0]["spec"]["template"]["spec"]
+            api = next(item for item in spec["containers"] if item["name"] == "api")
+            if not any(item.get("configMapRef", {}).get("name") == "medagent-config" for item in api.get("envFrom", [])):
+                raise ValueError(f"{name} 未使用当前 ConfigMap")
+            if any(str(item.get("name", "")).startswith("INTENT_") for item in api.get("env", [])):
+                raise ValueError(f"{name} 的 env 覆盖意图配置，请统一维护 ConfigMap")
+            if not any(item.get("name") == "intent-models" and item.get("mountPath") == "/models"
+                       and item.get("readOnly") is True for item in api.get("volumeMounts", [])):
+                raise ValueError(f"{name} 缺少只读模型挂载")
+            if not any(item.get("name") == "intent-models" and item.get("persistentVolumeClaim", {}).get("claimName") == "medagent-intent-models"
+                       for item in spec.get("volumes", [])):
+                raise ValueError(f"{name} 模型 PVC 配置不一致")
+    except Exception as exc:
+        report.error(f"Kubernetes 意图模型配置检查失败：{exc}")
+    else:
+        report.ok("Kubernetes ConfigMap 与 stable/canary 模型挂载检查通过（v4 多标签 BERT、0.5 默认阈值）")
+
+
+def check_direct_dependency_constraints(report: Report) -> None:
+    import tomllib
+    try:
+        project = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))['project']
+        declarations = list(project['dependencies'])
+        for group in project.get('optional-dependencies', {}).values():
+            declarations.extend(group)
+        for name in ('requirements.txt', 'requirements-dev.txt'):
+            declarations.extend(line.strip() for line in (ROOT / name).read_text(encoding='utf-8').splitlines()
+                                if line.strip() and not line.lstrip().startswith(('#', '-')))
+        normalize = lambda name: re.sub(r'[-_.]+', '-', name.lower())
+        names = {normalize(re.match(r'[A-Za-z0-9_.-]+', line)[0]) for line in declarations}
+        pins = set()
+        for line in (ROOT / 'constraints.txt').read_text(encoding='utf-8').splitlines():
+            match = re.fullmatch(r'\s*([A-Za-z0-9_.-]+)==([^\s*]+)\s*', line)
+            if match:
+                pins.add(normalize(match[1]))
+        missing = sorted(names - pins)
+        if missing:
+            raise ValueError('未固定的直接依赖：' + ', '.join(missing))
+    except Exception as exc:
+        report.error(f'直接依赖约束检查失败：{exc}')
+    else:
+        report.ok('运行与开发直接依赖均有精确版本约束（未校验声明范围兼容性）')
+
+
+def check_dependency_classification(report: Report) -> None:
+    """Compare this repository's plain name/extras/version declarations using stdlib.
+
+    Reject unsupported pip directives rather than silently missing dependencies.
+    Installation resolution remains responsible for version compatibility.
+    """
+    import tomllib
+
+    normalize = lambda name: re.sub(r'[-_.]+', '-', name.lower())
+
+    def declarations(lines: list[str], label: str) -> dict:
+        result = {}
+        for line in lines:
+            value = line.strip()
+            if not value or value.startswith('#'):
+                continue
+            match = re.fullmatch(r'([A-Za-z0-9_.-]+)(?:\[([A-Za-z0-9_.,-]+)\])?\s*(.*)', value)
+            if not match:
+                raise ValueError(f'{label} 存在不支持的依赖声明：{value}')
+            name = normalize(match[1])
+            extras = tuple(sorted(normalize(extra) for extra in (match[2] or '').split(',') if extra))
+            versions = tuple(sorted(part.strip().replace(' ', '') for part in match[3].split(',') if part.strip()))
+            if any(not re.fullmatch(r'(===|~=|==|!=|<=|>=|<|>)[A-Za-z0-9.*+!_-]+', part) for part in versions):
+                raise ValueError(f'{label} 存在不支持的版本/标记声明：{value}')
+            if name in result:
+                raise ValueError(f'{label} 重复声明依赖：{name}')
+            result[name] = (extras, versions)
+        return result
+
+    try:
+        project = tomllib.loads((ROOT / 'pyproject.toml').read_text(encoding='utf-8'))['project']
+        runtime = declarations((ROOT / 'requirements.txt').read_text(encoding='utf-8').splitlines(), 'requirements.txt')
+        dev_lines = (ROOT / 'requirements-dev.txt').read_text(encoding='utf-8').splitlines()
+        includes = [line for line in dev_lines if re.match(r'^\s*-r\s+', line)]
+        if len(includes) != 1 or (ROOT / includes[0].strip().split(maxsplit=1)[1]).resolve() != (ROOT / 'requirements.txt').resolve():
+            raise ValueError('requirements-dev.txt 必须且只能一次通过 -r requirements.txt 包含运行依赖')
+        dev = declarations([line for line in dev_lines if line not in includes], 'requirements-dev.txt')
+        core = declarations(project['dependencies'], 'pyproject core')
+        extra = declarations(project.get('optional-dependencies', {}).get('dev', []), 'pyproject dev')
+        tools = DEV_ONLY_TOOLS
+        misplaced = sorted(tools & (runtime.keys() | core.keys()))
+        if misplaced:
+            raise ValueError('开发工具不能进入运行依赖：' + ', '.join(misplaced))
+        for label, actual, expected in (('运行依赖', runtime, core), ('开发依赖', dev, extra)):
+            mismatched = sorted(name for name in actual.keys() | expected.keys() if actual.get(name) != expected.get(name))
+            if mismatched:
+                raise ValueError(f'{label}声明与 pyproject 不一致：' + ', '.join(mismatched))
+        overlap = sorted(runtime.keys() & dev.keys())
+        if overlap:
+            raise ValueError('运行与开发依赖重复分类：' + ', '.join(overlap))
+        missing = sorted(tools - dev.keys())
+        if missing:
+            raise ValueError('开发依赖缺少仓库工具：' + ', '.join(missing))
+    except Exception as exc:
+        report.error(f'依赖分类检查失败：{exc}')
+    else:
+        report.ok('运行/开发依赖声明与 pyproject 一致，受管开发工具未混入运行依赖')
+
+
+def check_dependency_install_entries(report: Report) -> None:
+    """Check visible pip install commands in the current Docker/verification CI."""
+    def installs(commands: list[str], label: str, requirement: str) -> None:
+        count = 0
+        for command in commands:
+            lexer = shlex.shlex(command.replace('\\\n', ' '), posix=True, punctuation_chars=';&|\n')
+            lexer.whitespace = ' \t\r'
+            lexer.whitespace_split = True
+            segments = [[]]
+            for token in lexer:
+                if token and all(char in ';&|\n' for char in token):
+                    segments.append([])
+                else:
+                    segments[-1].append(token)
+            for tokens in segments:
+                # The project uses pip or python -m pip, without shell indirection.
+                if len(tokens) >= 2 and tokens[:2] in (['pip', 'install'], ['pip3', 'install']):
+                    args = tokens[2:]
+                elif len(tokens) >= 4 and re.fullmatch(r'python(?:3(?:\.\d+)?)?', tokens[0]) and tokens[1:4] == ['-m', 'pip', 'install']:
+                    args = tokens[4:]
+                else:
+                    continue
+                count += 1
+                requirements, constraints, direct = [], [], []
+                index = 0
+                while index < len(args):
+                    token = args[index]
+                    if token in ('-r', '--requirement', '-c', '--constraint'):
+                        index += 1
+                        if index >= len(args):
+                            raise ValueError(f'{label} 安装命令缺少 {token} 参数')
+                        (requirements if token in ('-r', '--requirement') else constraints).append(args[index])
+                    elif token.startswith(('--requirement=', '--constraint=')):
+                        (requirements if token.startswith('--requirement=') else constraints).append(token.split('=', 1)[1])
+                    elif token.startswith(('-r', '-c')) and len(token) > 2:
+                        (requirements if token.startswith('-r') else constraints).append(token[2:])
+                    elif token not in ('--no-cache-dir', '--upgrade', '--quiet', '-q', '--disable-pip-version-check'):
+                        direct.append(token)
+                    index += 1
+                canonical = lambda paths: [(ROOT / path).resolve() for path in paths]
+                if canonical(requirements) != [(ROOT / requirement).resolve()] or canonical(constraints) != [(ROOT / 'constraints.txt').resolve()] or direct:
+                    raise ValueError(f'{label} 必须仅通过 -r {requirement} -c constraints.txt 安装，不能追加其他清单或直接包')
+        if not count:
+            raise ValueError(f'{label} 缺少可检查的 pip install 入口（不支持脚本或变量间接安装）')
+
+    try:
+        import yaml
+    except ImportError:
+        report.error('依赖安装入口检查缺少开发依赖 PyYAML；请执行 python -m pip install -r requirements-dev.txt -c constraints.txt')
+        return
+    try:
+        docker = (ROOT / 'Dockerfile').read_text(encoding='utf-8').replace('\\\n', ' ')
+        installs(re.findall(r'^RUN\s+(.+)$', docker, flags=re.M | re.I), '生产 Docker', 'requirements.txt')
+        workflow = yaml.safe_load((ROOT / '.github/workflows/verify.yml').read_text(encoding='utf-8'))
+        commands = [step['run'] for job in workflow['jobs'].values() for step in job['steps'] if 'run' in step]
+        installs(commands, '验证 CI', 'requirements-dev.txt')
+    except Exception as exc:
+        report.error(f'依赖安装入口检查失败：{exc}')
+    else:
+        report.ok('生产 Docker/验证 CI 的直接 pip 安装入口使用运行/开发清单及 constraints')
+
+
+def check_new_staged_content(report: Report) -> None:
+    added = run(['git', 'diff', '--cached', '--name-only', '--diff-filter=A', '-z'])
+    changed = run(['git', 'diff', '--name-only', '-z'])
+    if added.returncode or changed.returncode:
+        report.error('无法核对新增文件的暂存内容')
+        return
+    stale = sorted(set(added.stdout.split('\0')) & set(changed.stdout.split('\0')) - {''})
+    if stale:
+        report.error('新增文件暂存内容落后于工作区，请 git add 更新：' + ', '.join(stale))
+    else:
+        report.ok('新增文件的暂存内容与工作区一致（不代替完整暂存快照测试）')
 
 
 def run_quality_commands(report: Report) -> None:
@@ -514,7 +765,13 @@ def main() -> int:
     check_env_template(report)
     check_python_syntax(report, candidates)
     check_absolute_local_paths(report, candidates)
-    check_markdown_links(report, candidates)
+    check_markdown_links(report, candidates, tracked)
+    check_line_endings(report, candidates)
+    check_kubernetes_intent_config(report)
+    check_direct_dependency_constraints(report)
+    check_dependency_classification(report)
+    check_dependency_install_entries(report)
+    check_new_staged_content(report)
     if not args.quick:
         run_quality_commands(report)
     return print_report(report)

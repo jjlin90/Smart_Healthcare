@@ -1,123 +1,69 @@
-"""Evaluate the standalone BERT layer, including coverage and OOD rejection."""
-
+"""Evaluate multi-label BERT with saved per-intent validation thresholds."""
 from __future__ import annotations
-
 import argparse
+import hashlib
 import json
-from collections import Counter
 from pathlib import Path
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from scripts.intent_metrics import label_set_metrics
 
 
-def load_rows(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
-
-
-def main() -> None:
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=Path, required=True)
     parser.add_argument("--dataset", type=Path, required=True)
     parser.add_argument("--output", type=Path)
-    parser.add_argument("--threshold", type=float, default=0.95)
-    parser.add_argument("--batch-size", type=int, default=64)
+    parser.add_argument("--threshold", type=float, default=None, help="Override all saved per-label thresholds")
+    parser.add_argument("--batch-size", type=int, default=16)
     args = parser.parse_args()
-
+    if args.batch_size < 1 or (args.threshold is not None and not 0 <= args.threshold <= 1):
+        parser.error("batch-size 必须为正数，threshold 必须在 0 到 1 之间")
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
-    rows = load_rows(args.dataset)
+    from backend.agents import INTENTS
+    rows = [json.loads(line) for line in args.dataset.read_text(encoding="utf-8").splitlines() if line.strip()]
+    if not rows or any(set(row.get("expected_intents", [])) - set(INTENTS) for row in rows):
+        raise ValueError("评测集不能为空或包含未知意图")
     tokenizer = AutoTokenizer.from_pretrained(args.model, local_files_only=True)
     model = AutoModelForSequenceClassification.from_pretrained(args.model, local_files_only=True)
+    if model.config.problem_type != "multi_label_classification" or set(model.config.id2label.values()) != set(INTENTS):
+        raise ValueError("需要当前十类 Sigmoid 多标签模型")
+    thresholds = {label: args.threshold if args.threshold is not None else 0.5 for label in INTENTS}
+    path = args.model / "intent_thresholds.json"
+    if args.threshold is None and path.is_file():
+        thresholds = json.loads(path.read_text(encoding="utf-8"))["thresholds"]
+    if set(thresholds) != set(INTENTS) or any(not 0 <= value <= 1 for value in thresholds.values()):
+        raise ValueError("非法意图阈值")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device).eval()
-
-    results: list[dict] = []
+    results = []
     for start in range(0, len(rows), args.batch_size):
-        batch_rows = rows[start:start + args.batch_size]
-        encoded = tokenizer(
-            [row["text"] for row in batch_rows],
-            truncation=True,
-            padding=True,
-            max_length=128,
-            return_tensors="pt",
-        )
-        encoded = {key: value.to(device) for key, value in encoded.items()}
+        batch = rows[start:start + args.batch_size]
+        encoded = tokenizer([row["text"] for row in batch], truncation=True, padding=True, max_length=256, return_tensors="pt")
         with torch.inference_mode():
-            probabilities = torch.softmax(model(**encoded).logits, dim=-1)
-        scores, indices = probabilities.max(dim=-1)
-        for row, score, index in zip(batch_rows, scores.cpu().tolist(), indices.cpu().tolist()):
-            predicted = str(model.config.id2label[index])
-            expected = list(row.get("expected_intents", []))
-            accepted = score >= args.threshold
-            if not expected:
-                outcome = "ood_rejected" if not accepted else "ood_false_accept"
-            elif len(expected) == 1:
-                outcome = "correct" if accepted and predicted == expected[0] else "not_resolved"
-            else:
-                outcome = "multi_top1_hit" if accepted and predicted in expected else "multi_top1_miss"
-            results.append({
-                "id": row.get("id"),
-                "expected_intents": expected,
-                "predicted_intent": predicted,
-                "confidence": round(float(score), 6),
-                "accepted": accepted,
-                "outcome": outcome,
-                "challenge_type": row.get("challenge_type"),
-            })
-
-    single = [row for row in results if len(row["expected_intents"]) == 1]
-    accepted_single = [row for row in single if row["accepted"]]
-    multi = [row for row in results if len(row["expected_intents"]) > 1]
-    ood = [row for row in results if not row["expected_intents"]]
-    threshold_sweep = []
-    for threshold in (0.50, 0.60, 0.70, 0.75, 0.80, 0.82, 0.85, 0.90, 0.93, 0.95, 0.97, 0.99):
-        accepted = [row for row in single if row["confidence"] >= threshold]
-        threshold_sweep.append({
-            "threshold": threshold,
-            "single_coverage": round(len(accepted) / len(single), 4) if single else None,
-            "single_accepted_accuracy": round(
-                sum(row["predicted_intent"] == row["expected_intents"][0] for row in accepted) / len(accepted), 4
-            ) if accepted else None,
-            "ood_rejection_rate": round(sum(row["confidence"] < threshold for row in ood) / len(ood), 4) if ood else None,
-        })
-    report = {
-        "model": str(args.model),
-        "dataset": str(args.dataset),
-        "device": str(device),
-        "threshold": args.threshold,
-        "case_count": len(results),
-        "single_intent": {
-            "count": len(single),
-            "top1_accuracy": round(sum(row["predicted_intent"] == row["expected_intents"][0] for row in single) / len(single), 4) if single else None,
-            "coverage": round(len(accepted_single) / len(single), 4) if single else None,
-            "accepted_accuracy": round(sum(row["predicted_intent"] == row["expected_intents"][0] for row in accepted_single) / len(accepted_single), 4) if accepted_single else None,
-        },
-        "multi_intent": {
-            "count": len(multi),
-            "raw_top1_hit_rate": round(sum(row["predicted_intent"] in row["expected_intents"] for row in multi) / len(multi), 4) if multi else None,
-            "accepted_coverage": round(sum(row["accepted"] for row in multi) / len(multi), 4) if multi else None,
-            "note": "单标签 BERT 只能提供一个候选，多意图必须继续交给规则、向量或 LLM。",
-        },
-        "out_of_domain": {
-            "count": len(ood),
-            "rejection_rate": round(sum(not row["accepted"] for row in ood) / len(ood), 4) if ood else None,
-        },
-        "outcomes": dict(Counter(row["outcome"] for row in results)),
-        "metric_definitions": {
-            "single_intent.top1_accuracy": "Accuracy over all single-intent cases, without threshold filtering.",
-            "single_intent.accepted_accuracy": "Accuracy only among accepted single-intent cases.",
-            "multi_intent.raw_top1_hit_rate": "Unfiltered top-1 label membership in expected set; not exact-set accuracy.",
-            "multi_intent.accepted_coverage": "Standalone BERT threshold acceptance; runtime multi-intent routing must continue.",
-            "outcomes.multi_top1_hit": "Legacy name: accepted AND predicted label in expected set; includes threshold filtering.",
-            "outcomes.multi_top1_miss": "Legacy name: not accepted OR predicted label outside expected set; includes correct low-confidence predictions.",
-        },
-        "threshold_sweep": threshold_sweep,
-        "warning": "合成数据指标只用于工程验证，不能外推为临床准确率。",
-        "cases": results,
-    }
+            scores = torch.sigmoid(model(**{k: v.to(device) for k, v in encoded.items()}).logits).cpu().tolist()
+        for row, values in zip(batch, scores):
+            by_label = {str(model.config.id2label[i]): float(value) for i, value in enumerate(values)}
+            selected = [label for label in INTENTS if by_label[label] >= thresholds[label]]
+            results.append({"id": row["id"], "expected_intents": row["expected_intents"], "predicted_intents": selected,
+                            "scores": by_label, "exact_match": set(selected) == set(row["expected_intents"])})
+    expected = [set(row["expected_intents"]) for row in results]
+    predicted = [set(row["predicted_intents"]) for row in results]
+    report = {"pipeline": "bert_sigmoid_multilabel_v4", "model": str(args.model), "dataset": str(args.dataset),
+              "dataset_sha256": hashlib.sha256(args.dataset.read_bytes()).hexdigest(), "thresholds": thresholds,
+              **label_set_metrics(expected, predicted), "groups": {},
+              "warning": "合成工程数据指标，不能外推为临床效果；阈值仅使用验证集选择。", "cases": results}
+    for name, indices in {"single": [i for i, row in enumerate(rows) if len(row["expected_intents"]) == 1],
+                          "multi": [i for i, row in enumerate(rows) if len(row["expected_intents"]) > 1],
+                          "ood": [i for i, row in enumerate(rows) if not row["expected_intents"]]}.items():
+        if indices:
+            report["groups"][name] = label_set_metrics([expected[i] for i in indices], [predicted[i] for i in indices])
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(json.dumps({key: value for key, value in report.items() if key != "cases"}, ensure_ascii=False, indent=2))
+        args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps({k: v for k, v in report.items() if k != "cases"}, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

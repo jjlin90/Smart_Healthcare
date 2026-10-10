@@ -189,7 +189,7 @@ def build_challenge(test_rows: list[dict]) -> list[dict]:
 
 
 def write_jsonl(path: Path, rows: list[dict]) -> None:
-    path.write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows), encoding="utf-8")
+    path.write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows), encoding="utf-8", newline="\n")
 
 
 def main() -> None:
@@ -220,7 +220,7 @@ def main() -> None:
         "provenance": "synthetic_bootstrap",
         "warning": "合成数据用于训练、冒烟和回归；独立真实测试集必须由人工复核，不能据此声明临床准确率。",
     }
-    (args.output_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    (args.output_dir / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8", newline="\n")
     print(json.dumps(manifest, ensure_ascii=False, indent=2))
 
 

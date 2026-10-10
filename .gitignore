@@ -95,3 +95,11 @@ docker-compose.override.yml
 docker-compose.override.yaml
 *.local.yaml
 *.local.yml
+
+# Personal resumes, visual QA and backups stay local
+*算法工程师*.html
+*算法工程师*.pdf
+*.bak_*
+*_修改前_*
+/playwright-report/
+/browser-profile/

@@ -32,9 +32,10 @@ jobs:
           cache: pip
           cache-dependency-path: |
             requirements.txt
+            requirements-dev.txt
             constraints.txt
       - name: Install verified dependency versions
-        run: python -m pip install -r requirements.txt -c constraints.txt
+        run: python -m pip install -r requirements-dev.txt -c constraints.txt
       - name: Verify code, index, dependencies and regression tests
         run: |
           mkdir -p artifacts

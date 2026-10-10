@@ -1,19 +1,19 @@
 {
-  "recorded_at": "2026-09-29",
-  "note": "Current local inference artifacts; fingerprints distinguish versions, not proof of bitwise reproducible training or a retrospectively recorded upstream commit. Model weights are not bundled.",
+  "recorded_at": "2026-10-10",
+  "note": "Current v4 Sigmoid multi-label BERT plus unchanged BGE-M3 artifacts; v3 manifest retained separately. Weights remain local and ignored.",
   "models": {
     "bert": {
-      "source": "fine-tuned bert-base-chinese, project ten-label classifier",
+      "source": "bert-base-chinese fine-tuned with multi-hot targets and BCEWithLogitsLoss, multilabel_v4",
       "files": [
         {
           "file": "config.json",
-          "bytes": 1941,
-          "sha256": "866fbe1669bb6a5db735efa8fa420af2ba5ef705f8a1c55739fbf8ba7fa586d9"
+          "bytes": 1940,
+          "sha256": "2b56c48acf89829f67b8772eee3184c2454616e63aa4750007330bba40f82b6d"
         },
         {
           "file": "model.safetensors",
           "bytes": 409124824,
-          "sha256": "4dd8f34e76ac45425a0efae1e2fb9109bf8b272b1b0158ae27ab1ea0554b2495"
+          "sha256": "fa5c366d2c08ba04f858519e357daac41f123896f8c3b1fd59bb8377e9279386"
         },
         {
           "file": "tokenizer_config.json",
@@ -23,9 +23,21 @@
         {
           "file": "tokenizer.json",
           "bytes": 439390,
-          "sha256": "75ce1f61959fea5e506c672b2353612ed6d8434faa5301384cdd20843133c1ab"
+          "sha256": "b4e3f0941d6626578c197ecdaa07949255ee9edb501c0f470436497aa1711440"
+        },
+        {
+          "file": "intent_thresholds.json",
+          "bytes": 615,
+          "sha256": "cf59fe28bd8cfc1c8e5508a859edd4b71192984655a5d3a2956dbfaad37518f7"
         }
-      ]
+      ],
+      "validation_data": {
+        "file": "evaluation/datasets/multilabel_v4/intent_validation.jsonl",
+        "original_sha256": "b0bfca1cc5b22a8b5ec6b951d58ec5974b5c71c2ad64acbeb433749b97a6de25",
+        "repository_sha256": "af820ee5f4a2fca7e8f295453220e4c33e38311584f29d8c49d7984eca65b830",
+        "rows_sha256": "69e255015493ea1002a8710a85f802a22493db633354d4be4196ac7095de8616",
+        "note": "Original sha256 hashes training-time CRLF bytes; repository sha256 hashes the LF checkout. rows_sha256 hashes UTF-8 json.dumps([(text, tuple(expected_intents)), ...], ensure_ascii=False) using default separators, preserving row and label order. Current threshold artifact and historical metrics remain unchanged."
+      }
     },
     "vector": {
       "source": "BAAI/bge-m3 local SentenceTransformer artifact; upstream revision not recorded",

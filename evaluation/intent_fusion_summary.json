@@ -1,0 +1,67 @@
+{
+  "generated_at": "2026-10-10T01:52:23.003210+00:00",
+  "pipeline": "regex + bert_sigmoid + vector -> fusion -> conditional_llm",
+  "dataset": "evaluation/intent_eval.jsonl",
+  "dataset_sha256": "e92e62e22c8586e217ae829861f5279fb4450fd6efe8d032a1e17c9c3572a710",
+  "prototypes_sha256": "7ac8b133a4ef8852e62762bb796893d2ef58c9ed57fa457980f7c7e1eabf87b3",
+  "dataset_note": "工程回归集，非临床标注基准；不能外推为真实医疗场景准确率。",
+  "case_count": 33,
+  "intent_exact_match_accuracy": 1.0,
+  "complex_flag_accuracy": 1.0,
+  "micro_precision": 1.0,
+  "micro_recall": 1.0,
+  "micro_f1": 1.0,
+  "latency_seconds": {
+    "mean": 0.967,
+    "p95": 2.38,
+    "max": 13.667
+  },
+  "errors": 0,
+  "llm_review_rate": 0.1515,
+  "llm_review_success_rate": 0.1515,
+  "review_reason_counts": {
+    "candidate_disagreement:症状评估": 3,
+    "bert_boundary:院内分诊建议": 1,
+    "candidate_disagreement:检验结果辅助解读": 1,
+    "possible_missing_intent": 2,
+    "candidate_disagreement:临床知识查询": 1
+  },
+  "source_counts": {
+    "fusion": 28,
+    "llm": 5
+  },
+  "model_version": "multilabel_v4",
+  "llm_review_attempts": 5,
+  "llm_successes": 5,
+  "provider_status": "HTTP 200 OK",
+  "validation_scope": "Intent routing only; not full hospital tool execution or clinical validation.",
+  "automated_tests_passed": 203,
+  "historical_402_summary": "evaluation/intent_fusion_402_historical_summary.json",
+  "followup_history": [
+    {
+      "stage": "provider_recovered_before_format_fix",
+      "case_count": 33,
+      "exact_match_count": 32,
+      "errors": 1
+    },
+    {
+      "stage": "repeated_reviews_before_format_fix",
+      "case_count": 15,
+      "exact_match_count": 13,
+      "errors": 2,
+      "cause": "normalized_terms returned as a string mapping instead of list[str]"
+    },
+    {
+      "stage": "after_format_fix",
+      "case_count": 33,
+      "exact_match_count": 33,
+      "errors": 0
+    }
+  ],
+  "normalized_terms_fix": "Explicit prompt field types; string mapping values normalize to a trimmed deduplicated list. Intent enum validation remains strict.",
+  "repeat_review_summary": "evaluation/intent_review_repeat_summary.json",
+  "source_report_sha256": "5aed596f936f9a3eb4e36cfbfb8f4df5435762568a58d1cc479c5e5abe715aff",
+  "source_report_path": "artifacts/intent_fusion_verified_20261010.json",
+  "source_report_verification_note": "本机原报告已按原始字节校验；原报告被 Git 忽略，克隆后无法单独核验。哈希证明内容一致，不证明文件生成先后。",
+  "metric_definitions": "Micro-P/R/F1 count positive labels; zero denominators yield 0.0. For empty-truth OOD cases, exact_match is the empty-set rejection rate, not micro-F1."
+}

@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -22,9 +22,13 @@ class Settings(BaseSettings):
     siliconflow_base_url: str = "https://api.siliconflow.cn/v1"
     siliconflow_model: str = "deepseek-ai/DeepSeek-V4-Flash"
     intent_bert_model_path: str = ""
-    intent_bert_threshold: float = Field(default=0.95, ge=0, le=1)
+    intent_bert_threshold: float = Field(default=0.5, ge=0, le=1)
+    intent_bert_thresholds: dict[str, float] = Field(default_factory=dict)
+    intent_bert_uncertainty_margin: float = Field(default=0.08, ge=0, le=0.5)
+    intent_vector_thresholds: dict[str, float] = Field(default_factory=dict)
     intent_vector_model_path: str = ""
     intent_vector_threshold: float = Field(default=0.78, ge=0, le=1)
+    # Deprecated: retained only for old environment files; fusion does not use top-score margin.
     intent_vector_margin: float = Field(default=0.04, ge=0, le=2)
     intent_prototypes_path: str = "evaluation/intent_prototypes.jsonl"
     mcp_server_url: str = "http://127.0.0.1:8002/mcp"
@@ -47,6 +51,15 @@ class Settings(BaseSettings):
     langsmith_api_key: str = ""
     langsmith_tracing: bool = False
     langsmith_project: str = "medagent-ai"
+
+    @field_validator("intent_bert_thresholds", "intent_vector_thresholds")
+    @classmethod
+    def validate_intent_thresholds(cls, values: dict[str, float]) -> dict[str, float]:
+        import math
+        for label, value in values.items():
+            if not label or not math.isfinite(value) or not 0 <= value <= 1:
+                raise ValueError("每个意图阈值必须是 0 到 1 的有限数值")
+        return values
 
     def production_errors(self) -> list[str]:
         """Return configuration names only; never include secret values."""

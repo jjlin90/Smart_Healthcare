@@ -5,7 +5,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from backend.agents import INTENTS
+from backend.agents import INTENTS, load_intent_prototypes
+from backend.intent_fusion import validate_thresholds
 from backend.config import get_settings
 
 
@@ -43,12 +44,25 @@ def missing_configuration(*, strict: bool = False) -> list[str]:
         try:
             payload = json.loads(config_path.read_text(encoding="utf-8"))
             labels = {str(label) for label in payload.get("id2label", {}).values()}
+            if payload.get("problem_type") != "multi_label_classification":
+                missing.append("INTENT_BERT_MODEL_PATH（需要重新训练的 Sigmoid 多标签模型）")
             if labels != set(INTENTS):
                 missing.append("INTENT_BERT_MODEL_PATH（模型标签不是当前纯 ToB 十类意图）")
-        except (OSError, ValueError, TypeError):
+            threshold_path = config_path.parent / "intent_thresholds.json"
+            if threshold_path.is_file():
+                try:
+                    validate_thresholds(INTENTS, json.loads(threshold_path.read_text(encoding="utf-8"))["thresholds"])
+                except (OSError, ValueError, TypeError, KeyError):
+                    missing.append("INTENT_BERT_MODEL_PATH（逐类阈值文件无效）")
+        except (OSError, ValueError, TypeError, AttributeError):
             missing.append("INTENT_BERT_MODEL_PATH（无法读取模型标签配置）")
     if settings.intent_prototypes_path and not resolve_project_path(settings.intent_prototypes_path).is_file():
         missing.append("INTENT_PROTOTYPES_PATH（文件不存在）")
+    elif settings.intent_prototypes_path:
+        try:
+            load_intent_prototypes(resolve_project_path(settings.intent_prototypes_path))
+        except (OSError, ValueError, TypeError, KeyError, AttributeError):
+            missing.append("INTENT_PROTOTYPES_PATH（原型文本无效或未覆盖全部十类意图）")
     return missing
 
 

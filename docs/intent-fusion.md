@@ -1,0 +1,237 @@
+# 三路融合与 Sigmoid 多意图路由（2026-10-10）
+
+当前采用独立安全入口与普通意图三路融合：入口完成身份及患者授权后，SafetyGuard 先检查急症关键词与疑似风险表达，必要时独立调用 LLM 风险复核；仅在本次描述未发现支持当下风险的信号时，继续医疗范围守卫、Regex/BERT + Sigmoid/BGE-M3 业务意图融合。关键槽位、规划及工具权限仍分别校验。
+
+```mermaid
+flowchart TD
+    A[已授权的用户输入] --> S[独立 SafetyGuard]
+    S -->|当前明确急症及强同义表达| U[固定安全提示与现场处置]
+    S -->|疑似风险表达| SL[独立 LLM 风险复核]
+    SL -->|风险明确| U
+    SL -->|不确定或调用失败| Q[安全澄清并暂停普通业务]
+    S -->|未触发预设风险信号| D[医疗范围守卫]
+    SL -->|本次描述无当前风险线索| D
+    D --> M[范围内的请求]
+    M --> R[业务 Regex 证据]
+    M --> B[BERT 多标签分数]
+    M --> V[BGE-M3 各类相似度]
+    R --> F[统一融合与分歧检测]
+    B --> F
+    V --> F
+    F --> C{是否需要意图复核}
+    C -->|否| O[统一意图与复杂度校验]
+    C -->|是| L[LLM 复核业务候选]
+    L --> O
+    L -->|失败| E[停止路由]
+    O --> P[槽位澄清与专科规划]
+```
+
+## 独立安全入口：职责、字段与限制
+
+本次采用两种方案的结合：安全判断独立且优先，普通意图保留三路互补证据。已有工程回归没有提供相同条件下移除业务 Regex 的消融结果，因此不宣称改成 BERT/BGE 双路会提高效果。安全风险与意图匹配分数分别处理，药品或指南候选不能覆盖安全分支。
+
+`backend/safety.py` 定义受限的 SafetyDecision；`SafetyGuard.assess` 在协调器同步入口与原生 SSE 入口都先执行。原有胸痛、呼吸困难、大量出血、意识模糊、抽搐、晕厥六类词及喘不上气、喘不过气、透不过气、叫不醒、血流不止等强同义表达，在没有显式否定、历史、已缓解或知识查询限定时直接安全响应，不调用意图模型、规划或工具，也不允许 LLM 下调规则命中的策略。显式否定、历史、已缓解、指南/知识查询限定只改变是否需要独立风险复核，不直接放行。每次出现逐一核对上下文；当前明确阳性信号优先于同句否定或历史背景。限定词与同义词仍是有限的工程规则，不能称为已解决全部上下文误报。
+
+胸口发紧/发闷/压住、出血不止、突然倒下及部分危机表达等预设疑似信号进入独立 LLM 风险复核；强同义表达若被否定/历史限定也进入此分支。有历史时先将当前请求和历史用户文本组成 JSON，再对整个输入脱敏；系统提示与用户输入分离；返回值仅允许风险级别、枚举信号及原文证据。证据必须逐字来自输入，不能让模型选择路由策略或给出药物/诊断。复核等待最多 8 秒且不超过配置的模型超时；调用失败、超时、无效结构或不实证据返回 uncertain 并暂停普通查询，不把失败当作低风险。用户断开导致的取消继续向上传播。
+
+独立结果保存在 `safety` 字段中，与业务 `intent/intents` 分开：
+
+| 字段 | 取值与策略 |
+|---|---|
+| risk_level | high：进入固定安全提示；uncertain：请现场医务人员核对，暂停业务；no_signal：本次描述未发现预设或复核支持的当前风险信号 |
+| risk_signals | 受限信号代码列表，例如 chest_distress、breathing_distress；不记录原始医疗证据正文 |
+| route_policy | 由代码按风险级别产生 urgent_safety、safety_clarification 或 normal，模型不能自由填写 |
+| source | rule、llm 或 failsafe |
+
+同步结果及 SSE 元信息携带这些字段，业务入口审计只保留信号代码与策略。安全澄清不生成普通咨询结果，仍可保存会话及审计；所有分支沿用持久化完成后确认 done 的顺序。急症响应提供固定提示和卡片，不等于程序已通知责任医生或调用医院急救系统。
+
+no_signal 不是患者低风险结论；规则未触发也不等于完成全面临床风险筛查。语义复核在当前预设疑似信号、上下文限定或最近用户轮的风险背景触发时执行；没有这些信号的普通查询不增加风险模型调用。安全入口取最近两轮用户文本，每轮最多 2,000 字符，先与当前请求组成明确区分的 JSON 上下文，再整体脱敏，助手答复不作为患者证据。前轮风险未明确解除而当前转查药品时要先核对风险，不自动把前轮症状当成当前急症；上下文 JSON 的字段名不能充当原文证据。这是有界上下文补充，不能替代完整病历或持久化风险状态管理。本次新增 43 项工程回归，覆盖两种入口、混合请求优先级、疑似表达、复核失败/超时、结构与证据校验、取消和脱敏；这些测试使用测试桩，不构成临床敏感度或特异度验证；与当前或最近背景均不匹配的危险表达仍可能漏入普通路由，需用独立标注集单独记录预筛触发覆盖、临床风险漏报/误报、意图集合匹配、LLM 调用比例及入口延迟。不能将选择性复核描述成全面语义风险筛查。临床团队仍需用独立标注样本审核词表、语义触发范围、误报/漏报及模型版本。
+
+该设计是本项目工程判断；WHO 的医疗生成式 AI 指引强调模型可能给出不准确或不完整信息，需明确用途与开展安全评估，不提供本项目架构的效果背书。[WHO 指引说明](https://www.who.int/news/item/18-01-2024-who-releases-ai-ethics-and-governance-guidance-for-large-multi-modal-models)。
+
+## 职责和接受条件
+
+- Regex 输出已命中的任务和匹配依据。未命中是无证据，不能当作对其他通道的否定；规则不再提前返回。
+- BERT 是主要分类器。十个标签各自使用 Sigmoid，各标签依据自己的验证阈值选择；不依赖“同时、另外”才能输出多个标签。
+- BGE-M3 匹配版本化意图原型，返回全部十类相似度，按每类阈值筛选补充候选。原型分数是语义相似度，不能直接与 BERT 分数比较或相加。
+- BERT 的多个意图与规则/向量的子集兼容，不要求三个结果完全相同。规则或向量提出 BERT 未接受的候选时，保留候选并触发复核。
+- BERT 分数距离本类阈值不超过 `INTENT_BERT_UNCERTAINTY_MARGIN`（默认 0.08）、有否定或限制表达、有多任务线索但 BERT 只接受不足两项、没有候选、任何模型通道不可用或分数非法时，进入 LLM。
+- LLM 输出必须是已注册的非空意图集合。后端统一去重、排序并重新计算复杂度；复核失败不回退到可能矛盾的规则结果。
+
+例：BERT 识别“症状评估 + 药品信息查询”、Regex 只识别药品、向量只识别症状，属于互补；“不需要药品说明书，只评估症状”中的药品命中则需要核对否定范围。
+
+## 训练、配置与评测
+
+训练不是把旧 Softmax 改成 Sigmoid：需要多热浮点标签、`problem_type=multi_label_classification` 和 `BCEWithLogitsLoss`，损失接收 logits，推理才调用 Sigmoid。运行时明确拒绝旧单标签权重。
+
+旧 3,800 条数据保留作为历史。`scripts/build_multilabel_intent_dataset.py` 新生成独立版本：训练 3,100（含 1,000 多意图）、验证 640（含 200 多意图）、测试 1,340（含 300 多意图）。各集合有不同模板前缀并检查归一化文本精确重复；合成模板仍可能高度相似，不能视为真实泛化证明。旧 400 条挑战集不参与训练。
+
+```powershell
+python scripts/build_multilabel_intent_dataset.py
+python scripts/train_intent_bert.py --base-model "本机 bert-base-chinese 目录" --output models/medical_intent_bert_multilabel_v4
+python scripts/evaluate_intent_bert.py --model models/medical_intent_bert_multilabel_v4 --dataset evaluation/datasets/multilabel_v4/intent_test.jsonl --output artifacts/bert_multilabel_test.json
+python scripts/evaluate_intent.py --output artifacts/intent_fusion_eval.json
+```
+
+训练按验证集 Micro-F1 保存最佳 epoch，再用该权重按标签在验证集选择 F1 最优阈值，同分优先靠近 0.5。阈值选择不等于概率校准。保存于模型目录 `intent_thresholds.json`；显式 `INTENT_BERT_THRESHOLDS` JSON 配置可覆盖。未提供模型阈值时使用默认 0.5；不能沿用旧 Softmax 的 0.95。
+
+BGE 默认阈值 0.78 作为待验证的配置起点，可通过 `INTENT_VECTOR_THRESHOLDS` 逐类覆盖；旧残余挑战集的校准不能证明三路融合的最优设置。`INTENT_VECTOR_MARGIN` 保留配置兼容，但不再参与路由。
+
+训练输入上限由 128 增为 256 词元；在线分词超出 256 时不采用截断的 BERT 结果，而是交给完整文本复核。评测同时报告完整意图集合匹配、Micro-P/R/F1、单/多意图子集、漏标签及错误增加标签，完整融合还报告 LLM 复核比例、复核原因及延迟。历史单标签 98.8% 覆盖率、33 条级联回归成绩不代表新方案效果。
+
+## Git 与本地产物
+
+提交源码、测试、合成数据及无患者信息的评测摘要；`models/`、权重、`.env`、简历 HTML/PDF、浏览器与 PDF 排版中间产物放在 `artifacts/`、`output/`、`tmp/`，由 `.gitignore` 排除。使用 `git check-ignore` 验证命中规则，同时确认新模块和新合成数据未误忽略。Git 忽略不会自动取消已跟踪文件；本次不移除用户已有提交、不自动推送。
+
+## 本次实测（2026-10-10）
+
+- 完整自动化回归：首轮 203 项、修复后 221 项通过。首轮 Git 预检曾因新文件未入索引失败，该句原先称已通过不准确；修复后预检结果单独记录如下。单元测试使用隔离的模型结果或测试桩，不能替代真实云端与医院服务验收。
+- 新多标签 BERT：完成 8 轮本地训练，按验证集 Micro-F1 保存最佳权重；验证集逐类阈值选择结果均为 0.5。
+- [1,340 条独立合成测试](../evaluation/bert_multilabel_test_summary.json)：完整集合匹配率 100%，Micro-F1 1.0000；其中 300 条多意图匹配率 100%。
+- [旧 400 条未训练挑战](../evaluation/bert_multilabel_challenge_summary.json)：总体集合匹配率 87%，Micro-F1 0.9461；250 条多意图集合匹配率 97.2%；100 条否定/模糊单意图集合匹配率仅 60%；50 条域外样本空集合拒识率 90%。这些分母必须分开，不能只展示容易样本的满分。
+- [33 条完整意图路由复测](../evaluation/intent_fusion_summary.json)：28 条本地融合、5 条真实 LLM 复核，供应商均返回 HTTP 200；33/33 的完整意图集合与复杂度匹配，Micro-F1 为 1.0000，错误为 0，复核比例 15.15%。本次平均延迟 0.967 秒、P95 2.380 秒、最大 13.667 秒（包含首次加载模型）；单次运行不能外推为生产延迟承诺。
+- [5 条复核请求的连续验证](../evaluation/intent_review_repeat_summary.json)：同一组请求各执行 3 轮，15/15 意图集合与复杂度匹配，全部来自真实 LLM，错误为 0；这是重复稳定性检查，不是额外 15 条独立样本。
+- [最初 HTTP 402 记录](../evaluation/intent_fusion_402_historical_summary.json)保留：28/33 成功、5 条供应商阻断，集合匹配率 84.85%、Micro-F1 0.8615。后续供应商恢复后，一次复测为 32/33、修复前连续复核为 13/15；诊断确认 LLM 偶尔将 `normalized_terms` 返回为字符串映射。现在提示词明确字段类型，代码仅将合法字符串映射的值转换为去空白、去重数组；未知意图和非法辅助字段仍拒绝，新增 8 项回归保护。
+- 上述实测范围是意图路由，未执行真实医院工具写入，也不能声称完整 A2A/MCP 业务链或临床有效性已全部验收。
+- 简历 HTML/PDF 同步采用新架构与新模型实测，旧文件备份保留在已忽略的本地产物目录。两页 PDF 已渲染逐页检查。
+
+旧 v3 权重与[历史指纹](../evaluation/model_artifacts_v3_historical.json)保留；[当前指纹](../evaluation/model_artifacts.json)记录 v4 与逐类阈值，运行时本地环境已指向新的模型目录。需要复核的真实请求仍依赖可用的 LLM 服务；后续实际调用已返回 HTTP 200，本次未进行充值或更换账户。
+
+## 2026-10-10 核查修复与部署要求
+
+向量余弦分数允许 1e-6 范围内的浮点舍入误差，并夹回 [-1, 1]；超范围、非有限或非数值分数仍触发复核。BERT 概率继续严格限制为 [0, 1]。融合函数验证全部标签的阈值及不确定性边界，避免缺键导致 KeyError。
+
+模型启动加载与配置脚本都检查十类原型覆盖；配置脚本同时验证已保存的逐类阈值。内部训练拆分按所有标签覆盖选择验证样本并保留训练样本，共现约束不满足时要求独立验证集；默认独立验证文件路径不变。LLM 的 normalized_terms 兼容字符串数组或字符串值映射，嵌套对象仍明确拒绝。
+
+本地部署需同时准备 v4 多标签 BERT、BGE-M3、十类原型及可用的 LLM 服务。空模型路径不会形成规则单独接受路径；复核失败抛出 IntentReviewError，不能继续将冲突候选交给专科。
+
+新评测摘要补充原报告路径、SHA-256 和摘要转换范围；原始报告仍保存在被忽略的 artifacts 下。BERT 摘要去除了逐条 cases、统一相对路径并补记模型指纹及整理日期，未改写实测分数。重复复核原报告没有生成时间，摘要不再借用 33 条报告时间。初次 HTTP 402 摘要的复核原因来自随后本地诊断，其字段来源单独标注，不冒充当次云端输出。
+
+OOD 子集真值为空集合时，exact_match 表示空集合拒识率；Micro-P/R/F1 只统计正标签，零分母按 0.0 记录。因此挑战 OOD 的 Micro-F1 0.0 与拒识率 90% 并不矛盾。
+
+交付预检现要求所有新增关键源码、数据和摘要纳入 Git 索引，Markdown 本地链接目标也必须在索引中，并验证声明 LF 的工作区文件没有 CR。新增文件只纳入索引，未创建提交或推送；已有改动保留。换行修复保留原字节备份并校验正文一致，模型权重和历史指标不改写。当前仓库 15 份 Markdown、桌面 16 份；桌面主文档与调度题库同步后重新核对 9 个收据目标，历史收据继续保留。
+
+历史快照（融合修复后、独立安全入口引入前）：221 项完整回归通过；当时完整上传前检查 15 项全部通过（含 pytest 与 pip check）；按本机配置的实际模型目录核对 15 个模型文件指纹全部匹配。该段不是当前预检项目数。未重新训练模型或重复调用云端评测，已有路由与 BERT 指标仍为当日早前记录。
+
+补充数据指纹核验：v4 生成清单保留 CRLF 生成字节的 sha256，增加 repository_sha256 记录仅规范换行的 LF 字节；新 BERT 摘要同样补充 repository_dataset_sha256。三份数据的备份均匹配原指纹，去除 CR 后逐字节等于仓库文件。数据生成脚本以后显式输出 LF；原模型的验证集指纹不修改。
+
+2026-10-10 独立安全入口补充：此前 221 项为引入 SafetyGuard 前的完整回归快照；新增 43 项后当时完整回归为 264 项通过。此前 33 条意图路由与 15 次复核记录仅评价 IntentClassifier，不包含新安全入口，未重新调用云端评测或据此宣称端到端安全效果。桌面同步及新收据位于 `artifacts/safety_routing_20261010/`，此前收据作为历史保留。
+
+
+## 2026-10-10 部署与指纹复核修复
+
+Kubernetes 清单原先仍指向运行时拒绝的旧 v3 权重，现改为 `/models/medical_intent_bert_multilabel_v4`，默认阈值为 0.5；PVC 准备说明同步更新。上传预检增加独立的清单配置门，在 quick 与完整模式均执行，避免本机 .env 正确掩盖交付清单错误。它只证明清单一致性；目标 PVC、实际模型加载和医院集成仍需部署环境验收。
+
+训练脚本现统一输出 validation_sha256（输入原字节）、repository_validation_sha256（仅 CRLF 转 LF）和 validation_rows_sha256（默认 json.dumps(rows, ensure_ascii=False) 的 UTF-8 字节，保留样本、标签及行顺序）。外部验证文件与内部拆分均输出相同字段。现有模型保留原阈值、文件及 SHA-256；当前模型清单增加 validation_data，模型指纹校验脚本同时核对仓库 LF、可还原的原始 CRLF 和实际训练输入行，补齐验证集来源链。本次没有重新训练或改变历史评测数值。
+
+急症 trace 改为 event=urgent_safety_prompt、status=issued，表示固定安全提示已发出，不是 MCP 工具执行记录；工作台展示名称同步调整。向量校准使用全量独立校准集，移除无关的 bert_threshold 字段，分别输出 Top-1 是否在目标集合内、单标签集合完全匹配率及接受覆盖率。多意图与 OOD 不会与单个预测标签完全相等；这项校准不代表完整多标签融合效果。
+
+本轮新增 11 项部署、指纹与校准回归；安全入口原有 43 项仍全部通过。上一轮部署与指纹复核快照为 275 项测试、16 项完整预检通过；264 为本轮修复前快照。简历当前 HTML/PDF 与桌面主文档同步，旧版及收据作为历史保留。新备份与验证证据保存在被忽略的 artifacts/deployment_review_20261010/。
+
+
+## 2026-10-10 依赖与重新训练交付补充
+
+PyYAML 是仓库 Kubernetes 清单门的开发依赖，已从 requirements.txt 移到 requirements-dev.txt，pyproject 的 dev 分组保持一致；constraints.txt 固定为本机本轮验证的 6.0.3。开发、预检和 CI 均安装 requirements-dev.txt，Docker 继续安装 requirements.txt。新增依赖约束门覆盖运行与开发的全部直接声明，防止新增依赖漏入固定清单。
+
+重新训练后的权重和 intent_thresholds.json 指纹应产生新版本；新训练脚本添加来源字段及 LF 输出，JSON 字节不同是预期现象。不得覆盖当前模型清单或用旧历史分数描述新权重。默认独立验证文件训练完成后，按 README 的 --record-output 命令创建新清单，再使用 --manifest 指向它核对，并生成新评测报告。生成工具校验实际验证输入行与阈值来源指纹，支持原验证数据 LF 或 CRLF；模板文件只提供模型文件清单，全部大小和 SHA-256 重新计算。输出文件采用排他创建，已有清单不会被覆盖。本轮仅验证记录/校验流程，未重新训练模型。
+
+新增文件暂存一致性门在 quick 和完整预检中均执行；检测 AM 这类新增文件的暂存内容落后，提示重新 git add。本轮已更新 docs/intent-fusion.md、tests/test_safety.py 的暂存内容，并纳入新开发依赖文件，用户其他已有未暂存改动保留。该门不声称整个暂存快照通过了 pytest；现有完整测试检查工作区。
+
+上一轮新增 5 项模型清单与交付门回归，当时为 280 项测试、18 项完整预检通过；此前 275 项和 16 项为上一轮快照。桌面主文档与当前简历 HTML/PDF 已同步，历史收据与旧版备份保留。证据位于 artifacts/dependency_review_20261010/。
+
+
+## 2026-10-10 开发环境入口补强
+
+README 安装主流程、本地启动和 GitHub 上传前检查均显式安装 requirements-dev.txt，并说明 quick 提交钩子同样依赖 PyYAML；Docker 运行依赖入口不变。缺少 yaml 模块时，预检直接报告缺少开发依赖并提供同一解释器环境的安装命令，避免将此环境问题误报为 Kubernetes 清单校验失败。
+
+固定依赖门只核对直接声明是否都有精确版本条目，未校验固定版本与声明范围的兼容性；安装时的 pip 解析与随后 pip check 分别负责安装约束和已安装包的依赖一致性。代码通过输出限定语说明该边界，不冒充完整依赖求解器。
+
+临时目录与历史核查产物的管理统一见[测试临时数据与历史核查产物](#测试临时数据与历史核查产物)。
+
+新增 1 项缺少 PyYAML 时的提示回归，当时完整回归 281 项、完整预检 18 项通过。桌面项目文档及当前简历 HTML/PDF 同步，备份与收据保存在 artifacts/dev_setup_review_20261010/。
+
+## 2026-10-10 运行与开发依赖分类统一
+
+2026-10-10 运行与开发依赖分类统一：pytest、pytest-asyncio、locust 与 PyYAML 均位于 requirements-dev.txt 和 pyproject.toml 的 dev 分组，运行依赖声明保持一致；生产 Docker 只安装 requirements.txt。开发、CI、预检及压测使用 requirements-dev.txt，并保留 constraints.txt 中的精确版本约束。本次分类调整快照为 281 项、完整预检 18 项；此前融合阶段的 15 项预检已明确标记为历史快照。
+
+## 2026-10-10 依赖分类防回归
+
+此前依赖分类检查仅在被忽略的本机证据脚本中执行，提交预检只检查精确固定条目，无法阻断开发工具被重新加入运行依赖。现已将独立分类门接入 quick 和完整预检；提交钩子运行 quick，CI 运行完整预检，克隆者可直接执行同一检查。
+
+该门分别比较 requirements.txt 与 pyproject core、requirements-dev.txt 的直接开发声明与 pyproject dev，核对开发入口通过 -r 恰好一次包含仓库根目录的 requirements.txt（包括 ./requirements.txt 等价写法），并拒绝重复声明、运行/开发重复分类及 pytest、pytest-asyncio、locust、PyYAML 混入运行依赖。使用标准库解析当前仓库的包名、extras 和版本约束；不支持的 pip 指令、URL 或环境标记会报错，避免静默漏检。它不是依赖求解器，也不替代 pip 安装解析或 pip check。
+
+新增 10 项工程回归（正常配置、7 种错误配置、quick/完整入口阻断），当时完整回归 291 项、完整预检 19 项通过；quick 为 17 项。此前 281/18 为历史快照。桌面项目文档与简历 HTML/PDF 同步，历史收据和旧产物保留，该轮收据位于 artifacts/dependency_gate_review_20261010/latest_desktop_receipt.json。
+
+## 2026-10-10 依赖安装入口复核
+
+当前 quick、提交钩子与完整预检均执行两个独立检查：依赖分类门核对清单与 pyproject 分组；安装入口门核对生产 Dockerfile 与验证 CI 的直接 pip install 命令。生产入口须使用 requirements.txt，验证 CI 须使用 requirements-dev.txt，两者都须带 constraints.txt；追加开发清单、直接包、遗漏约束或移除可检查入口均会失败。可识别 pip/pip3 与 python -m pip、换行/分号/&& 分隔和相对清单路径；脚本、变量或外部 action 中的间接安装不属于该静态检查范围，变更安装方式时须同步调整检查。
+
+开发工具政策集中在 scripts/preflight_git.py 的 DEV_ONLY_TOOLS，目前明确管理 pytest、pytest-asyncio、locust、PyYAML。它不是自动判断任意包用途的分类器；新增开发工具必须扩展名单，并加入两套 dev 声明及约束。未知包若被同时错误放入两套运行声明，不能单靠一致性证明用途正确。开发清单的 -r 引用按实际路径核对，允许 -r ./requirements.txt，仍拒绝重复包含、错误文件或不支持的 pip 指令。版本兼容仍由安装解析验证，pip check 检查已安装包的依赖一致性。
+
+**安装写法约定。** 此预检采用仓库约定的受限语法，不是 pip 或 Docker 的通用语法合法性检查。pip/Docker 可以接受的某些写法仍会被预检拒绝；拒绝表示需要使用下述约定或先扩展检查，不表示该写法本身非法。
+
+**requirements 文件中的语法：** requirements.txt 直接列出运行依赖，requirements-dev.txt 仅通过一次 `-r requirements.txt` 或 `-r ./requirements.txt` 包含运行清单，`-r` 后必须有空白；清单内不接受粘连的 `-r./requirements.txt` 或长选项 `--requirement requirements.txt`。其余为直接开发依赖；允许空行和独立的整行 `#` 注释。声明支持包名、extras 和版本范围，不支持依赖行尾注释、递归拆分运行清单、URL、环境标记、`-e` 或 wheel 路径。
+
+**Docker/CI shell 命令中的语法：** 生产 Docker 使用 shell 式 RUN，验证 CI 使用明确的 shell run。可识别的安装程序为 `pip`、`pip3`、`python -m pip`、`python3 -m pip` 与 `python3.11 -m pip` 等带版本的 Python 模块调用；不接受没有版本分隔点的 `python311 -m pip`。每条可检查安装命令须包含一份指定清单和一份 constraints.txt。仅在这些命令参数中，`-r X`、`-rX`（本轮测试示例为 `-r./requirements.txt`）、`--requirement X`、`--requirement=X` 及对应的 constraint 写法、`./` 相对路径均可使用，这不表示 requirements-dev.txt 内也支持这些变体。当前附加 pip 选项仅允许 `--no-cache-dir`、`--upgrade`、`--quiet`/`-q`、`--disable-pip-version-check`；其他安装选项也须先扩展检查。
+
+| pip/Docker 可用但当前预检拒绝的写法 | 本仓库的替代方式 |
+| --- | --- |
+| `fastapi>=0.141 # 说明` | 将说明移到单独的整行注释 |
+| requirements.txt 中 `-r requirements-runtime.txt` | 将运行依赖直接列在 requirements.txt，避免递归清单 |
+| Docker JSON/exec 式 `RUN ["pip", "install", ...]` | 使用 shell 式 `RUN python -m pip install -r requirements.txt -c constraints.txt` |
+| `pip3.11 install ...` | 使用 `python3.11 -m pip install ...` |
+| `-e .` 或直接安装本地 wheel | 先扩展声明与安装入口检查并补充反向回归，再变更安装流程 |
+
+变更清单结构、安装语法或构建方式时，须同步更新预检、支持与拒绝分支的回归及本节说明，不能将严格拒绝误写成对全部 pip/Docker 合法语法的支持。本次限制复现记录位于 artifacts/install_policy_docs_20261010/policy_probe.json；未安装包、构建镜像或改变当前安装入口，该说明补充轮次的工程回归快照仍为 306 项。
+
+新增 15 项回归覆盖安装入口变更、等价路径及两种预检入口阻断，当时完整回归 306 项、完整预检 20 项通过；quick 为 18 项。此前 291/19、281/18 均为历史快照。仓库和桌面其他说明引用本节维护检查范围，避免多处重复整段说明。临时数据管理见[测试临时数据与历史核查产物](#测试临时数据与历史核查产物)。本轮证据、备份和桌面/简历统一收据位于 artifacts/install_entry_review_20261010/。
+
+**当前支持语法回归。** 安装入口门的允许分支已纳入仓库测试，覆盖粘连短选项、长选项的空格/等号形式、pip3、python3.11 -m pip，以及全部受支持附加 pip 选项。每例先断言原安装命令的注入锚点唯一，再断言替换后文本确实变化、目标被测命令恰好出现一次，最后断言预检无错误并产生通过记录。Docker/CI 的源安装行变更而测试未同步时，会在注入阶段明确失败。requirements-dev.txt 内粘连 -r 与长选项的拒绝回归，与空格 -r/相对路径的允许回归共同区分两种解析范围。
+
+### 历史修复与证据
+
+下列目录各自记录对应轮次，不将早期新增用例与后续断言修复混写成同一次修改：
+
+| 轮次 | 实际改动 | 证据目录 |
+| --- | --- | --- |
+| 允许语法回归补强 | 新增 8 项允许分支及 2 项清单语法限制测试，项目测试总数由 306 增至 316 | artifacts/allowed_spellings_review_20261010/ |
+| 注入断言修复 | 加强现有 8 项测试的注入前后断言，项目测试总数保持 316 | artifacts/test_injection_review_20261010/ |
+| 核查证据修订 | 使用合法重复 RUN/CI step 和真实临时文件验证注入保护，未修改项目测试或安装入口 | artifacts/anchor_evidence_review_20261010/ |
+| 证据工具回归补强 | 新增 19 项仓库回归，恢复同步源文件及正文比对，项目测试总数由 316 增至 335 | artifacts/evidence_regression_review_20261010/ |
+
+**核查脚本范围。** 新核查脚本直接提取当前测试函数，在隔离目录中写入真实 Dockerfile/CI 文件，并将测试根目录指向该隔离目录；不替换全局 Path.read_text。重复场景分别追加合法 RUN 行或 CI step。所有 6 个场景先确认配置可被安装入口门接受，再核对正常配置通过、锚点缺失/重复在注入阶段失败。新结果替代旧脚本对重复 RUN 场景的证明；旧脚本及报告仅保留为历史记录。被忽略的本机核查脚本不计入交付的 pytest 用例。
+
+**当前验证记录。** 本轮重新执行完整预检（含项目测试与 pip check），当前通过数量统一见 [README 验证记录](../README.md#验证)。本轮新增 15 项拒绝分支回归，证据工具回归合计 34 项；检查错误信息以确认触发具体分支。安装入口及原有业务测试保持原有内容。本轮验证结果集中在 artifacts/evidence_validation_review_20261010/，下表列出的结果均在本轮重新生成，早期目录保留对应历史记录。
+
+| 验证内容 | 本轮结果文件 |
+| --- | --- |
+| 完整预检、pytest 与 pip check | artifacts/evidence_validation_review_20261010/preflight.log |
+| 快速预检 | artifacts/evidence_validation_review_20261010/quick.log |
+| Docker/CI 注入锚点的 6 个隔离场景 | artifacts/evidence_validation_review_20261010/anchor_drift.json |
+| 仓库与桌面文档的本地链接检查 | artifacts/evidence_validation_review_20261010/document_links.json |
+| 同步投影及目标字节、两份主文档与仓库正文比较 | artifacts/evidence_validation_review_20261010/desktop_manifest.json |
+| 当前桌面文档及简历的目标哈希核对 | artifacts/evidence_validation_review_20261010/latest_desktop_receipt.json |
+
+修改前快照与本轮桌面同步备份同样位于该目录。桌面收据保留各目标的同步来源，并重新核对当前字节；未改动的目标沿用先前同步来源。上述本机证据目录受 Git 忽略规则管理，克隆者可执行仓库预检和测试，不能从 Git 获取这些本机报告。
+
+**证据汇总工具。** 仓库提供 scripts/verify_delivery_evidence.py；它从完整/快速预检日志读取通过数量，校验唯一的 pytest/pip check 成功记录及两种预检的静态检查结果一致，从链接报告与桌面收据读取文件数，并核对桌面目标的当前字节。desktop_manifest.json 为必需输入：每个声明的同步源文件须存在于本轮证据目录内，先比较源/目标字节，再校验清单/收据哈希，正文不同时明确报告字节不一致，避免该分支被前置哈希检查遮住。两份桌面主文档还直接与当前仓库正文比较，仅将文档链接按桌面映射转换；即使改写正文并同步改写收据和投影文件，也不能绕过正文校验。
+
+三种核对范围分别记录：latest_desktop_receipt.json 核对全部 11 个目标的当前哈希；本轮 desktop_manifest.json 核对其中 4 个同步源/目标（两份主文档及简历 HTML/PDF），汇总输出 desktop_manifest_targets_matched；其中两份主文档再与仓库正文逐字节比对，输出 repository_desktop_documents_matched。其余 7 个目标仅做收据哈希核对，不声称全部 11 个目标都完成仓库正文比对。
+
+tests/test_delivery_evidence.py 中的回归覆盖动态计数、异常/重复日志、完整/快速静态检查不一致、缺失清单/源文件、仓库或桌面正文变化、缺失/重复主文档映射及输出保护，并补齐清单为空/目标缺失/源路径越界/哈希错误、收据数量/重复目标/哈希错误、锚点结果/配置有效性/场景完整性、链接问题/无效数量、零通过测试及 quick 重复通过记录的拒绝回归。测试只替换本工具的 verification_head 函数，不修改共享的 subprocess 模块。完整预检通过 pytest 执行这些测试，CI 使用同一完整预检入口；quick 只执行静态检查，不运行 pytest。可单独执行 `python -m pytest tests/test_delivery_evidence.py -q`。
+
+该工具采用严格证据格式：pip check 须有完整的 `No broken requirements found.` 成功行，快速预检不得包含 pytest/pip check 行；不接受非成功记录或混用两种模式。汇总数字不写死，但也不是任意日志格式的兼容解析器。核对时间及输出 head 仅表示核对时刻的仓库状态，不证明日志对应同一提交，也不等于重新运行测试。
+
+```powershell
+python scripts/verify_delivery_evidence.py --evidence-dir artifacts/evidence_validation_review_20261010
+```
+
+上述默认命令只打印核对结果，可重复执行。需要保存时添加 --output 并指定尚不存在的新文件；输出采用排他创建，已有文件会报告失败并保持原字节，避免覆盖历史汇总。工具随 Git 分发，本机日志、收据及桌面目标仍属本地证据；仅有汇总 JSON 不能独立重现，需提供对应日志/报告，或在克隆环境重新执行预检。
+
+## 测试临时数据与历史核查产物
+
+完整预检使用 tempfile.TemporaryDirectory 创建仓库外的系统临时目录，将 pytest 的 --basetemp 指向其中的子目录，执行结束后自动清理。手工核查也应使用新建的系统临时子目录；pytest 会清理 --basetemp 指定的目标，不能指向需要保留文件的目录。
+
+仓库内旧 artifacts/pytest_* 目录及 .pytest_cache 是被忽略的历史测试、核查或缓存产物，部分来自早期手工指定 basetemp 的执行；它们不是当前完整预检使用的临时存储位置，也不进入 Git。artifacts/ 中的证据、备份和收据按轮次保留，以便追溯，不将旧结果当作本轮验证。清理历史目录前应先核对具体内容和用途，保留仍需使用的证据及模型来源报告。
+
+交付判断以实际文件差异及验证结果为准；编辑器显示的文件数、增删行数或编辑徽章不作为验证证据。

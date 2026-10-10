@@ -1,0 +1,640 @@
+{"id": "validation-multi-0198", "text": "请处理以下临床工作：脑卒中，治疗推荐，请最新临床指南怎么规定；另外，尿酸，高于参考范围，请异常可能说明什么。", "expected_intents": ["临床指南检索", "检验结果辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-07-013", "text": "请从临床辅助角度给出用药风险提示，涉及儿童退烧药，补充信息是病历记录有过敏史。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-02-002", "text": "请针对病例中的主要作用和硝苯地平我想了解。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0124", "text": "请处理以下临床工作：持续头晕，儿童患者，请形成分诊建议；另外，呼吸科，急诊转住院，请准备转诊资料清单。", "expected_intents": ["院内分诊建议", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0084", "text": "请处理以下临床工作：抗凝治疗患者，复查周期，请梳理随访项目；另外，病理检查报告，结论写得很专业，请请整体辅助解读。", "expected_intents": ["随访管理", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-08-007", "text": "请从临床辅助角度整理基础定义，涉及骨质疏松，补充信息是常见表现。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-036", "text": "请从临床辅助角度综合说明报告结论，涉及甲状腺超声报告，补充信息是有一处不理解。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0100", "text": "请处理以下临床工作：左氧氟沙星，保存方式，请用通俗的话说明；另外，骨质疏松，随访管理，请请检索权威共识。", "expected_intents": ["药品信息查询", "临床指南检索"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-06-033", "text": "请针对病例中的失访风险和肺结节观察患者制定随访计划。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-04-005", "text": "请针对病例中的高于参考范围和C反应蛋白异常可能说明什么。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-03-040", "text": "请从临床辅助角度请检索权威共识，涉及哮喘，补充信息是运动管理。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0193", "text": "请处理以下临床工作：阿莫西林，适应症，请请介绍一下；另外，脑卒中康复患者，失访风险，请制定随访计划。", "expected_intents": ["药品信息查询", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-06-005", "text": "院内辅助请求：复查周期高血压出院患者，请梳理随访项目。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-07-040", "text": "院内辅助请求：检验提示肝肾功能异常二甲双胍饭前还是饭后，请核对能否合并使用。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0040", "text": "请处理以下临床工作：药片能否掰开，病历记录有过敏史，请给出用药风险提示；另外，高血压，一般发展过程，请查询常见表现。", "expected_intents": ["用药审核", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-05-020", "text": "院内辅助请求：老年患者胸口闷，请给出院内分诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-09-020", "text": "请从临床辅助角度整理转诊原因，涉及骨科，补充信息是跨院转诊。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0067", "text": "请处理以下临床工作：哮喘，运动管理，请现行诊疗规范怎么说；另外，肺结节，日常认识误区，请查询常见表现。", "expected_intents": ["临床指南检索", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-02-038", "text": "请针对病例中的说明书信息和奥美拉唑想查清楚。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-02-036", "text": "院内辅助请求：保存方式布洛芬，请想查清楚。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0056", "text": "请处理以下临床工作：布洛芬，适应症，请帮我查询；另外，谷丙转氨酶，低于正常值，请应该怎样理解。", "expected_intents": ["药品信息查询", "检验结果辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0074", "text": "请处理以下临床工作：空腹血糖，结果标了箭头，请异常可能说明什么；另外，骨科，基层上转，请生成转诊协同要点。", "expected_intents": ["检验结果辅助解读", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-negation-034", "text": "请处理以下临床工作：不需要药品信息查询；仅需临床指南检索：肺结节，请指南有哪些推荐。病例标记validation-34。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-multi-0054", "text": "请处理以下临床工作：饭后胃胀反酸，从昨天开始，请请帮我判断症状性质；另外，心电图报告，前后指标有变化，请整理整份报告的临床关注点。", "expected_intents": ["症状评估", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0085", "text": "请处理以下临床工作：药片能否掰开，结合患者档案，请给出用药风险提示；另外，脂肪肝，日常认识误区，请梳理临床知识。", "expected_intents": ["用药审核", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-negation-027", "text": "请处理以下临床工作：不需要转诊协同；仅需检验结果辅助解读：谷丙转氨酶，请请解释数值含义。病例标记validation-27。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-multi-0135", "text": "请处理以下临床工作：儿科，急诊转住院，请整理转诊原因；另外，年度体检报告，有一处不理解，请梳理报告重点。", "expected_intents": ["转诊协同", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0184", "text": "请处理以下临床工作：胸口发闷，从昨天开始，请可能是什么原因；另外，胸口闷，儿童患者，请推荐院内接诊科室。", "expected_intents": ["症状评估", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-08-014", "text": "请针对病例中的日常认识误区和脂肪肝查询常见表现。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-07-010", "text": "请针对病例中的结合患者档案和孕期服用止痛药核对能否合并使用。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-03-006", "text": "院内辅助请求：诊断标准哮喘，请现行诊疗规范怎么说。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-03-009", "text": "院内辅助请求：诊断标准高血压，请指南有哪些推荐。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-07-004", "text": "请从临床辅助角度审核处置风险，涉及二甲双胍饭前还是饭后，补充信息是检验提示肝肾功能异常。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-06-017", "text": "请针对病例中的复查周期和抗凝治疗患者制定随访计划。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-06-015", "text": "请针对病例中的复查周期和肿瘤治疗后患者梳理随访项目。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-030", "text": "请针对病例中的儿童患者和胃部反复不适判断院内接诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-010", "text": "请从临床辅助角度整理整份报告的临床关注点，涉及肺功能报告，补充信息是前后指标有变化。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-01-029", "text": "请针对病例中的这两个月反复出现和胸口发闷这种表现常见于什么情况。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-06-004", "text": "请针对病例中的异常指标回访和骨折术后患者制定随访计划。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-009", "text": "请处理以下临床工作：不需要临床指南检索；仅需检查报告辅助解读：胸部CT报告，请综合说明报告结论。病例标记validation-9。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-02-009", "text": "院内辅助请求：主要作用左氧氟沙星，请用通俗的话说明。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-012", "text": "请处理以下临床工作：不需要临床指南检索；仅需用药审核：降压药忘记服用，请给出用药风险提示。病例标记validation-12。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-multi-0130", "text": "请处理以下临床工作：二甲双胍饭前还是饭后，检验提示肝肾功能异常，请审核处置风险；另外，肺结节，一般发展过程，请整理基础定义。", "expected_intents": ["用药审核", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-07-011", "text": "院内辅助请求：当前医嘱需要复核降压药忘记服用，请审核处置风险。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0111", "text": "请处理以下临床工作：肺结节，诊断标准，请请检索权威共识；另外，抗生素漏服一次，合并使用其他药物，请给出用药风险提示。", "expected_intents": ["临床指南检索", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-08-023", "text": "院内辅助请求：日常认识误区肺结节，请查询临床特征。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0068", "text": "请处理以下临床工作：2型糖尿病，诊断标准，请指南有哪些推荐；另外，眼科，基层上转，请核对目标科室。", "expected_intents": ["临床指南检索", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0093", "text": "请处理以下临床工作：总觉得疲乏无力，最近一周，请想分析可能的方向；另外，低密度脂蛋白，结果标了箭头，请这个指标代表什么。", "expected_intents": ["症状评估", "检验结果辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-09-030", "text": "请从临床辅助角度准备转诊资料清单，涉及眼科，补充信息是多学科会诊。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-09-018", "text": "院内辅助请求：跨院转诊儿科，请准备转诊资料清单。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-09-037", "text": "请从临床辅助角度核对目标科室，涉及消化内科，补充信息是急诊转住院。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-08-040", "text": "请针对病例中的基本概念和肺结节检索鉴别要点。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-001", "text": "请处理以下临床工作：不需要随访管理；仅需检验结果辅助解读：血小板，请帮我解读化验结果。病例标记validation-1。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-07-033", "text": "请针对病例中的病历记录有过敏史和儿童退烧药形成药学审核要点。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0132", "text": "请处理以下临床工作：华法林和阿司匹林，当前医嘱需要复核，请核对能否合并使用；另外，肝功能检查报告，出现多项异常，请综合说明报告结论。", "expected_intents": ["用药审核", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-09-023", "text": "请从临床辅助角度准备转诊资料清单，涉及眼科，补充信息是跨院转诊。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-05-040", "text": "院内辅助请求：儿童患者持续头晕，请形成分诊建议。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0053", "text": "请处理以下临床工作：胸口发闷，已经三天了，请需要关注哪些可能性；另外，神经内科，急诊转住院，请整理转诊原因。", "expected_intents": ["症状评估", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-10-014", "text": "院内辅助请求：有一处不理解骨密度报告，请请整体辅助解读。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-04-036", "text": "请从临床辅助角度这个指标代表什么，涉及低密度脂蛋白，补充信息是轻度异常。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-008", "text": "院内辅助请求：儿童患者耳朵疼，请建议首诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-005", "text": "请处理以下临床工作：不需要用药审核；仅需转诊协同：骨科，请整理转诊原因。病例标记validation-5。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-multi-0156", "text": "请处理以下临床工作：肺结节，随访管理，请请检索权威共识；另外，二甲双胍饭前还是饭后，结合患者档案，请形成药学审核要点。", "expected_intents": ["临床指南检索", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0010", "text": "请处理以下临床工作：阿莫西林，保存方式，请我想了解；另外，哮喘，运动管理，请请检索权威共识。", "expected_intents": ["药品信息查询", "临床指南检索"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0090", "text": "请处理以下临床工作：呼吸科，多学科会诊，请生成转诊协同要点；另外，年度体检报告，前后指标有变化，请按重要程度解释。", "expected_intents": ["转诊协同", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-01-028", "text": "院内辅助请求：这两个月反复出现胸口发闷，请请帮我判断症状性质。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-012", "text": "院内辅助请求：提示需要随访年度体检报告，请按重要程度解释。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-06-034", "text": "请针对病例中的复查周期和骨折术后患者评估随访优先级。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-02-018", "text": "请从临床辅助角度想查清楚，涉及布洛芬，补充信息是说明书信息。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0070", "text": "请处理以下临床工作：尿酸，结果标了箭头，请请解释数值含义；另外，持续头晕，儿童患者，请建议首诊科室。", "expected_intents": ["检验结果辅助解读", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-03-014", "text": "请从临床辅助角度帮我查指南依据，涉及肺结节，补充信息是治疗推荐。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0128", "text": "请处理以下临床工作：妊娠期高血压患者，生活方式管理，请明确需要回访的事项；另外，消化内科，基层上转，请生成转诊协同要点。", "expected_intents": ["随访管理", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-02-016", "text": "请针对病例中的保存方式和对乙酰氨基酚我想了解。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-04-026", "text": "请针对病例中的连续两次升高和白细胞应该怎样理解。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-03-035", "text": "请针对病例中的随访管理和慢阻肺最新临床指南怎么规定。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0042", "text": "请处理以下临床工作：布洛芬和感冒药，病历记录有过敏史，请形成药学审核要点；另外，胸部CT报告，提示需要随访，请梳理报告重点。", "expected_intents": ["用药审核", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-02-020", "text": "院内辅助请求：常见副作用对乙酰氨基酚，请我想了解。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0008", "text": "请处理以下临床工作：连续低烧，最近一周，请这种表现常见于什么情况；另外，骨科，多学科会诊，请准备转诊资料清单。", "expected_intents": ["症状评估", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0165", "text": "请处理以下临床工作：促甲状腺激素，轻度异常，请异常可能说明什么；另外，胸部CT报告，结论写得很专业，请梳理报告重点。", "expected_intents": ["检验结果辅助解读", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-03-015", "text": "请针对病例中的诊断标准和慢阻肺帮我查指南依据。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0189", "text": "请处理以下临床工作：皮肤突然起疹，最近一周，请需要关注哪些可能性；另外，肺功能报告，出现多项异常，请梳理报告重点。", "expected_intents": ["症状评估", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-06-008", "text": "请针对病例中的依从性评估和肺结节观察患者梳理随访项目。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-06-011", "text": "院内辅助请求：生活方式管理肺结节观察患者，请生成复诊提醒要点。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-021", "text": "请处理以下临床工作：不需要临床指南检索；仅需症状评估：胸口发闷，请需要关注哪些可能性。病例标记validation-21。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-06-024", "text": "请针对病例中的依从性评估和糖尿病复诊患者生成复诊提醒要点。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-07-016", "text": "院内辅助请求：检验提示肝肾功能异常降压药忘记服用，请核对能否合并使用。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-04-018", "text": "请从临床辅助角度请解释数值含义，涉及C反应蛋白，补充信息是低于正常值。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-06-030", "text": "请针对病例中的异常指标回访和高血压出院患者梳理随访项目。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0088", "text": "请处理以下临床工作：甲状腺功能减退，可能诱因，请检索鉴别要点；另外，内分泌科，跨院转诊，请准备转诊资料清单。", "expected_intents": ["临床知识查询", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0172", "text": "请处理以下临床工作：脑卒中康复患者，生活方式管理，请评估随访优先级；另外，高血压，可能诱因，请查询临床特征。", "expected_intents": ["随访管理", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-01-006", "text": "院内辅助请求：最近一周总觉得疲乏无力，请可能是什么原因。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0015", "text": "请处理以下临床工作：二甲双胍，适应症，请我想了解；另外，骨质疏松，基本概念，请梳理临床知识。", "expected_intents": ["药品信息查询", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-01-001", "text": "请从临床辅助角度需要关注哪些可能性，涉及头痛并且恶心，补充信息是这两个月反复出现。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-021", "text": "请针对病例中的初诊患者和眼睛红肿判断院内接诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-09-027", "text": "请针对病例中的跨院转诊和神经内科核对目标科室。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0104", "text": "请处理以下临床工作：二甲双胍，适应症，请请介绍一下；另外，抗生素漏服一次，结合患者档案，请核对禁忌事项。", "expected_intents": ["药品信息查询", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-09-029", "text": "请针对病例中的急诊转住院和皮肤科核对目标科室。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-01-032", "text": "院内辅助请求：从昨天开始右下腹疼痛，请这种表现常见于什么情况。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-013", "text": "院内辅助请求：有一处不理解骨密度报告，请整理整份报告的临床关注点。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0058", "text": "请处理以下临床工作：蒙脱石散，主要作用，请我想了解；另外，脑卒中康复患者，失访风险，请评估随访优先级。", "expected_intents": ["药品信息查询", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-03-028", "text": "院内辅助请求：运动管理哮喘，请帮我查指南依据。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-011", "text": "院内辅助请求：基本概念糖尿病，请梳理临床知识。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0032", "text": "请处理以下临床工作：眼睛红肿，初诊患者，请建议首诊科室；另外，华法林和阿司匹林，合并使用其他药物，请审核处置风险。", "expected_intents": ["院内分诊建议", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0192", "text": "请处理以下临床工作：奥美拉唑，常见副作用，请帮我查询；另外，胸口闷，老年患者，请建议首诊科室。", "expected_intents": ["药品信息查询", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-07-002", "text": "请针对病例中的结合患者档案和抗生素漏服一次形成药学审核要点。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-03-005", "text": "请从临床辅助角度请检索权威共识，涉及骨质疏松，补充信息是随访管理。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0200", "text": "请处理以下临床工作：慢性肾病，运动管理，请指南有哪些推荐；另外，糖尿病复诊患者，依从性评估，请生成复诊提醒要点。", "expected_intents": ["临床指南检索", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-04-024", "text": "院内辅助请求：低于正常值尿酸，请应该怎样理解。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0020", "text": "请处理以下临床工作：肺结节，诊断标准，请帮我查指南依据；另外，妊娠期高血压患者，生活方式管理，请明确需要回访的事项。", "expected_intents": ["临床指南检索", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-09-003", "text": "院内辅助请求：急诊转住院心内科，请形成待确认转诊申请。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-10-039", "text": "请从临床辅助角度请整体辅助解读，涉及甲状腺超声报告，补充信息是提示需要随访。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0199", "text": "请处理以下临床工作：冠心病，运动管理，请请检索权威共识；另外，皮肤瘙痒起疹，孕期患者，请判断院内接诊科室。", "expected_intents": ["临床指南检索", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-07-022", "text": "请从临床辅助角度形成药学审核要点，涉及药片能否掰开，补充信息是当前医嘱需要复核。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-07-008", "text": "请从临床辅助角度核对禁忌事项，涉及抗生素漏服一次，补充信息是当前医嘱需要复核。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-002", "text": "请处理以下临床工作：不需要检验结果辅助解读；仅需临床知识查询：痛风，请整理基础定义。病例标记validation-2。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-08-030", "text": "请针对病例中的基本概念和肺结节整理基础定义。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-03-003", "text": "请针对病例中的诊断标准和哮喘指南有哪些推荐。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-035", "text": "院内辅助请求：可能诱因肺结节，请查询常见表现。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-02-037", "text": "请针对病例中的常见副作用和左氧氟沙星请介绍一下。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0170", "text": "请处理以下临床工作：眼睛红肿，初诊患者，请形成分诊建议；另外，腹部超声报告，出现多项异常，请梳理报告重点。", "expected_intents": ["院内分诊建议", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0003", "text": "请处理以下临床工作：右下腹疼痛，今天突然发生，请请帮我判断症状性质；另外，谷丙转氨酶，连续两次升高，请这个指标代表什么。", "expected_intents": ["症状评估", "检验结果辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-04-015", "text": "院内辅助请求：高于参考范围血小板，请应该怎样理解。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-023", "text": "请针对病例中的最近一周和右下腹疼痛想分析可能的方向。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0026", "text": "请处理以下临床工作：C反应蛋白，结果标了箭头，请异常可能说明什么；另外，骨折术后患者，依从性评估，请明确需要回访的事项。", "expected_intents": ["检验结果辅助解读", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0073", "text": "请处理以下临床工作：谷丙转氨酶，结果标了箭头，请这个指标代表什么；另外，痛风，一般发展过程，请查询临床特征。", "expected_intents": ["检验结果辅助解读", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-07-023", "text": "请从临床辅助角度核对禁忌事项，涉及抗生素漏服一次，补充信息是病历记录有过敏史。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0087", "text": "请处理以下临床工作：药片能否掰开，检验提示肝肾功能异常，请核对能否合并使用；另外，病理检查报告，提示需要随访，请按重要程度解释。", "expected_intents": ["用药审核", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-08-020", "text": "院内辅助请求：常见表现脂肪肝，请检索鉴别要点。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-014", "text": "请从临床辅助角度这种表现常见于什么情况，涉及头痛并且恶心，补充信息是从昨天开始。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0194", "text": "请处理以下临床工作：阿莫西林，说明书信息，请想查清楚；另外，华法林和阿司匹林，病历记录有过敏史，请给出用药风险提示。", "expected_intents": ["药品信息查询", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0092", "text": "请处理以下临床工作：头痛并且恶心，从昨天开始，请请帮我判断症状性质；另外，慢阻肺，随访管理，请现行诊疗规范怎么说。", "expected_intents": ["症状评估", "临床指南检索"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-03-031", "text": "请针对病例中的诊断标准和脂肪肝现行诊疗规范怎么说。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-02-023", "text": "院内辅助请求：适应症左氧氟沙星，请请介绍一下。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0162", "text": "请处理以下临床工作：肌酐，连续两次升高，请请解释数值含义；另外，药片能否掰开，结合患者档案，请核对禁忌事项。", "expected_intents": ["检验结果辅助解读", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-02-004", "text": "请针对病例中的适应症和二甲双胍想查清楚。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-025", "text": "请从临床辅助角度给出院内分诊科室，涉及耳朵疼，补充信息是老年患者。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-02-028", "text": "院内辅助请求：主要作用阿托伐他汀，请想查清楚。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-024", "text": "院内辅助请求：基本概念带状疱疹，请梳理临床知识。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0012", "text": "请处理以下临床工作：蒙脱石散，说明书信息，请帮我查询；另外，胸口闷，初诊患者，请形成分诊建议。", "expected_intents": ["药品信息查询", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0046", "text": "请处理以下临床工作：连续低烧，今天突然发生，请想分析可能的方向；另外，阿莫西林，说明书信息，请我想了解。", "expected_intents": ["症状评估", "药品信息查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0098", "text": "请处理以下临床工作：夜间反复咳嗽，这两个月反复出现，请需要关注哪些可能性；另外，神经内科，基层上转，请准备转诊资料清单。", "expected_intents": ["症状评估", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-09-014", "text": "请从临床辅助角度准备转诊资料清单，涉及皮肤科，补充信息是多学科会诊。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-08-012", "text": "请从临床辅助角度梳理临床知识，涉及哮喘，补充信息是可能诱因。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-028", "text": "请处理以下临床工作：不需要症状评估；仅需检查报告辅助解读：腹部超声报告，请按重要程度解释。病例标记validation-28。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-01-036", "text": "请从临床辅助角度需要关注哪些可能性，涉及饭后胃胀反酸，补充信息是已经三天了。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0002", "text": "请处理以下临床工作：头痛并且恶心，最近一周，请需要关注哪些可能性；另外，高血压，诊断标准，请现行诊疗规范怎么说。", "expected_intents": ["症状评估", "临床指南检索"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-09-033", "text": "院内辅助请求：院内转科耳鼻喉科，请生成转诊协同要点。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-10-037", "text": "院内辅助请求：前后指标有变化肝功能检查报告，请按重要程度解释。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-10-020", "text": "请从临床辅助角度综合说明报告结论，涉及甲状腺超声报告，补充信息是提示需要随访。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0035", "text": "请处理以下临床工作：手指关节疼，成人患者，请推荐院内接诊科室；另外，病理检查报告，前后指标有变化，请请整体辅助解读。", "expected_intents": ["院内分诊建议", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-01-005", "text": "请从临床辅助角度想分析可能的方向，涉及站起时头晕，补充信息是从昨天开始。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0027", "text": "请处理以下临床工作：血红蛋白，结果标了箭头，请应该怎样理解；另外，青霉素过敏时用药，检验提示肝肾功能异常，请给出用药风险提示。", "expected_intents": ["检验结果辅助解读", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0125", "text": "请处理以下临床工作：胃部反复不适，成人患者，请判断院内接诊科室；另外，肺功能报告，出现多项异常，请按重要程度解释。", "expected_intents": ["院内分诊建议", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-07-020", "text": "请针对病例中的当前医嘱需要复核和多种保健品与处方药给出用药风险提示。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-04-013", "text": "请针对病例中的高于参考范围和低密度脂蛋白异常可能说明什么。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-02-026", "text": "请从临床辅助角度我想了解，涉及蒙脱石散，补充信息是适应症。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-07-009", "text": "院内辅助请求：合并使用其他药物多种保健品与处方药，请给出用药风险提示。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-09-006", "text": "院内辅助请求：院内转科神经内科，请核对目标科室。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-04-034", "text": "请针对病例中的结果标了箭头和空腹血糖这个指标代表什么。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-06-010", "text": "院内辅助请求：复查周期高血压出院患者，请生成复诊提醒要点。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-03-011", "text": "请针对病例中的危险分层和冠心病现行诊疗规范怎么说。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-02-007", "text": "请从临床辅助角度用通俗的话说明，涉及氯雷他定，补充信息是常见副作用。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-022", "text": "请从临床辅助角度整理基础定义，涉及脂肪肝，补充信息是日常认识误区。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0016", "text": "请处理以下临床工作：阿托伐他汀，保存方式，请帮我查询；另外，神经内科，跨院转诊，请形成待确认转诊申请。", "expected_intents": ["药品信息查询", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-06-013", "text": "请从临床辅助角度生成复诊提醒要点，涉及肿瘤治疗后患者，补充信息是依从性评估。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-030", "text": "院内辅助请求：前后指标有变化病理检查报告，请按重要程度解释。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-06-023", "text": "院内辅助请求：依从性评估肿瘤治疗后患者，请生成复诊提醒要点。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-04-028", "text": "请从临床辅助角度异常可能说明什么，涉及尿酸，补充信息是高于参考范围。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0181", "text": "请处理以下临床工作：连续低烧，最近一周，请请帮我判断症状性质；另外，二甲双胍，常见副作用，请想查清楚。", "expected_intents": ["症状评估", "药品信息查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-02-029", "text": "院内辅助请求：常见副作用布洛芬，请帮我查询。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-018", "text": "院内辅助请求：出现多项异常骨密度报告，请请整体辅助解读。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0014", "text": "请处理以下临床工作：蒙脱石散，保存方式，请帮我查询；另外，孕期服用止痛药，当前医嘱需要复核，请给出用药风险提示。", "expected_intents": ["药品信息查询", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-10-040", "text": "请针对病例中的出现多项异常和年度体检报告按重要程度解释。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-04-022", "text": "请针对病例中的结果标了箭头和肌酐帮我解读化验结果。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-037", "text": "院内辅助请求：可能诱因甲状腺功能减退，请整理基础定义。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-04-021", "text": "院内辅助请求：连续两次升高血小板，请这个指标代表什么。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-09-021", "text": "院内辅助请求：急诊转住院神经内科，请整理转诊原因。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-05-029", "text": "请针对病例中的儿童患者和发烧咳嗽形成分诊建议。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-026", "text": "请针对病例中的已经三天了和夜间反复咳嗽想分析可能的方向。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0158", "text": "请处理以下临床工作：慢阻肺，危险分层，请现行诊疗规范怎么说；另外，内分泌科，跨院转诊，请整理转诊原因。", "expected_intents": ["临床指南检索", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0038", "text": "请处理以下临床工作：高血压出院患者，异常指标回访，请梳理随访项目；另外，眼科，急诊转住院，请整理转诊原因。", "expected_intents": ["随访管理", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-07-017", "text": "请从临床辅助角度给出用药风险提示，涉及青霉素过敏时用药，补充信息是病历记录有过敏史。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-04-020", "text": "院内辅助请求：低于正常值促甲状腺激素，请异常可能说明什么。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-015", "text": "请针对病例中的这两个月反复出现和站起时头晕请帮我判断症状性质。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0123", "text": "请处理以下临床工作：胃部反复不适，孕期患者，请判断院内接诊科室；另外，肺结节，基本概念，请检索鉴别要点。", "expected_intents": ["院内分诊建议", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-04-014", "text": "院内辅助请求：结果标了箭头谷丙转氨酶，请帮我解读化验结果。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-04-030", "text": "请针对病例中的连续两次升高和谷丙转氨酶异常可能说明什么。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-010", "text": "请处理以下临床工作：不需要转诊协同；仅需临床指南检索：高血压，请现行诊疗规范怎么说。病例标记validation-10。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-04-025", "text": "请从临床辅助角度应该怎样理解，涉及肌酐，补充信息是连续两次升高。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0013", "text": "请处理以下临床工作：布洛芬，主要作用，请我想了解；另外，肿瘤治疗后患者，生活方式管理，请制定随访计划。", "expected_intents": ["药品信息查询", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0148", "text": "请处理以下临床工作：氯雷他定，保存方式，请帮我查询；另外，糖尿病复诊患者，生活方式管理，请评估随访优先级。", "expected_intents": ["药品信息查询", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0166", "text": "请处理以下临床工作：胸口闷，成人患者，请给出院内分诊科室；另外，肿瘤治疗后患者，复查周期，请生成复诊提醒要点。", "expected_intents": ["院内分诊建议", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-03-026", "text": "院内辅助请求：治疗推荐高血压，请现行诊疗规范怎么说。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-016", "text": "请从临床辅助角度请帮我判断症状性质，涉及站起时头晕，补充信息是从昨天开始。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-07-039", "text": "请从临床辅助角度核对禁忌事项，涉及儿童退烧药，补充信息是病历记录有过敏史。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-08-015", "text": "院内辅助请求：可能诱因糖尿病，请检索鉴别要点。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-007", "text": "请从临床辅助角度可能是什么原因，涉及饭后胃胀反酸，补充信息是已经三天了。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0175", "text": "请处理以下临床工作：多种保健品与处方药，结合患者档案，请给出用药风险提示；另外，骨质疏松，常见表现，请查询常见表现。", "expected_intents": ["用药审核", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-04-017", "text": "请从临床辅助角度应该怎样理解，涉及促甲状腺激素，补充信息是结果标了箭头。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-003", "text": "院内辅助请求：出现多项异常肺功能报告，请综合说明报告结论。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-02-019", "text": "院内辅助请求：常见副作用硝苯地平，请我想了解。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0080", "text": "请处理以下临床工作：胃部反复不适，儿童患者，请推荐院内接诊科室；另外，肺功能报告，出现多项异常，请整理整份报告的临床关注点。", "expected_intents": ["院内分诊建议", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0077", "text": "请处理以下临床工作：手指关节疼，成人患者，请形成分诊建议；另外，抗生素漏服一次，检验提示肝肾功能异常，请给出用药风险提示。", "expected_intents": ["院内分诊建议", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0094", "text": "请处理以下临床工作：腰背酸痛，这两个月反复出现，请可能是什么原因；另外，胸口闷，成人患者，请建议首诊科室。", "expected_intents": ["症状评估", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0188", "text": "请处理以下临床工作：胸口发闷，最近一周，请想分析可能的方向；另外，耳鼻喉科，多学科会诊，请形成待确认转诊申请。", "expected_intents": ["症状评估", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-negation-037", "text": "请处理以下临床工作：不需要转诊协同；仅需院内分诊建议：胃部反复不适，请形成分诊建议。病例标记validation-37。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-multi-0091", "text": "请处理以下临床工作：皮肤突然起疹，已经三天了，请可能是什么原因；另外，蒙脱石散，保存方式，请请介绍一下。", "expected_intents": ["症状评估", "药品信息查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-04-001", "text": "院内辅助请求：轻度异常肌酐，请异常可能说明什么。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-09-028", "text": "请从临床辅助角度生成转诊协同要点，涉及心内科，补充信息是跨院转诊。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-08-010", "text": "院内辅助请求：日常认识误区糖尿病，请整理基础定义。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-002", "text": "请针对病例中的最近一周和夜间反复咳嗽这种表现常见于什么情况。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0030", "text": "请处理以下临床工作：血小板，轻度异常，请请解释数值含义；另外，年度体检报告，结论写得很专业，请按重要程度解释。", "expected_intents": ["检验结果辅助解读", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-09-017", "text": "请针对病例中的院内转科和耳鼻喉科生成转诊协同要点。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-10-004", "text": "请从临床辅助角度梳理报告重点，涉及腹部超声报告，补充信息是提示需要随访。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-05-026", "text": "请针对病例中的初诊患者和皮肤瘙痒起疹形成分诊建议。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-026", "text": "请处理以下临床工作：不需要转诊协同；仅需院内分诊建议：膝盖活动时疼，请判断院内接诊科室。病例标记validation-26。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-09-016", "text": "请针对病例中的多学科会诊和皮肤科生成转诊协同要点。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0108", "text": "请处理以下临床工作：2型糖尿病，运动管理，请指南有哪些推荐；另外，谷丙转氨酶，低于正常值，请这个指标代表什么。", "expected_intents": ["临床指南检索", "检验结果辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-04-032", "text": "请从临床辅助角度请解释数值含义，涉及肌酐，补充信息是高于参考范围。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0102", "text": "请处理以下临床工作：布洛芬，适应症，请我想了解；另外，胃部反复不适，初诊患者，请判断院内接诊科室。", "expected_intents": ["药品信息查询", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-09-039", "text": "院内辅助请求：跨院转诊内分泌科，请形成待确认转诊申请。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-08-005", "text": "院内辅助请求：日常认识误区带状疱疹，请查询常见表现。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0039", "text": "请处理以下临床工作：肺结节观察患者，失访风险，请评估随访优先级；另外，年度体检报告，前后指标有变化，请梳理报告重点。", "expected_intents": ["随访管理", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-02-006", "text": "请从临床辅助角度用通俗的话说明，涉及阿托伐他汀，补充信息是主要作用。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0116", "text": "请处理以下临床工作：空腹血糖，结果标了箭头，请请解释数值含义；另外，肺结节观察患者，异常指标回访，请评估随访优先级。", "expected_intents": ["检验结果辅助解读", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-02-040", "text": "请针对病例中的适应症和氯雷他定想查清楚。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-025", "text": "院内辅助请求：从昨天开始连续低烧，请这种表现常见于什么情况。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-03-001", "text": "请从临床辅助角度指南有哪些推荐，涉及脂肪肝，补充信息是运动管理。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0177", "text": "请处理以下临床工作：降压药忘记服用，结合患者档案，请核对能否合并使用；另外，腹部超声报告，提示需要随访，请整理整份报告的临床关注点。", "expected_intents": ["用药审核", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-09-025", "text": "请从临床辅助角度准备转诊资料清单，涉及呼吸科，补充信息是跨院转诊。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-06-031", "text": "院内辅助请求：复查周期糖尿病复诊患者，请明确需要回访的事项。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0033", "text": "请处理以下临床工作：手指关节疼，初诊患者，请给出院内分诊科室；另外，糖尿病，日常认识误区，请梳理临床知识。", "expected_intents": ["院内分诊建议", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0097", "text": "请处理以下临床工作：饭后胃胀反酸，这两个月反复出现，请可能是什么原因；另外，肺结节，日常认识误区，请查询常见表现。", "expected_intents": ["症状评估", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0052", "text": "请处理以下临床工作：站起时头晕，这两个月反复出现，请请帮我判断症状性质；另外，肺结节，可能诱因，请梳理临床知识。", "expected_intents": ["症状评估", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-05-018", "text": "请针对病例中的初诊患者和眼睛红肿推荐院内接诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-021", "text": "请针对病例中的前后指标有变化和胃镜报告整理整份报告的临床关注点。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-05-022", "text": "请从临床辅助角度形成分诊建议，涉及手指关节疼，补充信息是老年患者。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-07-028", "text": "请从临床辅助角度审核处置风险，涉及青霉素过敏时用药，补充信息是检验提示肝肾功能异常。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-08-029", "text": "院内辅助请求：可能诱因脂肪肝，请查询常见表现。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-025", "text": "请从临床辅助角度请整体辅助解读，涉及肝功能检查报告，补充信息是有一处不理解。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-01-008", "text": "请针对病例中的已经三天了和饭后胃胀反酸想分析可能的方向。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-06-038", "text": "请针对病例中的异常指标回访和脑卒中康复患者制定随访计划。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-026", "text": "请从临床辅助角度综合说明报告结论，涉及心电图报告，补充信息是前后指标有变化。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-09-013", "text": "院内辅助请求：跨院转诊眼科，请核对目标科室。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-09-035", "text": "院内辅助请求：多学科会诊耳鼻喉科，请整理转诊原因。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0186", "text": "请处理以下临床工作：站起时头晕，最近一周，请可能是什么原因；另外，华法林和阿司匹林，合并使用其他药物，请审核处置风险。", "expected_intents": ["症状评估", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0112", "text": "请处理以下临床工作：冠心病，危险分层，请现行诊疗规范怎么说；另外，高血压，日常认识误区，请查询临床特征。", "expected_intents": ["临床指南检索", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-01-021", "text": "院内辅助请求：今天突然发生胸口发闷，请请帮我判断症状性质。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-030", "text": "请从临床辅助角度这种表现常见于什么情况，涉及连续低烧，补充信息是已经三天了。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-031", "text": "请针对病例中的这两个月反复出现和腰背酸痛需要关注哪些可能性。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-032", "text": "请针对病例中的有一处不理解和胃镜报告整理整份报告的临床关注点。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-01-038", "text": "请从临床辅助角度需要关注哪些可能性，涉及连续低烧，补充信息是从昨天开始。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-010", "text": "请针对病例中的最近一周和总觉得疲乏无力这种表现常见于什么情况。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-06-020", "text": "院内辅助请求：生活方式管理抗凝治疗患者，请明确需要回访的事项。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-018", "text": "院内辅助请求：日常认识误区甲状腺功能减退，请查询临床特征。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-029", "text": "请处理以下临床工作：不需要用药审核；仅需检验结果辅助解读：血小板，请这个指标代表什么。病例标记validation-29。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-05-014", "text": "院内辅助请求：初诊患者发烧咳嗽，请建议首诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-013", "text": "请针对病例中的今天突然发生和腰背酸痛想分析可能的方向。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0155", "text": "请处理以下临床工作：脑卒中，治疗推荐，请指南有哪些推荐；另外，糖尿病复诊患者，生活方式管理，请明确需要回访的事项。", "expected_intents": ["临床指南检索", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0183", "text": "请处理以下临床工作：饭后胃胀反酸，从昨天开始，请需要关注哪些可能性；另外，空腹血糖，连续两次升高，请异常可能说明什么。", "expected_intents": ["症状评估", "检验结果辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-07-026", "text": "院内辅助请求：检验提示肝肾功能异常抗生素漏服一次，请审核处置风险。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0001", "text": "请处理以下临床工作：饭后胃胀反酸，最近一周，请需要关注哪些可能性；另外，奥美拉唑，常见副作用，请请介绍一下。", "expected_intents": ["症状评估", "药品信息查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0119", "text": "请处理以下临床工作：谷丙转氨酶，轻度异常，请异常可能说明什么；另外，耳鼻喉科，跨院转诊，请形成待确认转诊申请。", "expected_intents": ["检验结果辅助解读", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-09-040", "text": "请针对病例中的基层上转和心内科整理转诊原因。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0196", "text": "请处理以下临床工作：阿托伐他汀，常见副作用，请用通俗的话说明；另外，心内科，院内转科，请形成待确认转诊申请。", "expected_intents": ["药品信息查询", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0082", "text": "请处理以下临床工作：肺结节观察患者，复查周期，请梳理随访项目；另外，脂肪肝，一般发展过程，请梳理临床知识。", "expected_intents": ["随访管理", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-10-002", "text": "院内辅助请求：结论写得很专业胸部CT报告，请综合说明报告结论。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0021", "text": "请处理以下临床工作：慢性肾病，危险分层，请现行诊疗规范怎么说；另外，布洛芬和感冒药，结合患者档案，请给出用药风险提示。", "expected_intents": ["临床指南检索", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-07-006", "text": "院内辅助请求：当前医嘱需要复核孕期服用止痛药，请审核处置风险。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-10-031", "text": "院内辅助请求：提示需要随访肺功能报告，请梳理报告重点。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0029", "text": "请处理以下临床工作：促甲状腺激素，连续两次升高，请应该怎样理解；另外，耳鼻喉科，急诊转住院，请准备转诊资料清单。", "expected_intents": ["检验结果辅助解读", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-09-008", "text": "请针对病例中的基层上转和眼科生成转诊协同要点。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-07-014", "text": "请从临床辅助角度核对能否合并使用，涉及布洛芬和感冒药，补充信息是合并使用其他药物。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-10-029", "text": "请从临床辅助角度整理整份报告的临床关注点，涉及腹部超声报告，补充信息是有一处不理解。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0151", "text": "请处理以下临床工作：硝苯地平，说明书信息，请想查清楚；另外，眼科，多学科会诊，请生成转诊协同要点。", "expected_intents": ["药品信息查询", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0106", "text": "请处理以下临床工作：硝苯地平，适应症，请我想了解；另外，消化内科，院内转科，请形成待确认转诊申请。", "expected_intents": ["药品信息查询", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0110", "text": "请处理以下临床工作：慢阻肺，诊断标准，请现行诊疗规范怎么说；另外，肺结节观察患者，生活方式管理，请制定随访计划。", "expected_intents": ["临床指南检索", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-06-027", "text": "请针对病例中的异常指标回访和肺结节观察患者制定随访计划。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-025", "text": "请处理以下临床工作：不需要检验结果辅助解读；仅需临床指南检索：脑卒中，请现行诊疗规范怎么说。病例标记validation-25。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-10-009", "text": "请针对病例中的有一处不理解和肺功能报告梳理报告重点。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-03-018", "text": "院内辅助请求：随访管理脂肪肝，请帮我查指南依据。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-002", "text": "请针对病例中的成人患者和持续头晕推荐院内接诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-034", "text": "请针对病例中的从昨天开始和站起时头晕这种表现常见于什么情况。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-015", "text": "院内辅助请求：前后指标有变化肺功能报告，请整理整份报告的临床关注点。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-03-016", "text": "院内辅助请求：危险分层脂肪肝，请现行诊疗规范怎么说。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0115", "text": "请处理以下临床工作：低密度脂蛋白，高于参考范围，请帮我解读化验结果；另外，胸口闷，孕期患者，请形成分诊建议。", "expected_intents": ["检验结果辅助解读", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-03-008", "text": "请针对病例中的随访管理和脑卒中帮我查指南依据。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-000", "text": "请处理以下临床工作：不需要检查报告辅助解读；仅需用药审核：孕期服用止痛药，请审核处置风险。病例标记validation-0。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-multi-0180", "text": "请处理以下临床工作：消化内科，院内转科，请形成待确认转诊申请；另外，骨密度报告，出现多项异常，请梳理报告重点。", "expected_intents": ["转诊协同", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0191", "text": "请处理以下临床工作：硝苯地平，常见副作用，请我想了解；另外，低密度脂蛋白，低于正常值，请应该怎样理解。", "expected_intents": ["药品信息查询", "检验结果辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-02-031", "text": "请从临床辅助角度我想了解，涉及蒙脱石散，补充信息是说明书信息。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-025", "text": "院内辅助请求：日常认识误区痛风，请整理基础定义。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-027", "text": "请针对病例中的可能诱因和肺结节检索鉴别要点。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-035", "text": "请针对病例中的出现多项异常和肝功能检查报告梳理报告重点。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0113", "text": "请处理以下临床工作：2型糖尿病，治疗推荐，请帮我查指南依据；另外，耳鼻喉科，院内转科，请整理转诊原因。", "expected_intents": ["临床指南检索", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-09-036", "text": "请从临床辅助角度生成转诊协同要点，涉及心内科，补充信息是多学科会诊。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-07-005", "text": "请从临床辅助角度核对禁忌事项，涉及儿童退烧药，补充信息是结合患者档案。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0182", "text": "请处理以下临床工作：右下腹疼痛，最近一周，请这种表现常见于什么情况；另外，慢性肾病，诊断标准，请最新临床指南怎么规定。", "expected_intents": ["症状评估", "临床指南检索"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0028", "text": "请处理以下临床工作：谷丙转氨酶，结果标了箭头，请应该怎样理解；另外，肺结节，基本概念，请查询常见表现。", "expected_intents": ["检验结果辅助解读", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-04-012", "text": "院内辅助请求：结果标了箭头尿酸，请异常可能说明什么。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-06-014", "text": "请从临床辅助角度明确需要回访的事项，涉及肿瘤治疗后患者，补充信息是复查周期。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-09-001", "text": "院内辅助请求：急诊转住院眼科，请核对目标科室。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-02-039", "text": "请针对病例中的说明书信息和阿莫西林用通俗的话说明。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-04-008", "text": "院内辅助请求：高于参考范围促甲状腺激素，请应该怎样理解。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0036", "text": "请处理以下临床工作：肺结节观察患者，失访风险，请梳理随访项目；另外，布洛芬和感冒药，结合患者档案，请审核处置风险。", "expected_intents": ["随访管理", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-06-029", "text": "请针对病例中的异常指标回访和高血压出院患者制定随访计划。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-017", "text": "请从临床辅助角度整理整份报告的临床关注点，涉及年度体检报告，补充信息是有一处不理解。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-02-013", "text": "请从临床辅助角度用通俗的话说明，涉及左氧氟沙星，补充信息是保存方式。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-008", "text": "请从临床辅助角度按重要程度解释，涉及肺功能报告，补充信息是有一处不理解。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-02-008", "text": "院内辅助请求：常见副作用奥美拉唑，请我想了解。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0048", "text": "请处理以下临床工作：头痛并且恶心，已经三天了，请需要关注哪些可能性；另外，白细胞，低于正常值，请异常可能说明什么。", "expected_intents": ["症状评估", "检验结果辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0043", "text": "请处理以下临床工作：骨质疏松，一般发展过程，请整理基础定义；另外，皮肤科，基层上转，请生成转诊协同要点。", "expected_intents": ["临床知识查询", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-08-033", "text": "请针对病例中的可能诱因和糖尿病查询临床特征。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-024", "text": "请针对病例中的老年患者和眼睛红肿推荐院内接诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-003", "text": "请针对病例中的最近一周和饭后胃胀反酸想分析可能的方向。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-04-031", "text": "请从临床辅助角度请解释数值含义，涉及C反应蛋白，补充信息是轻度异常。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0049", "text": "请处理以下临床工作：饭后胃胀反酸，从昨天开始，请请帮我判断症状性质；另外，手指关节疼，儿童患者，请判断院内接诊科室。", "expected_intents": ["症状评估", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-05-003", "text": "院内辅助请求：老年患者手指关节疼，请给出院内分诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-001", "text": "请从临床辅助角度形成分诊建议，涉及皮肤瘙痒起疹，补充信息是儿童患者。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0109", "text": "请处理以下临床工作：骨质疏松，运动管理，请请检索权威共识；另外，眼睛红肿，老年患者，请判断院内接诊科室。", "expected_intents": ["临床指南检索", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-negation-003", "text": "请处理以下临床工作：不需要临床指南检索；仅需临床知识查询：痛风，请检索鉴别要点。病例标记validation-3。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-02-030", "text": "请从临床辅助角度我想了解，涉及氯雷他定，补充信息是适应症。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-024", "text": "请针对病例中的已经三天了和右下腹疼痛可能是什么原因。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-019", "text": "请针对病例中的初诊患者和胸口闷推荐院内接诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0009", "text": "请处理以下临床工作：右下腹疼痛，已经三天了，请可能是什么原因；另外，年度体检报告，前后指标有变化，请综合说明报告结论。", "expected_intents": ["症状评估", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-04-029", "text": "请针对病例中的连续两次升高和血红蛋白异常可能说明什么。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-03-020", "text": "院内辅助请求：治疗推荐脂肪肝，请最新临床指南怎么规定。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-008", "text": "请针对病例中的基本概念和哮喘查询常见表现。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-06-026", "text": "请针对病例中的异常指标回访和抗凝治疗患者明确需要回访的事项。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0141", "text": "请处理以下临床工作：夜间反复咳嗽，今天突然发生，请这种表现常见于什么情况；另外，儿童退烧药，结合患者档案，请核对禁忌事项。", "expected_intents": ["症状评估", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-04-009", "text": "院内辅助请求：高于参考范围谷丙转氨酶，请应该怎样理解。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-07-012", "text": "请从临床辅助角度形成药学审核要点，涉及药片能否掰开，补充信息是合并使用其他药物。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-03-022", "text": "请从临床辅助角度指南有哪些推荐，涉及冠心病，补充信息是随访管理。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-04-006", "text": "请针对病例中的连续两次升高和血红蛋白应该怎样理解。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-02-001", "text": "院内辅助请求：说明书信息左氧氟沙星，请我想了解。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-009", "text": "请从临床辅助角度判断院内接诊科室，涉及持续头晕，补充信息是成人患者。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0120", "text": "请处理以下临床工作：低密度脂蛋白，轻度异常，请异常可能说明什么；另外，肝功能检查报告，结论写得很专业，请按重要程度解释。", "expected_intents": ["检验结果辅助解读", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0079", "text": "请处理以下临床工作：眼睛红肿，孕期患者，请判断院内接诊科室；另外，皮肤科，多学科会诊，请核对目标科室。", "expected_intents": ["院内分诊建议", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-02-022", "text": "院内辅助请求：说明书信息阿托伐他汀，请想查清楚。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-005", "text": "院内辅助请求：孕期患者手指关节疼，请给出院内分诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-005", "text": "请从临床辅助角度整理整份报告的临床关注点，涉及胸部CT报告，补充信息是结论写得很专业。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0114", "text": "请处理以下临床工作：肺结节，治疗推荐，请请检索权威共识；另外，骨密度报告，出现多项异常，请整理整份报告的临床关注点。", "expected_intents": ["临床指南检索", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-02-012", "text": "院内辅助请求：说明书信息奥美拉唑，请用通俗的话说明。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-023", "text": "请处理以下临床工作：不需要检验结果辅助解读；仅需转诊协同：消化内科，请生成转诊协同要点。病例标记validation-23。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-negation-011", "text": "请处理以下临床工作：不需要院内分诊建议；仅需症状评估：连续低烧，请需要关注哪些可能性。病例标记validation-11。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-01-022", "text": "请针对病例中的今天突然发生和右下腹疼痛可能是什么原因。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-011", "text": "请针对病例中的初诊患者和皮肤瘙痒起疹推荐院内接诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0096", "text": "请处理以下临床工作：胸口发闷，今天突然发生，请需要关注哪些可能性；另外，降压药忘记服用，病历记录有过敏史，请形成药学审核要点。", "expected_intents": ["症状评估", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-03-004", "text": "院内辅助请求：诊断标准慢性肾病，请帮我查指南依据。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-019", "text": "请处理以下临床工作：不需要院内分诊建议；仅需检验结果辅助解读：C反应蛋白，请异常可能说明什么。病例标记validation-19。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-08-004", "text": "请针对病例中的可能诱因和糖尿病查询常见表现。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-04-023", "text": "院内辅助请求：低于正常值C反应蛋白，请应该怎样理解。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-003", "text": "请针对病例中的一般发展过程和痛风查询临床特征。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0140", "text": "请处理以下临床工作：右下腹疼痛，从昨天开始，请请帮我判断症状性质；另外，肿瘤治疗后患者，生活方式管理，请梳理随访项目。", "expected_intents": ["症状评估", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0174", "text": "请处理以下临床工作：高血压出院患者，复查周期，请梳理随访项目；另外，甲状腺超声报告，出现多项异常，请综合说明报告结论。", "expected_intents": ["随访管理", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-negation-015", "text": "请处理以下临床工作：不需要随访管理；仅需药品信息查询：阿托伐他汀，请想查清楚。病例标记validation-15。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-multi-0078", "text": "请处理以下临床工作：手指关节疼，老年患者，请给出院内分诊科室；另外，哮喘，可能诱因，请查询临床特征。", "expected_intents": ["院内分诊建议", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-08-002", "text": "请从临床辅助角度整理基础定义，涉及带状疱疹，补充信息是基本概念。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-017", "text": "请从临床辅助角度请帮我判断症状性质，涉及胸口发闷，补充信息是从昨天开始。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0197", "text": "请处理以下临床工作：阿托伐他汀，常见副作用，请想查清楚；另外，肺功能报告，出现多项异常，请梳理报告重点。", "expected_intents": ["药品信息查询", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0126", "text": "请处理以下临床工作：肺结节观察患者，失访风险，请评估随访优先级；另外，多种保健品与处方药，合并使用其他药物，请给出用药风险提示。", "expected_intents": ["随访管理", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0095", "text": "请处理以下临床工作：站起时头晕，已经三天了，请可能是什么原因；另外，高血压出院患者，异常指标回访，请制定随访计划。", "expected_intents": ["症状评估", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-06-025", "text": "请从临床辅助角度明确需要回访的事项，涉及骨折术后患者，补充信息是失访风险。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-027", "text": "请针对病例中的这两个月反复出现和连续低烧需要关注哪些可能性。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-017", "text": "请从临床辅助角度梳理临床知识，涉及肺结节，补充信息是基本概念。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-07-027", "text": "请从临床辅助角度核对能否合并使用，涉及布洛芬和感冒药，补充信息是结合患者档案。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0157", "text": "请处理以下临床工作：慢阻肺，诊断标准，请现行诊疗规范怎么说；另外，骨质疏松，可能诱因，请查询临床特征。", "expected_intents": ["临床指南检索", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-negation-024", "text": "请处理以下临床工作：不需要随访管理；仅需院内分诊建议：持续头晕，请形成分诊建议。病例标记validation-24。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-negation-006", "text": "请处理以下临床工作：不需要临床指南检索；仅需检查报告辅助解读：胃镜报告，请请整体辅助解读。病例标记validation-6。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-07-007", "text": "院内辅助请求：检验提示肝肾功能异常华法林和阿司匹林，请审核处置风险。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0176", "text": "请处理以下临床工作：青霉素过敏时用药，当前医嘱需要复核，请给出用药风险提示；另外，消化内科，多学科会诊，请整理转诊原因。", "expected_intents": ["用药审核", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0017", "text": "请处理以下临床工作：阿莫西林，说明书信息，请用通俗的话说明；另外，年度体检报告，有一处不理解，请综合说明报告结论。", "expected_intents": ["药品信息查询", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0051", "text": "请处理以下临床工作：皮肤突然起疹，从昨天开始，请想分析可能的方向；另外，二甲双胍饭前还是饭后，结合患者档案，请核对能否合并使用。", "expected_intents": ["症状评估", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-10-006", "text": "请针对病例中的结论写得很专业和骨密度报告梳理报告重点。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-06-028", "text": "院内辅助请求：失访风险妊娠期高血压患者，请明确需要回访的事项。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0143", "text": "请处理以下临床工作：夜间反复咳嗽，这两个月反复出现，请可能是什么原因；另外，心内科，院内转科，请形成待确认转诊申请。", "expected_intents": ["症状评估", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-07-035", "text": "院内辅助请求：合并使用其他药物抗生素漏服一次，请给出用药风险提示。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-07-032", "text": "请从临床辅助角度给出用药风险提示，涉及二甲双胍饭前还是饭后，补充信息是病历记录有过敏史。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0161", "text": "请处理以下临床工作：C反应蛋白，连续两次升高，请应该怎样理解；另外，糖尿病复诊患者，异常指标回访，请明确需要回访的事项。", "expected_intents": ["检验结果辅助解读", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0154", "text": "请处理以下临床工作：肺结节，诊断标准，请帮我查指南依据；另外，胸口闷，老年患者，请判断院内接诊科室。", "expected_intents": ["临床指南检索", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0019", "text": "请处理以下临床工作：慢性肾病，随访管理，请现行诊疗规范怎么说；另外，眼睛红肿，成人患者，请推荐院内接诊科室。", "expected_intents": ["临床指南检索", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-08-028", "text": "请针对病例中的日常认识误区和甲状腺功能减退查询常见表现。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-036", "text": "请从临床辅助角度判断院内接诊科室，涉及手指关节疼，补充信息是成人患者。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-04-011", "text": "请从临床辅助角度帮我解读化验结果，涉及谷丙转氨酶，补充信息是轻度异常。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-07-025", "text": "请针对病例中的检验提示肝肾功能异常和药片能否掰开核对能否合并使用。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0041", "text": "请处理以下临床工作：孕期服用止痛药，病历记录有过敏史，请形成药学审核要点；另外，耳鼻喉科，多学科会诊，请准备转诊资料清单。", "expected_intents": ["用药审核", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-negation-008", "text": "请处理以下临床工作：不需要转诊协同；仅需检验结果辅助解读：尿酸，请帮我解读化验结果。病例标记validation-8。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-multi-0069", "text": "请处理以下临床工作：骨质疏松，危险分层，请请检索权威共识；另外，年度体检报告，提示需要随访，请梳理报告重点。", "expected_intents": ["临床指南检索", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-04-038", "text": "院内辅助请求：连续两次升高谷丙转氨酶，请帮我解读化验结果。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0055", "text": "请处理以下临床工作：对乙酰氨基酚，主要作用，请请介绍一下；另外，脂肪肝，危险分层，请帮我查指南依据。", "expected_intents": ["药品信息查询", "临床指南检索"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0006", "text": "请处理以下临床工作：皮肤突然起疹，最近一周，请想分析可能的方向；另外，降压药忘记服用，合并使用其他药物，请核对禁忌事项。", "expected_intents": ["症状评估", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-03-012", "text": "请针对病例中的诊断标准和冠心病最新临床指南怎么规定。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-04-037", "text": "院内辅助请求：高于参考范围白细胞，请异常可能说明什么。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0118", "text": "请处理以下临床工作：白细胞，连续两次升高，请异常可能说明什么；另外，脂肪肝，可能诱因，请整理基础定义。", "expected_intents": ["检验结果辅助解读", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-07-015", "text": "请针对病例中的合并使用其他药物和青霉素过敏时用药形成药学审核要点。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-10-038", "text": "院内辅助请求：有一处不理解心电图报告，请请整体辅助解读。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0134", "text": "请处理以下临床工作：带状疱疹，基本概念，请查询常见表现；另外，肝功能检查报告，结论写得很专业，请按重要程度解释。", "expected_intents": ["临床知识查询", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-03-038", "text": "院内辅助请求：危险分层骨质疏松，请帮我查指南依据。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-035", "text": "请从临床辅助角度需要关注哪些可能性，涉及腰背酸痛，补充信息是这两个月反复出现。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0024", "text": "请处理以下临床工作：高血压，治疗推荐，请最新临床指南怎么规定；另外，甲状腺超声报告，有一处不理解，请请整体辅助解读。", "expected_intents": ["临床指南检索", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-02-017", "text": "请从临床辅助角度我想了解，涉及奥美拉唑，补充信息是适应症。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0121", "text": "请处理以下临床工作：皮肤瘙痒起疹，老年患者，请形成分诊建议；另外，骨折术后患者，依从性评估，请明确需要回访的事项。", "expected_intents": ["院内分诊建议", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-05-012", "text": "请从临床辅助角度形成分诊建议，涉及胸口闷，补充信息是初诊患者。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-04-003", "text": "请针对病例中的低于正常值和C反应蛋白帮我解读化验结果。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0187", "text": "请处理以下临床工作：头痛并且恶心，这两个月反复出现，请需要关注哪些可能性；另外，胃食管反流，日常认识误区，请检索鉴别要点。", "expected_intents": ["症状评估", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0168", "text": "请处理以下临床工作：胸口闷，老年患者，请形成分诊建议；另外，带状疱疹，常见表现，请整理基础定义。", "expected_intents": ["院内分诊建议", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0059", "text": "请处理以下临床工作：对乙酰氨基酚，说明书信息，请帮我查询；另外，孕期服用止痛药，合并使用其他药物，请形成药学审核要点。", "expected_intents": ["药品信息查询", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0025", "text": "请处理以下临床工作：低密度脂蛋白，轻度异常，请应该怎样理解；另外，发烧咳嗽，初诊患者，请形成分诊建议。", "expected_intents": ["检验结果辅助解读", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0142", "text": "请处理以下临床工作：头痛并且恶心，从昨天开始，请需要关注哪些可能性；另外，胃食管反流，基本概念，请整理基础定义。", "expected_intents": ["症状评估", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0045", "text": "请处理以下临床工作：骨科，多学科会诊，请准备转诊资料清单；另外，甲状腺超声报告，出现多项异常，请按重要程度解释。", "expected_intents": ["转诊协同", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-06-006", "text": "院内辅助请求：失访风险脑卒中康复患者，请明确需要回访的事项。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0150", "text": "请处理以下临床工作：对乙酰氨基酚，适应症，请我想了解；另外，肺结节，日常认识误区，请梳理临床知识。", "expected_intents": ["药品信息查询", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-04-010", "text": "院内辅助请求：连续两次升高白细胞，请这个指标代表什么。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0164", "text": "请处理以下临床工作：白细胞，连续两次升高，请应该怎样理解；另外，呼吸科，跨院转诊，请核对目标科室。", "expected_intents": ["检验结果辅助解读", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-01-020", "text": "院内辅助请求：今天突然发生腰背酸痛，请需要关注哪些可能性。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-022", "text": "请处理以下临床工作：不需要检验结果辅助解读；仅需用药审核：抗生素漏服一次，请核对禁忌事项。病例标记validation-22。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-negation-038", "text": "请处理以下临床工作：不需要症状评估；仅需院内分诊建议：胸口闷，请推荐院内接诊科室。病例标记validation-38。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-07-003", "text": "院内辅助请求：当前医嘱需要复核布洛芬和感冒药，请形成药学审核要点。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-06-018", "text": "院内辅助请求：生活方式管理骨折术后患者，请明确需要回访的事项。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-027", "text": "请从临床辅助角度判断院内接诊科室，涉及皮肤瘙痒起疹，补充信息是初诊患者。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-02-025", "text": "请从临床辅助角度用通俗的话说明，涉及二甲双胍，补充信息是说明书信息。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-09-022", "text": "请从临床辅助角度核对目标科室，涉及骨科，补充信息是基层上转。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0145", "text": "请处理以下临床工作：奥美拉唑，适应症，请帮我查询；另外，2型糖尿病，诊断标准，请帮我查指南依据。", "expected_intents": ["药品信息查询", "临床指南检索"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0063", "text": "请处理以下临床工作：2型糖尿病，诊断标准，请最新临床指南怎么规定；另外，血小板，结果标了箭头，请请解释数值含义。", "expected_intents": ["临床指南检索", "检验结果辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-03-027", "text": "院内辅助请求：随访管理骨质疏松，请指南有哪些推荐。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-06-003", "text": "院内辅助请求：生活方式管理糖尿病复诊患者，请评估随访优先级。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0103", "text": "请处理以下临床工作：阿莫西林，适应症，请我想了解；另外，慢阻肺稳定期患者，异常指标回访，请生成复诊提醒要点。", "expected_intents": ["药品信息查询", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-09-010", "text": "院内辅助请求：院内转科骨科，请整理转诊原因。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-06-021", "text": "请针对病例中的失访风险和骨折术后患者梳理随访项目。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-02-011", "text": "院内辅助请求：保存方式阿莫西林，请帮我查询。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-02-035", "text": "请针对病例中的主要作用和二甲双胍想查清楚。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-04-035", "text": "请针对病例中的结果标了箭头和C反应蛋白请解释数值含义。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-031", "text": "请从临床辅助角度检索鉴别要点，涉及高血压，补充信息是一般发展过程。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-020", "text": "请处理以下临床工作：不需要症状评估；仅需临床知识查询：甲状腺功能减退，请梳理临床知识。病例标记validation-20。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-03-013", "text": "请针对病例中的随访管理和高血压请检索权威共识。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-09-009", "text": "请针对病例中的院内转科和眼科生成转诊协同要点。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-07-029", "text": "请从临床辅助角度核对能否合并使用，涉及布洛芬和感冒药，补充信息是病历记录有过敏史。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-06-009", "text": "请针对病例中的依从性评估和慢阻肺稳定期患者评估随访优先级。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-03-007", "text": "请从临床辅助角度帮我查指南依据，涉及慢阻肺，补充信息是危险分层。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0144", "text": "请处理以下临床工作：胸口发闷，今天突然发生，请请帮我判断症状性质；另外，胸部CT报告，有一处不理解，请请整体辅助解读。", "expected_intents": ["症状评估", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0023", "text": "请处理以下临床工作：肺结节，危险分层，请请检索权威共识；另外，骨科，多学科会诊，请整理转诊原因。", "expected_intents": ["临床指南检索", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-10-033", "text": "院内辅助请求：前后指标有变化胸部CT报告，请按重要程度解释。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-09-007", "text": "院内辅助请求：跨院转诊眼科，请形成待确认转诊申请。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-02-034", "text": "请从临床辅助角度想查清楚，涉及奥美拉唑，补充信息是常见副作用。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-012", "text": "院内辅助请求：今天突然发生饭后胃胀反酸，请想分析可能的方向。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-02-010", "text": "院内辅助请求：保存方式阿莫西林，请请介绍一下。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-09-005", "text": "请针对病例中的多学科会诊和呼吸科准备转诊资料清单。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-06-036", "text": "请针对病例中的失访风险和肿瘤治疗后患者评估随访优先级。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-09-031", "text": "院内辅助请求：跨院转诊内分泌科，请核对目标科室。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-05-015", "text": "请从临床辅助角度形成分诊建议，涉及胸口闷，补充信息是老年患者。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0066", "text": "请处理以下临床工作：骨质疏松，随访管理，请帮我查指南依据；另外，药片能否掰开，检验提示肝肾功能异常，请核对禁忌事项。", "expected_intents": ["临床指南检索", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0007", "text": "请处理以下临床工作：腰背酸痛，从昨天开始，请想分析可能的方向；另外，骨质疏松，基本概念，请查询常见表现。", "expected_intents": ["症状评估", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0127", "text": "请处理以下临床工作：脑卒中康复患者，异常指标回访，请评估随访优先级；另外，高血压，一般发展过程，请检索鉴别要点。", "expected_intents": ["随访管理", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-06-037", "text": "请针对病例中的复查周期和脑卒中康复患者制定随访计划。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-03-033", "text": "院内辅助请求：随访管理哮喘，请指南有哪些推荐。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-02-027", "text": "院内辅助请求：说明书信息二甲双胍，请用通俗的话说明。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-031", "text": "请处理以下临床工作：不需要症状评估；仅需转诊协同：眼科，请形成待确认转诊申请。病例标记validation-31。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-05-037", "text": "院内辅助请求：孕期患者胸口闷，请推荐院内接诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-035", "text": "请处理以下临床工作：不需要转诊协同；仅需临床指南检索：哮喘，请请检索权威共识。病例标记validation-35。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-09-015", "text": "请从临床辅助角度整理转诊原因，涉及儿科，补充信息是多学科会诊。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0136", "text": "请处理以下临床工作：夜间反复咳嗽，已经三天了，请想分析可能的方向；另外，左氧氟沙星，主要作用，请我想了解。", "expected_intents": ["症状评估", "药品信息查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0060", "text": "请处理以下临床工作：硝苯地平，说明书信息，请想查清楚；另外，甲状腺功能减退，一般发展过程，请查询临床特征。", "expected_intents": ["药品信息查询", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-07-031", "text": "院内辅助请求：检验提示肝肾功能异常药片能否掰开，请审核处置风险。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0081", "text": "请处理以下临床工作：骨折术后患者，复查周期，请制定随访计划；另外，抗生素漏服一次，检验提示肝肾功能异常，请审核处置风险。", "expected_intents": ["随访管理", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-04-004", "text": "请从临床辅助角度请解释数值含义，涉及白细胞，补充信息是低于正常值。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-035", "text": "院内辅助请求：初诊患者皮肤瘙痒起疹，请给出院内分诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0099", "text": "请处理以下临床工作：夜间反复咳嗽，这两个月反复出现，请可能是什么原因；另外，肺功能报告，提示需要随访，请按重要程度解释。", "expected_intents": ["症状评估", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-05-033", "text": "请针对病例中的儿童患者和手指关节疼给出院内分诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-021", "text": "请针对病例中的日常认识误区和胃食管反流梳理临床知识。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-09-019", "text": "请从临床辅助角度核对目标科室，涉及皮肤科，补充信息是急诊转住院。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0107", "text": "请处理以下临床工作：蒙脱石散，适应症，请用通俗的话说明；另外，病理检查报告，结论写得很专业，请按重要程度解释。", "expected_intents": ["药品信息查询", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-06-007", "text": "请针对病例中的复查周期和肿瘤治疗后患者明确需要回访的事项。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0171", "text": "请处理以下临床工作：高血压出院患者，复查周期，请制定随访计划；另外，孕期服用止痛药，合并使用其他药物，请给出用药风险提示。", "expected_intents": ["随访管理", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-07-001", "text": "请针对病例中的病历记录有过敏史和多种保健品与处方药核对禁忌事项。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-04-033", "text": "院内辅助请求：轻度异常尿酸，请请解释数值含义。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-03-032", "text": "请针对病例中的运动管理和脑卒中指南有哪些推荐。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0137", "text": "请处理以下临床工作：胸口发闷，这两个月反复出现，请可能是什么原因；另外，高血压，危险分层，请指南有哪些推荐。", "expected_intents": ["症状评估", "临床指南检索"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-07-036", "text": "请针对病例中的结合患者档案和儿童退烧药核对能否合并使用。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-06-035", "text": "请针对病例中的异常指标回访和妊娠期高血压患者生成复诊提醒要点。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-014", "text": "请处理以下临床工作：不需要症状评估；仅需检查报告辅助解读：心电图报告，请请整体辅助解读。病例标记validation-14。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-08-036", "text": "院内辅助请求：可能诱因哮喘，请查询常见表现。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-03-025", "text": "请针对病例中的随访管理和脑卒中现行诊疗规范怎么说。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-06-039", "text": "请针对病例中的失访风险和妊娠期高血压患者梳理随访项目。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0138", "text": "请处理以下临床工作：连续低烧，已经三天了，请请帮我判断症状性质；另外，白细胞，轻度异常，请这个指标代表什么。", "expected_intents": ["症状评估", "检验结果辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-03-024", "text": "请从临床辅助角度帮我查指南依据，涉及冠心病，补充信息是随访管理。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-03-002", "text": "院内辅助请求：诊断标准脑卒中，请最新临床指南怎么规定。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0047", "text": "请处理以下临床工作：饭后胃胀反酸，从昨天开始，请想分析可能的方向；另外，脂肪肝，危险分层，请指南有哪些推荐。", "expected_intents": ["症状评估", "临床指南检索"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-03-021", "text": "请从临床辅助角度最新临床指南怎么规定，涉及高血压，补充信息是诊断标准。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-013", "text": "请处理以下临床工作：不需要检验结果辅助解读；仅需随访管理：骨折术后患者，请生成复诊提醒要点。病例标记validation-13。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-01-040", "text": "请针对病例中的已经三天了和右下腹疼痛需要关注哪些可能性。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0034", "text": "请处理以下临床工作：膝盖活动时疼，儿童患者，请给出院内分诊科室；另外，骨科，跨院转诊，请形成待确认转诊申请。", "expected_intents": ["院内分诊建议", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-04-039", "text": "请从临床辅助角度请解释数值含义，涉及血小板，补充信息是连续两次升高。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-018", "text": "请处理以下临床工作：不需要检查报告辅助解读；仅需院内分诊建议：持续头晕，请判断院内接诊科室。病例标记validation-18。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-06-016", "text": "院内辅助请求：异常指标回访冠心病术后患者，请生成复诊提醒要点。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-022", "text": "请针对病例中的出现多项异常和甲状腺超声报告梳理报告重点。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-02-021", "text": "院内辅助请求：主要作用氯雷他定，请想查清楚。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-034", "text": "请针对病例中的孕期患者和发烧咳嗽推荐院内接诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0011", "text": "请处理以下临床工作：奥美拉唑，常见副作用，请帮我查询；另外，低密度脂蛋白，结果标了箭头，请应该怎样理解。", "expected_intents": ["药品信息查询", "检验结果辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-08-038", "text": "请从临床辅助角度查询临床特征，涉及痛风，补充信息是日常认识误区。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-03-017", "text": "请针对病例中的危险分层和肺结节指南有哪些推荐。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-034", "text": "请从临床辅助角度查询临床特征，涉及高血压，补充信息是一般发展过程。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-09-034", "text": "请针对病例中的急诊转住院和呼吸科核对目标科室。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0149", "text": "请处理以下临床工作：硝苯地平，主要作用，请想查清楚；另外，布洛芬和感冒药，合并使用其他药物，请核对能否合并使用。", "expected_intents": ["药品信息查询", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-08-001", "text": "院内辅助请求：一般发展过程高血压，请查询临床特征。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-010", "text": "院内辅助请求：儿童患者膝盖活动时疼，请推荐院内接诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-017", "text": "院内辅助请求：孕期患者眼睛红肿，请形成分诊建议。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-016", "text": "请处理以下临床工作：不需要临床知识查询；仅需用药审核：降压药忘记服用，请核对禁忌事项。病例标记validation-16。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-07-019", "text": "请从临床辅助角度核对禁忌事项，涉及儿童退烧药，补充信息是当前医嘱需要复核。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-05-038", "text": "请针对病例中的成人患者和膝盖活动时疼给出院内分诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-04-002", "text": "请针对病例中的连续两次升高和C反应蛋白请解释数值含义。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-06-040", "text": "请从临床辅助角度评估随访优先级，涉及抗凝治疗患者，补充信息是复查周期。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-032", "text": "请针对病例中的可能诱因和肺结节梳理临床知识。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-06-001", "text": "请从临床辅助角度明确需要回访的事项，涉及抗凝治疗患者，补充信息是异常指标回访。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0195", "text": "请处理以下临床工作：奥美拉唑，保存方式，请用通俗的话说明；另外，肺结节，日常认识误区，请查询临床特征。", "expected_intents": ["药品信息查询", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-07-030", "text": "请从临床辅助角度形成药学审核要点，涉及华法林和阿司匹林，补充信息是结合患者档案。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0076", "text": "请处理以下临床工作：发烧咳嗽，成人患者，请形成分诊建议；另外，抗凝治疗患者，复查周期，请生成复诊提醒要点。", "expected_intents": ["院内分诊建议", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0160", "text": "请处理以下临床工作：低密度脂蛋白，结果标了箭头，请应该怎样理解；另外，持续头晕，初诊患者，请形成分诊建议。", "expected_intents": ["检验结果辅助解读", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-01-037", "text": "请针对病例中的已经三天了和右下腹疼痛这种表现常见于什么情况。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0139", "text": "请处理以下临床工作：总觉得疲乏无力，从昨天开始，请想分析可能的方向；另外，膝盖活动时疼，成人患者，请给出院内分诊科室。", "expected_intents": ["症状评估", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0050", "text": "请处理以下临床工作：右下腹疼痛，从昨天开始，请请帮我判断症状性质；另外，慢阻肺稳定期患者，复查周期，请梳理随访项目。", "expected_intents": ["症状评估", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-negation-036", "text": "请处理以下临床工作：不需要临床指南检索；仅需临床知识查询：糖尿病，请查询临床特征。病例标记validation-36。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-multi-0105", "text": "请处理以下临床工作：布洛芬，说明书信息，请想查清楚；另外，胃食管反流，一般发展过程，请查询临床特征。", "expected_intents": ["药品信息查询", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-10-019", "text": "请从临床辅助角度整理整份报告的临床关注点，涉及甲状腺超声报告，补充信息是出现多项异常。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-03-036", "text": "请从临床辅助角度指南有哪些推荐，涉及骨质疏松，补充信息是治疗推荐。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-02-024", "text": "院内辅助请求：保存方式氯雷他定，请想查清楚。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0075", "text": "请处理以下临床工作：低密度脂蛋白，轻度异常，请应该怎样理解；另外，肺功能报告，提示需要随访，请按重要程度解释。", "expected_intents": ["检验结果辅助解读", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-negation-030", "text": "请处理以下临床工作：不需要症状评估；仅需临床指南检索：慢阻肺，请请检索权威共识。病例标记validation-30。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-multi-0057", "text": "请处理以下临床工作：蒙脱石散，主要作用，请想查清楚；另外，眼睛红肿，成人患者，请判断院内接诊科室。", "expected_intents": ["药品信息查询", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-09-002", "text": "请针对病例中的基层上转和骨科形成待确认转诊申请。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0153", "text": "请处理以下临床工作：肺结节，随访管理，请指南有哪些推荐；另外，低密度脂蛋白，结果标了箭头，请应该怎样理解。", "expected_intents": ["临床指南检索", "检验结果辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-04-019", "text": "请针对病例中的高于参考范围和白细胞帮我解读化验结果。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0061", "text": "请处理以下临床工作：奥美拉唑，保存方式，请请介绍一下；另外，消化内科，多学科会诊，请整理转诊原因。", "expected_intents": ["药品信息查询", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-02-014", "text": "请从临床辅助角度帮我查询，涉及左氧氟沙星，补充信息是保存方式。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-02-005", "text": "请从临床辅助角度我想了解，涉及阿托伐他汀，补充信息是常见副作用。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0179", "text": "请处理以下临床工作：哮喘，一般发展过程，请检索鉴别要点；另外，肺功能报告，有一处不理解，请综合说明报告结论。", "expected_intents": ["临床知识查询", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0022", "text": "请处理以下临床工作：脑卒中，运动管理，请现行诊疗规范怎么说；另外，胃食管反流，可能诱因，请查询临床特征。", "expected_intents": ["临床指南检索", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-09-012", "text": "请从临床辅助角度核对目标科室，涉及骨科，补充信息是跨院转诊。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0071", "text": "请处理以下临床工作：C反应蛋白，连续两次升高，请帮我解读化验结果；另外，妊娠期高血压患者，异常指标回访，请评估随访优先级。", "expected_intents": ["检验结果辅助解读", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-06-019", "text": "院内辅助请求：异常指标回访脑卒中康复患者，请评估随访优先级。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-02-015", "text": "请从临床辅助角度请介绍一下，涉及二甲双胍，补充信息是主要作用。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-07-034", "text": "请针对病例中的检验提示肝肾功能异常和抗生素漏服一次给出用药风险提示。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-01-009", "text": "请针对病例中的这两个月反复出现和连续低烧请帮我判断症状性质。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-09-032", "text": "请从临床辅助角度准备转诊资料清单，涉及眼科，补充信息是基层上转。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0173", "text": "请处理以下临床工作：冠心病术后患者，失访风险，请梳理随访项目；另外，内分泌科，院内转科，请核对目标科室。", "expected_intents": ["随访管理", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-05-007", "text": "请针对病例中的初诊患者和持续头晕判断院内接诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0131", "text": "请处理以下临床工作：孕期服用止痛药，病历记录有过敏史，请核对能否合并使用；另外，消化内科，基层上转，请形成待确认转诊申请。", "expected_intents": ["用药审核", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-negation-017", "text": "请处理以下临床工作：不需要临床指南检索；仅需转诊协同：呼吸科，请形成待确认转诊申请。病例标记validation-17。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-02-033", "text": "请从临床辅助角度请介绍一下，涉及奥美拉唑，补充信息是说明书信息。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-023", "text": "请从临床辅助角度整理整份报告的临床关注点，涉及胃镜报告，补充信息是提示需要随访。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-05-031", "text": "请从临床辅助角度建议首诊科室，涉及胸口闷，补充信息是初诊患者。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0062", "text": "请处理以下临床工作：奥美拉唑，说明书信息，请我想了解；另外，甲状腺超声报告，有一处不理解，请梳理报告重点。", "expected_intents": ["药品信息查询", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-negation-039", "text": "请处理以下临床工作：不需要检验结果辅助解读；仅需转诊协同：内分泌科，请形成待确认转诊申请。病例标记validation-39。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-multi-0101", "text": "请处理以下临床工作：二甲双胍，说明书信息，请想查清楚；另外，低密度脂蛋白，结果标了箭头，请这个指标代表什么。", "expected_intents": ["药品信息查询", "检验结果辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0129", "text": "请处理以下临床工作：骨折术后患者，失访风险，请制定随访计划；另外，年度体检报告，前后指标有变化，请请整体辅助解读。", "expected_intents": ["随访管理", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0005", "text": "请处理以下临床工作：饭后胃胀反酸，今天突然发生，请这种表现常见于什么情况；另外，高血压出院患者，依从性评估，请梳理随访项目。", "expected_intents": ["症状评估", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-07-037", "text": "请从临床辅助角度形成药学审核要点，涉及孕期服用止痛药，补充信息是结合患者档案。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0163", "text": "请处理以下临床工作：血小板，连续两次升高，请帮我解读化验结果；另外，脂肪肝，一般发展过程，请查询临床特征。", "expected_intents": ["检验结果辅助解读", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-06-002", "text": "请从临床辅助角度生成复诊提醒要点，涉及脑卒中康复患者，补充信息是复查周期。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0072", "text": "请处理以下临床工作：肌酐，高于参考范围，请这个指标代表什么；另外，降压药忘记服用，病历记录有过敏史，请核对禁忌事项。", "expected_intents": ["检验结果辅助解读", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0185", "text": "请处理以下临床工作：腰背酸痛，从昨天开始，请请帮我判断症状性质；另外，肿瘤治疗后患者，复查周期，请明确需要回访的事项。", "expected_intents": ["症状评估", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-10-007", "text": "院内辅助请求：出现多项异常病理检查报告，请综合说明报告结论。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-02-003", "text": "请从临床辅助角度我想了解，涉及阿托伐他汀，补充信息是保存方式。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0065", "text": "请处理以下临床工作：2型糖尿病，治疗推荐，请帮我查指南依据；另外，肺结节观察患者，依从性评估，请明确需要回访的事项。", "expected_intents": ["临床指南检索", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-10-011", "text": "请针对病例中的结论写得很专业和甲状腺超声报告整理整份报告的临床关注点。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-03-037", "text": "请针对病例中的运动管理和脑卒中现行诊疗规范怎么说。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-03-034", "text": "院内辅助请求：危险分层高血压，请帮我查指南依据。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-039", "text": "院内辅助请求：孕期患者胃部反复不适，请建议首诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-033", "text": "请处理以下临床工作：不需要药品信息查询；仅需检查报告辅助解读：心电图报告，请梳理报告重点。病例标记validation-33。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-negation-032", "text": "请处理以下临床工作：不需要随访管理；仅需临床指南检索：脂肪肝，请请检索权威共识。病例标记validation-32。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-10-001", "text": "请从临床辅助角度梳理报告重点，涉及胃镜报告，补充信息是有一处不理解。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0117", "text": "请处理以下临床工作：C反应蛋白，连续两次升高，请异常可能说明什么；另外，孕期服用止痛药，结合患者档案，请给出用药风险提示。", "expected_intents": ["检验结果辅助解读", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-06-032", "text": "院内辅助请求：异常指标回访慢阻肺稳定期患者，请梳理随访项目。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-028", "text": "院内辅助请求：结论写得很专业甲状腺超声报告，请请整体辅助解读。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-07-024", "text": "请从临床辅助角度核对禁忌事项，涉及布洛芬和感冒药，补充信息是合并使用其他药物。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0122", "text": "请处理以下临床工作：发烧咳嗽，儿童患者，请推荐院内接诊科室；另外，二甲双胍饭前还是饭后，当前医嘱需要复核，请核对禁忌事项。", "expected_intents": ["院内分诊建议", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-08-013", "text": "请从临床辅助角度梳理临床知识，涉及肺结节，补充信息是日常认识误区。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0086", "text": "请处理以下临床工作：二甲双胍饭前还是饭后，当前医嘱需要复核，请核对能否合并使用；另外，神经内科，院内转科，请核对目标科室。", "expected_intents": ["用药审核", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-negation-004", "text": "请处理以下临床工作：不需要检查报告辅助解读；仅需临床知识查询：甲状腺功能减退，请查询常见表现。病例标记validation-4。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-02-032", "text": "请从临床辅助角度我想了解，涉及硝苯地平，补充信息是常见副作用。", "expected_intents": ["药品信息查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-09-011", "text": "请从临床辅助角度生成转诊协同要点，涉及神经内科，补充信息是多学科会诊。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0031", "text": "请处理以下临床工作：耳朵疼，初诊患者，请推荐院内接诊科室；另外，脑卒中康复患者，失访风险，请生成复诊提醒要点。", "expected_intents": ["院内分诊建议", "随访管理"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0064", "text": "请处理以下临床工作：哮喘，随访管理，请现行诊疗规范怎么说；另外，胸口闷，成人患者，请给出院内分诊科室。", "expected_intents": ["临床指南检索", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0169", "text": "请处理以下临床工作：皮肤瘙痒起疹，孕期患者，请判断院内接诊科室；另外，耳鼻喉科，急诊转住院，请准备转诊资料清单。", "expected_intents": ["院内分诊建议", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-03-030", "text": "请从临床辅助角度指南有哪些推荐，涉及高血压，补充信息是诊断标准。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-034", "text": "请从临床辅助角度综合说明报告结论，涉及肝功能检查报告，补充信息是结论写得很专业。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-03-039", "text": "请从临床辅助角度请检索权威共识，涉及高血压，补充信息是随访管理。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-039", "text": "院内辅助请求：一般发展过程脂肪肝，请整理基础定义。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-013", "text": "请针对病例中的老年患者和胃部反复不适建议首诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-07-021", "text": "院内辅助请求：检验提示肝肾功能异常抗生素漏服一次，请形成药学审核要点。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-negation-007", "text": "请处理以下临床工作：不需要转诊协同；仅需用药审核：多种保健品与处方药，请给出用药风险提示。病例标记validation-7。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "negation"}
+{"id": "validation-01-019", "text": "请从临床辅助角度需要关注哪些可能性，涉及皮肤突然起疹，补充信息是今天突然发生。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-039", "text": "请针对病例中的最近一周和连续低烧请帮我判断症状性质。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-016", "text": "院内辅助请求：基本概念骨质疏松，请查询常见表现。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-011", "text": "请针对病例中的最近一周和总觉得疲乏无力可能是什么原因。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-004", "text": "请针对病例中的孕期患者和眼睛红肿判断院内接诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-07-038", "text": "请针对病例中的结合患者档案和儿童退烧药审核处置风险。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0147", "text": "请处理以下临床工作：阿托伐他汀，说明书信息，请想查清楚；另外，腰痛，初诊患者，请给出院内分诊科室。", "expected_intents": ["药品信息查询", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0146", "text": "请处理以下临床工作：对乙酰氨基酚，说明书信息，请请介绍一下；另外，谷丙转氨酶，连续两次升高，请应该怎样理解。", "expected_intents": ["药品信息查询", "检验结果辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-05-006", "text": "请从临床辅助角度形成分诊建议，涉及膝盖活动时疼，补充信息是儿童患者。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-006", "text": "请从临床辅助角度查询常见表现，涉及肺结节，补充信息是可能诱因。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0089", "text": "请处理以下临床工作：甲状腺功能减退，日常认识误区，请查询常见表现；另外，腹部超声报告，出现多项异常，请综合说明报告结论。", "expected_intents": ["临床知识查询", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-09-026", "text": "请从临床辅助角度整理转诊原因，涉及心内科，补充信息是基层上转。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0044", "text": "请处理以下临床工作：糖尿病，日常认识误区，请检索鉴别要点；另外，胃镜报告，结论写得很专业，请梳理报告重点。", "expected_intents": ["临床知识查询", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-01-018", "text": "请从临床辅助角度可能是什么原因，涉及夜间反复咳嗽，补充信息是已经三天了。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-024", "text": "请从临床辅助角度整理整份报告的临床关注点，涉及病理检查报告，补充信息是出现多项异常。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-08-026", "text": "院内辅助请求：常见表现高血压，请梳理临床知识。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0159", "text": "请处理以下临床工作：脂肪肝，诊断标准，请请检索权威共识；另外，病理检查报告，有一处不理解，请整理整份报告的临床关注点。", "expected_intents": ["临床指南检索", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-05-023", "text": "院内辅助请求：初诊患者手指关节疼，请形成分诊建议。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0133", "text": "请处理以下临床工作：肺结节，常见表现，请整理基础定义；另外，心内科，基层上转，请准备转诊资料清单。", "expected_intents": ["临床知识查询", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-06-012", "text": "请从临床辅助角度生成复诊提醒要点，涉及慢阻肺稳定期患者，补充信息是生活方式管理。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-07-018", "text": "院内辅助请求：合并使用其他药物华法林和阿司匹林，请核对能否合并使用。", "expected_intents": ["用药审核"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0152", "text": "请处理以下临床工作：阿莫西林，保存方式，请想查清楚；另外，胸部CT报告，出现多项异常，请整理整份报告的临床关注点。", "expected_intents": ["药品信息查询", "检查报告辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-05-016", "text": "院内辅助请求：初诊患者胃部反复不适，请判断院内接诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-08-009", "text": "请从临床辅助角度梳理临床知识，涉及骨质疏松，补充信息是日常认识误区。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-01-033", "text": "院内辅助请求：最近一周头痛并且恶心，请需要关注哪些可能性。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-03-029", "text": "请针对病例中的治疗推荐和慢阻肺帮我查指南依据。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0167", "text": "请处理以下临床工作：膝盖活动时疼，老年患者，请判断院内接诊科室；另外，孕期服用止痛药，结合患者档案，请核对能否合并使用。", "expected_intents": ["院内分诊建议", "用药审核"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0178", "text": "请处理以下临床工作：糖尿病，可能诱因，请整理基础定义；另外，耳鼻喉科，基层上转，请核对目标科室。", "expected_intents": ["临床知识查询", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-09-024", "text": "请从临床辅助角度准备转诊资料清单，涉及儿科，补充信息是多学科会诊。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-03-019", "text": "请从临床辅助角度请检索权威共识，涉及冠心病，补充信息是随访管理。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-032", "text": "院内辅助请求：初诊患者手指关节疼，请判断院内接诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-05-028", "text": "请针对病例中的老年患者和腰痛给出院内分诊科室。", "expected_intents": ["院内分诊建议"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0083", "text": "请处理以下临床工作：脑卒中康复患者，依从性评估，请生成复诊提醒要点；另外，呼吸科，基层上转，请整理转诊原因。", "expected_intents": ["随访管理", "转诊协同"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-multi-0190", "text": "请处理以下临床工作：对乙酰氨基酚，说明书信息，请帮我查询；另外，慢性肾病，运动管理，请帮我查指南依据。", "expected_intents": ["药品信息查询", "临床指南检索"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-04-016", "text": "请针对病例中的低于正常值和白细胞应该怎样理解。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-04-040", "text": "请从临床辅助角度这个指标代表什么，涉及C反应蛋白，补充信息是高于参考范围。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-03-023", "text": "请针对病例中的危险分层和高血压指南有哪些推荐。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0004", "text": "请处理以下临床工作：头痛并且恶心，已经三天了，请想分析可能的方向；另外，耳朵疼，老年患者，请形成分诊建议。", "expected_intents": ["症状评估", "院内分诊建议"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-08-019", "text": "院内辅助请求：常见表现骨质疏松，请查询临床特征。", "expected_intents": ["临床知识查询"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-04-007", "text": "请针对病例中的结果标了箭头和促甲状腺激素应该怎样理解。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-027", "text": "院内辅助请求：出现多项异常心电图报告，请请整体辅助解读。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-01-004", "text": "请从临床辅助角度请帮我判断症状性质，涉及站起时头晕，补充信息是已经三天了。", "expected_intents": ["症状评估"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-09-038", "text": "请针对病例中的急诊转住院和皮肤科生成转诊协同要点。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0037", "text": "请处理以下临床工作：抗凝治疗患者，依从性评估，请生成复诊提醒要点；另外，哮喘，一般发展过程，请整理基础定义。", "expected_intents": ["随访管理", "临床知识查询"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-06-022", "text": "院内辅助请求：异常指标回访肿瘤治疗后患者，请评估随访优先级。", "expected_intents": ["随访管理"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-10-016", "text": "院内辅助请求：出现多项异常年度体检报告，请综合说明报告结论。", "expected_intents": ["检查报告辅助解读"], "complex_task": true, "source": "synthetic_bootstrap"}
+{"id": "validation-04-027", "text": "请针对病例中的连续两次升高和空腹血糖异常可能说明什么。", "expected_intents": ["检验结果辅助解读"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-multi-0018", "text": "请处理以下临床工作：脂肪肝，运动管理，请现行诊疗规范怎么说；另外，白细胞，连续两次升高，请请解释数值含义。", "expected_intents": ["临床指南检索", "检验结果辅助解读"], "complex_task": true, "source": "synthetic_multilabel_v4", "challenge_type": "multi_intent"}
+{"id": "validation-03-010", "text": "请从临床辅助角度指南有哪些推荐，涉及骨质疏松，补充信息是随访管理。", "expected_intents": ["临床指南检索"], "complex_task": false, "source": "synthetic_bootstrap"}
+{"id": "validation-09-004", "text": "请针对病例中的多学科会诊和耳鼻喉科核对目标科室。", "expected_intents": ["转诊协同"], "complex_task": true, "source": "synthetic_bootstrap"}
