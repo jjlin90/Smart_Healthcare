@@ -211,11 +211,11 @@ README 安装主流程、本地启动和 GitHub 上传前检查均显式安装 r
 | 仓库与桌面文档的本地链接检查 | artifacts/evidence_validation_review_20261010/document_links.json |
 | 同步投影及目标字节、两份主文档与仓库正文比较 | artifacts/evidence_validation_review_20261010/desktop_manifest.json |
 | 当前桌面文档及简历的目标哈希核对 | artifacts/evidence_validation_review_20261010/latest_desktop_receipt.json |
-| 提交后对已有日志、报告及当前桌面目标的重新核对 | artifacts/evidence_validation_review_20261010/evidence_summary_after_commit_d97d3a5.json |
+| 针对提交 d97d3a5 时的核对快照（已有日志、报告及当时桌面目标） | artifacts/evidence_validation_review_20261010/evidence_summary_after_commit_d97d3a5.json |
 
 修改前快照与本轮桌面同步备份同样位于该目录。桌面收据保留各目标的同步来源，并重新核对当前字节；未改动的目标沿用先前同步来源。上述本机证据目录受 Git 忽略规则管理，克隆者可执行仓库预检和测试，不能从 Git 获取这些本机报告。
 
-提交状态说明：此前修改已提交为 d97d3a5，并有推送到 origin/main 的本地记录。evidence_summary.json 中的 e1304e2 对应提交前核对时刻，保留为历史快照；新增 evidence_summary_after_commit_d97d3a5.json 记录提交后重新核对时的 HEAD。后者读取已记录的测试结果并重新检查当前目标，不表示本次重新执行全量测试，也不证明日志来自核对时的提交。本段描述该次提交事件，不是持续更新的分支状态；当前状态以 git status 和 Git 引用为准。
+提交核对历史：evidence_summary.json 中的 e1304e2 对应提交前核对时刻；evidence_summary_after_commit_d97d3a5.json 对应 HEAD 为 d97d3a5 时的核对快照，两份记录均按各自时间保留。后者读取已记录的测试结果并检查当时桌面目标，不表示重新执行全量测试，也不证明日志来自该提交。后续提交不需要改写这些历史文件或生成新的汇总。检查现在的目标时执行下方命令，它会输出本次核对时的 HEAD 和结果；提交及推送状态始终以核对当时的 git status、Git 引用和推送记录为准。
 
 **证据汇总工具。** 仓库提供 scripts/verify_delivery_evidence.py；它从完整/快速预检日志读取通过数量，校验唯一的 pytest/pip check 成功记录及两种预检的静态检查结果一致，从链接报告与桌面收据读取文件数，并核对桌面目标的当前字节。desktop_manifest.json 为必需输入：每个声明的同步源文件须存在于本轮证据目录内，先比较源/目标字节，再校验清单/收据哈希，正文不同时明确报告字节不一致，避免该分支被前置哈希检查遮住。两份桌面主文档还直接与当前仓库正文比较，仅将文档链接按桌面映射转换；即使改写正文并同步改写收据和投影文件，也不能绕过正文校验。
 
