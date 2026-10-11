@@ -199,12 +199,13 @@ README 安装主流程、本地启动和 GitHub 上传前检查均显式安装 r
 | 核查证据修订 | 使用合法重复 RUN/CI step 和真实临时文件验证注入保护，未修改项目测试或安装入口 | artifacts/anchor_evidence_review_20261010/ |
 | 证据工具回归补强 | 新增 19 项仓库回归，恢复同步源文件及正文比对，项目测试总数由 316 增至 335 | artifacts/evidence_regression_review_20261010/ |
 | 拒绝分支回归补齐（2026-10-10） | 新增 15 项带具体错误信息断言的拒绝回归，工具回归共 34 项，项目测试总数由 335 增至 350 | artifacts/evidence_validation_review_20261010/ |
+| 记录器自动回归补齐（2026-10-11） | 新增 13 项记录器回归，并要求脚本与测试文件纳入 Git；项目测试总数由 350 增至 363 | artifacts/evidence_validation_review_20261010/post_commit_review/ |
 
 **核查脚本范围。** 新核查脚本直接提取当前测试函数，在隔离目录中写入真实 Dockerfile/CI 文件，并将测试根目录指向该隔离目录；不替换全局 Path.read_text。重复场景分别追加合法 RUN 行或 CI step。所有 6 个场景先确认配置可被安装入口门接受，再核对正常配置通过、锚点缺失/重复在注入阶段失败。新结果替代旧脚本对重复 RUN 场景的证明；旧脚本及报告仅保留为历史记录。被忽略的本机核查脚本不计入交付的 pytest 用例。
 
 **工程验证记录与证据来源。** 最近一次完整验证的通过数量统一见 [README 验证记录](../README.md#验证)。2026-10-10 拒绝分支回归阶段新增 15 项测试，工具回归合计 34 项；该阶段执行了完整预检及工程测试，结果保存于 artifacts/evidence_validation_review_20261010/。后续文档修订保留这些报告，不将读取既有记录描述成重新生成或重新运行全部测试。
 
-2026-10-11 文档修订检查分为初次检查和最终检查。初次检查后仍补充了说明文字，因此初次结果不能代表最终文档版本。当时的最终检查在 README.md 与本文件的说明全部修改完成后执行；快速预检日志与链接报告的运行标识、UTC、HEAD、命令及 SHA-256 均由未保存到仓库的本机临时包装代码追加，直接执行 preflight_git.py 不会自动产生这些字段。旧记录保留其实际来源，不作为仓库原生记录功能的证明。旧链接报告的 input_sha256 包含 31 份文档及 1 份本机检查器源码，共 32 项；源码哈希不计入文档数。当时两种检查均核对运行前后输入是否保持一致，结果对应这些哈希标识的工作区文件，而非仅凭文件名或修改时间判断。此次未重新执行完整 pytest；历史测试数量来自下表保留的完整预检日志。这些本机元数据用于追溯运行及输入，不构成防篡改证明。各文件的生成或核对阶段分别列明：
+2026-10-11 文档修订检查分为初次检查和最终检查。初次检查后仍补充了说明文字，因此初次结果不能代表最终文档版本。当时的最终检查在 README.md 与本文件的说明全部修改完成后执行；快速预检日志与链接报告的运行标识、UTC、HEAD、命令及 SHA-256 均由未保存到仓库的本机临时包装代码追加，直接执行 preflight_git.py 不会自动产生这些字段。旧记录保留其实际来源，不作为仓库原生记录功能的证明。旧链接报告的 input_sha256 包含 31 份文档及 1 份本机检查器源码，共 32 项；源码哈希不计入文档数。当时两种检查均核对运行前后输入是否保持一致，结果对应这些哈希标识的工作区文件，而非仅凭文件名或修改时间判断。该次文档修订未重新执行完整 pytest；其测试数量来自下表保留的历史完整预检日志。这些本机元数据用于追溯运行及输入，不构成防篡改证明。各文件的生成或核对阶段分别列明：
 
 | 验证内容 | 生成或核对阶段 | 保存文件 |
 | --- | --- | --- |
@@ -234,11 +235,37 @@ python scripts/record_document_checks.py --kind quick --output artifacts/evidenc
 python scripts/record_document_checks.py --kind links --desktop "$env:USERPROFILE/Desktop" --output artifacts/evidence_validation_review_20261010/post_commit_review/document_links_recorder_20261011.json
 ```
 
-这次记录器修订仅涉及工程证据工具与本文说明，未重新执行完整 pytest，也未改动桌面主文档。最近一次完整测试仍对应 README 标明的日期；新保存的快速预检和链接报告只证明各自记录的检查范围。
+初次记录器修订未执行完整 pytest；该阶段的快速预检和链接报告只证明各自记录的检查范围。2026-10-11 后续补齐自动回归后重新执行完整预检，最近一次完整验证的数量和日期见 README；原始日志按阶段保留。
 
-2026-10-10 回归阶段的修改前快照与桌面同步备份同样位于该目录。桌面收据保留各目标的同步来源；核对工具重新检查当前字节，未改动的目标沿用先前同步来源。上述本机证据目录受 Git 忽略规则管理，克隆者可执行仓库预检和测试，不能从 Git 获取这些本机报告。
+**记录器自动回归。** [tests/test_record_document_checks.py](../tests/test_record_document_checks.py) 包含 13 项测试，使用临时 Git 仓库及真实子进程，覆盖成功元数据、子进程非零退出、文档/候选集合/检查器源码/HEAD 在执行中变化、已有输出/仓库外输出/未忽略输出/缺失父目录、断链与锚点错误、文档及检查器哈希分开计数、桌面文档范围和必需交付路径。preflight_git.py 的必需路径清单包含记录器及测试文件，防止漏交付；完整预检和 CI 的 pytest 自动收集这些测试，quick 不执行 pytest。
 
-提交核对历史：evidence_summary.json 中的 e1304e2 对应提交前核对时刻；evidence_summary_after_commit_d97d3a5.json 对应 HEAD 为 d97d3a5 时的核对快照，两份记录均按各自时间保留。后者读取已记录的测试结果并检查当时桌面目标，不表示重新执行全量测试，也不证明日志来自该提交。后续提交不需要改写这些历史文件或生成新的汇总。检查现在的目标时执行下方命令，它会输出本次核对时的 HEAD 和结果；提交及推送状态始终以核对当时的 git status、Git 引用和推送记录为准。
+前次报告中的 6 个隔离检查是记录器的手工验证（成功、旧输出保护、子进程失败、输入变化、断链、未忽略输出拒绝）；这些检查当时没有纳入 pytest。它们与历史 anchor_drift.json 的 6 个 Docker/CI 安装锚点场景分别记录，不将后者计为记录器回归。
+
+2026-10-11 记录器自动回归补齐阶段的证据目录为 artifacts/evidence_validation_review_20261010/post_commit_review/recorder_regression_20261011/。该目录中文件的用途如下，路径均相对于此目录；回归阶段的运行记录对应当时工作区，不将后续文档说明修订称为重跑完整测试：
+
+| 文件或目录 | 来源与用途 |
+| --- | --- |
+| preflight.log | 最终测试版本的完整预检日志，363 项 pytest 及 pip check 通过 |
+| preflight_initial.log | 较早一次完整预检日志，同为 363 项通过；之后加强了交付路径测试的行为断言，再执行 preflight.log，不以旧日志替代最终测试版本的验证 |
+| quick.log | 自动回归补齐阶段的快速预检快照，由仓库记录器保存当时输入哈希 |
+| document_links.json | 同一阶段仓库与桌面链接报告，31 份文档、0 个本地断链；元数据对应当时文档版本 |
+| quick_inventory_20261011.log | 本次补齐目录说明后执行的快速预检，附运行元数据及最终输入哈希 |
+| document_links_inventory_20261011.json | 本次补齐目录说明后执行的链接检查，附运行元数据及最终文档哈希 |
+| desktop_receipt.json | 2026-10-11 本次简历 HTML/PDF 两个实际更新目标的同步来源及前后哈希；合并收据中这两项引用此文件 |
+| latest_desktop_receipt.json | 合并前述两项更新和未改动目标的既有来源，逐项核对全部 11 个桌面目标 |
+| desktop_manifest.json | 两份主文档及简历 HTML/PDF 的 4 项投影源/目标字节与哈希比对输入 |
+| anchor_drift.json | 保留 2026-10-10 安装锚点报告的原始字节，未在本阶段重新执行这些场景 |
+| evidence_summary.json | 从上述回归阶段日志与报告读取结果并核对目标的快照；不代表重新执行所有检查 |
+| desktop_backup/ | 2026-10-11 覆盖桌面简历前备份的 HTML/PDF，保留更新前的 350 项口径；不是 2026-10-10 回归阶段的备份目录 |
+| desktop_projected/MedAgent_项目理解指南.md、desktop_projected/MedAgent_AI_多Agent项目话术.md | 从先前投影保留的两份未改动主文档，供当前源/目标及仓库正文核对 |
+| desktop_projected/resume-owner-算法工程师-4年.html | 更新为 363 项回归的 HTML 同步源 |
+| resume-owner-算法工程师-4年.pdf | 从上述 HTML 重新生成的两页简历 PDF 同步源 |
+| render_resume.cjs | 本机 PDF 生成辅助脚本，不属于项目运行代码或 pytest 回归 |
+| resume-1.png、resume-2.png | 本次 PDF 两页的渲染检查图，不属于桌面交付目标 |
+
+2026-10-10 回归阶段的原有收据、修改前快照和投影仍保留在上级 artifacts/evidence_validation_review_20261010/ 中；新目录内的备份、投影和渲染图则按上表的 2026-10-11 用途解释。未改动的桌面目标沿用先前同步来源，新目录的合并收据逐项重新核对其字节。input_sha256 可能包含尚未跟踪的工作区文件，只有候选集合及相关输入保持一致时才可直接比较跨次结果。本次仅补齐目录说明，未重跑完整 pytest，未再次修改桌面简历或主文档。本机证据与辅助文件均受 Git 忽略规则管理，克隆者可运行仓库预检和测试，不能从 Git 获取这些本机报告。
+
+提交核对历史：evidence_summary.json 中的 e1304e2 对应提交前核对时刻；evidence_summary_after_commit_d97d3a5.json 对应 HEAD 为 d97d3a5 时的核对快照，两份记录均按各自时间保留。后者读取已记录的测试结果并检查当时桌面目标，不表示重新执行全量测试，也不证明日志来自该提交。后续提交不需要改写这些历史文件或生成新的汇总。检查桌面简历更新后的目标时执行下方使用新证据目录的命令，它会输出本次核对时的 HEAD 和结果；提交及推送状态始终以核对当时的 git status、Git 引用和推送记录为准。
 
 **证据汇总工具。** 仓库提供 scripts/verify_delivery_evidence.py；它从完整/快速预检日志读取通过数量，校验唯一的 pytest/pip check 成功记录及两种预检的静态检查结果一致，从链接报告与桌面收据读取文件数，并核对桌面目标的当前字节。desktop_manifest.json 为必需输入：每个声明的同步源文件须存在于本轮证据目录内，先比较源/目标字节，再校验清单/收据哈希，正文不同时明确报告字节不一致，避免该分支被前置哈希检查遮住。两份桌面主文档还直接与当前仓库正文比较，仅将文档链接按桌面映射转换；即使改写正文并同步改写收据和投影文件，也不能绕过正文校验。
 
@@ -251,7 +278,7 @@ tests/test_delivery_evidence.py 中的回归覆盖动态计数、异常/重复�
 该工具采用严格证据格式：pip check 须有完整的 `No broken requirements found.` 成功行，快速预检不得包含 pytest/pip check 行；不接受非成功记录或混用两种模式。汇总数字不写死，但也不是任意日志格式的兼容解析器。核对时间及输出 head 仅表示核对时刻的仓库状态，不证明日志对应同一提交，也不等于重新运行测试。
 
 ```powershell
-python scripts/verify_delivery_evidence.py --evidence-dir artifacts/evidence_validation_review_20261010
+python scripts/verify_delivery_evidence.py --evidence-dir artifacts/evidence_validation_review_20261010/post_commit_review/recorder_regression_20261011
 ```
 
 上述默认命令只打印核对结果，可重复执行。需要保存时添加 --output 并指定尚不存在的新文件；输出采用排他创建，已有文件会报告失败并保持原字节，避免覆盖历史汇总。工具随 Git 分发，本机日志、收据及桌面目标仍属本地证据；仅有汇总 JSON 不能独立重现，需提供对应日志/报告，或在克隆环境重新执行预检。

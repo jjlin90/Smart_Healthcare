@@ -55,6 +55,8 @@ FORBIDDEN_SUFFIXES = {
 }
 
 REQUIRED_TRACKED_PATHS = {
+    "scripts/record_document_checks.py",
+    "tests/test_record_document_checks.py",
     "requirements-dev.txt",
     "backend/safety.py",
     "tests/test_safety.py",
