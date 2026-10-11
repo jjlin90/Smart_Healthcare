@@ -215,7 +215,7 @@ README 安装主流程、本地启动和 GitHub 上传前检查均显式安装 r
 | 仓库与桌面文档本地链接检查 | 同一回归阶段生成，后续保留 | artifacts/evidence_validation_review_20261010/document_links.json |
 | 同步投影及目标字节、主文档正文比对输入 | 同一回归阶段的同步快照，后续保留 | artifacts/evidence_validation_review_20261010/desktop_manifest.json |
 | 桌面文档及简历目标的同步哈希 | 同一回归阶段合并收据，后续保留 | artifacts/evidence_validation_review_20261010/latest_desktop_receipt.json |
-| 提交 d97d3a5 时的核对快照 | 读取既有报告并检查当时目标；没有重新执行全量测试 | artifacts/evidence_validation_review_20261010/evidence_summary_after_commit_d97d3a5.json |
+| 改写前提交 d97d3a5 时的核对快照 | 读取既有报告并检查当时目标；没有重新执行全量测试；旧 SHA 的改写对应关系见下文 | artifacts/evidence_validation_review_20261010/evidence_summary_after_commit_d97d3a5.json |
 | 证据工具单独回归 | 2026-10-10 拒绝分支回归阶段的 34 项工具测试日志，保留作历史记录 | artifacts/evidence_validation_review_20261010/focused.log |
 | 后续提交文档修订快速预检 | 2026-10-10 后续文档修订检查，保留原始日志；不作为 2026-10-11 最终版本证据 | artifacts/evidence_validation_review_20261010/post_commit_review/quick.log |
 | 后续提交文档本地链接检查 | 后续核查保留的报告，缺少运行元数据；不作为最终版本证据 | artifacts/evidence_validation_review_20261010/post_commit_review/document_links.json |
@@ -278,7 +278,7 @@ python scripts/record_document_checks.py --kind links --desktop "$env:USERPROFIL
 | latest_desktop_receipt.json | 重新读取全部 11 个桌面目标，变化的简历引用此次采集记录，未变化目标保留既有来源 |
 | evidence_summary.json | 读取上述历史日志与本次报告，核对当前目标后生成的新汇总；不将历史完整测试称为本次重跑 |
 
-公开文档仅使用通用简历描述；含个人文件名的目标路径保留在被忽略的本机收据中。历史提交中的个人路径和私人提交邮箱也属于隐私清理范围；仅工作区脱名不能移除它们，需改写相关历史并核对发布分支。清理前的恢复备份保留在仓库外，不进入 Git；后续提交采用 GitHub 隐私邮箱。任何目标后续再次变化，都应重新采集并核对；汇总中的 HEAD、UTC 和哈希只描述该次核对，不构成长期同步保证。
+公开文档仅使用通用简历描述；含个人文件名的目标路径保留在被忽略的本机收据中。2026-10-11 已改写 26 个提交，移除真实姓名路径及私人作者/提交者邮箱，并以绑定原远端 SHA 的 force-with-lease 更新 main。全部本地 Git 对象复查未命中这些个人标识；GitHub 缓存、PR 引用和第三方副本未获得删除确认，不将发布分支清理等同于服务器所有旧对象已清除。仓库外备份及恢复核验、旧新 SHA 映射和默认邮箱配置见[历史个人信息清理说明](history-cleanup.md#2026-10-11-姓名与提交邮箱清理)。任何目标后续再次变化，都应重新采集并核对；汇总中的 HEAD、UTC 和哈希只描述该次核对，不构成长期同步保证。
 
 **桌面采集的仓库入口。** 前述 desktop_refresh_20261011/ 中 desktop_snapshot.json、desktop_manifest.json、latest_desktop_receipt.json 由未保存到仓库的本机一次性代码生成，保留为该阶段历史证据；不能据此声称其生成流程已经随 Git 分发。现在 record_document_checks.py 增加 desktop-snapshot 模式：显式读取既有收据的全部目标及清单声明的子集，复制现有目标字节到新目录 snapshots/，再输出上述三个 JSON。目标在采集中变化时返回非零并将验证结果标记为失败，输出目录已存在时拒绝，不改写桌面内容、不覆盖历史目录。基线收据和清单仍是本机输入，复现者需要提供它们；代码和回归测试随仓库交付。
 
@@ -290,7 +290,7 @@ python scripts/record_document_checks.py --kind desktop-snapshot --receipt artif
 
 当前 PDF 渲染可按 desktop_manifest.json 中后缀为 .pdf 的 source 定位输入，使用 Poppler 执行 pdftoppm -r 100 -png；生成的 current_pdf-1.png、current_pdf-2.png 和 pdf_render.json 记录该输入哈希、命令和检查时间，当前两页逐页进行视觉检查。本机需要安装 Poppler 才能复现渲染；渲染图不进入 Git，不计入自动化测试。
 
-提交核对历史：evidence_summary.json 中的 e1304e2 对应提交前核对时刻；evidence_summary_after_commit_d97d3a5.json 对应 HEAD 为 d97d3a5 时的核对快照，两份记录均按各自时间保留。后者读取已记录的测试结果并检查当时桌面目标，不表示重新执行全量测试，也不证明日志来自该提交。后续提交不需要改写这些历史文件或生成新的汇总。核对桌面后续版本时执行下方使用新证据目录的命令，它会输出本次核对时的 HEAD 和结果；提交及推送状态始终以核对当时的 git status、Git 引用和推送记录为准。
+提交核对历史：evidence_summary.json 中的 e1304e2 对应改写前提交的核对时刻；evidence_summary_after_commit_d97d3a5.json 对应改写前 HEAD 为 d97d3a5 时的核对快照。2026-10-11 隐私历史改写后，旧 SHA 通常无法在当前克隆解析，文件名及 head/head_after 字段仍是原核对时刻的标识，不代表当前可解析提交。脱敏的完整旧新 SHA 对应表随仓库保存在 [git-history-rewrite-map.json](git-history-rewrite-map.json)：e1304e2 对应 7dc37d2，d97d3a5 对应 772ff62；映射只解释身份对应，不证明两个提交的全部历史字节相同。原始报告按各自时间保留，不批量改写它们的 HEAD 或重命名旧文件，否则会改变历史证据。旧原始提交只能在仓库外的私有 bundle 恢复副本中核对，不能把旧历史重新合并或推送到公开仓库。后者读取已记录的测试结果并检查当时桌面目标，不表示重新执行全量测试，也不证明日志来自该提交。核对桌面后续版本时执行下方使用新证据目录的命令，它会输出本次核对时的 HEAD 和结果；提交及推送状态始终以核对当时的 git status、Git 引用和推送记录为准。
 
 **证据汇总工具。** 仓库提供 scripts/verify_delivery_evidence.py；它从完整/快速预检日志读取通过数量，校验唯一的 pytest/pip check 成功记录及两种预检的静态检查结果一致，从链接报告与桌面收据读取文件数，并核对桌面目标的当前字节。desktop_manifest.json 为必需输入：每个声明的同步源文件须存在于本轮证据目录内，先比较源/目标字节，再校验清单/收据哈希，正文不同时明确报告字节不一致，避免该分支被前置哈希检查遮住。两份桌面主文档还直接与当前仓库正文比较，仅将文档链接按桌面映射转换；即使改写正文并同步改写收据和投影文件，也不能绕过正文校验。
 

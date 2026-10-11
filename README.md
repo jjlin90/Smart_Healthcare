@@ -227,6 +227,8 @@ python scripts/evaluate_intent.py --output artifacts/intent_fusion_eval.json
 
 ## GitHub 上传前检查
 
+2026-10-11 姓名路径与私人提交邮箱的历史清理已完成。旧报告中的 SHA 保留核对时刻的原值，改写后的对应提交见[脱敏 SHA 映射](docs/git-history-rewrite-map.json)；仓库外备份位置、实际恢复核验、全局及本地默认邮箱配置和远端清理范围见[历史个人信息清理说明](docs/history-cleanup.md#2026-10-11-姓名与提交邮箱清理)。
+
 仓库内置不依赖第三方扫描器的预检脚本，会分别扫描工作区候选文件和 Git 暂存内容中的疑似密钥，并检查忽略规则、私钥文件、超大文件、Python 语法和 `.env.example` 配置项完整性。普通模式和 `--quick` 均检查工作区 Markdown 的内联、Wiki 本地文件链接与章节锚点，并要求本地链接目标已纳入 Git 索引、声明 LF 的工作区文件不含 CR，因此提交钩子也会拦截这类断链及换行问题；不请求外部网站，不核对桌面文件或标准引用式链接。预检还会拒绝跟踪 `output/`、`.mimosa/` 和本地简历生成脚本。完整模式还会运行 pytest 与 `pip check`。模式匹配不是完整的数据泄露防护，上传前仍应人工审阅暂存差异；已泄露的密钥需要撤销重置，不能只删除文件：
 
 2026-10-07 的“30 份文档链接检查”为历史快照（仓库 14 份、桌面 16 份）。2026-10-10 当前范围为 31 份（仓库 15 份、桌面 16 份）；提交钩子检查的是仓库内候选 Markdown，不包含桌面。历史额外核查脚本、桌面收据和备份保存在被忽略的 `artifacts/audit_20261007/` 中，融合修复证据位于 `artifacts/review_20261010/`，独立安全入口证据位于 `artifacts/safety_routing_20261010/`，最近一次桌面核对收据位于 `artifacts/evidence_validation_review_20261010/post_commit_review/desktop_capture_repro_20261011/latest_desktop_receipt.json`；该收据只对应记录时刻的目标字节，后续变化需重新核对，均不随克隆分发。
