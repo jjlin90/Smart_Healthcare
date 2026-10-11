@@ -308,9 +308,29 @@ python scripts/verify_delivery_evidence.py --evidence-dir artifacts/evidence_val
 
 上述默认命令只打印核对结果，可重复执行。需要保存时添加 --output 并指定尚不存在的新文件；输出采用排他创建，已有文件会报告失败并保持原字节，避免覆盖历史汇总。工具随 Git 分发，本机日志、收据及桌面目标仍属本地证据；仅有汇总 JSON 不能独立重现，需提供对应日志/报告，或在克隆环境重新执行预检。
 
-**隐私清理后续核验（2026-10-11）。** 截图中的备份查询使用了隔离环境的 LOCALAPPDATA，未指向宿主目录；修订后的路径示例和再次实际恢复 26 个原提交的核验见[历史清理说明](history-cleanup.md#2026-10-11-姓名与提交邮箱清理)。旧报告继续保留原 SHA，不修改其历史字段。新增 7 项 SHA 映射回归后，项目总测试由 370 增至 377；映射校验合并在原有交付检查中，完整/快速检查仍为 20/18 项。映射内容指纹、新 SHA 可达性和必需交付路径随仓库检查，不依赖本机 commit-map；私有 bundle 的实际恢复属于独立本机核验，不计为公开 pytest。
+**隐私清理后续核验（2026-10-11）。** 前次将备份查询失败归因于查询者使用沙箱 LOCALAPPDATA 的解释有误。实际是 Codex 应用将逻辑 AppData 路径重定向到了应用容器，宿主 PowerShell 查询原逻辑路径无法找到它。现已复制全部 22 个私有备份文件到仓库外的 `D:/CodexPrivacyBackups/Smart_Healthcare-20261011-114023`，逐文件核对哈希、用 Windows 文件句柄确认实际物理位置，并从该副本重新恢复核验全部 26 个原提交；原容器副本和旧核验报告保留。当前命令及私有迁移报告范围见[历史清理说明](history-cleanup.md#2026-10-11-姓名与提交邮箱清理)。旧报告继续保留原 SHA，不修改其历史字段。新增 7 项 SHA 映射回归后，项目总测试由 370 增至 377；映射校验合并在原有交付检查中，完整/快速检查仍为 20/18 项。映射内容指纹、新 SHA 可达性和必需交付路径随仓库检查，不依赖本机 commit-map；私有 bundle 的实际恢复属于独立本机核验，不计为公开 pytest。
 
-本次后续检查记录保存于 artifacts/history_backup_path_followup_20261011/：preflight.log 为新增映射回归后的完整检查；quick.log、document_links.json 由仓库记录器保存最终文档输入；桌面采集的三个 JSON 与 snapshots/ 由 desktop-snapshot 模式读取当前 11 个目标及 4 项清单子集产生；anchor_drift.json 保留早期场景的原字节；evidence_summary.json 核对该目录的结果，不称历史场景为本次重新执行。当前 PDF 从只更新测试数量的既有 HTML 生成，两页渲染图及 pdf_render.json 对应该目录中的当前 PDF 快照。
+新增映射回归阶段的检查记录保存在 artifacts/history_backup_path_followup_20261011/，按当前目录实物列出全部 15 个顶层条目（14 个文件及 1 个子目录）；snapshots/ 内另有 4 个源文件。它们是该阶段的留档，不因本次备份路径文档修订而声称重新生成：
+
+| 条目 | 来源及用途 |
+| --- | --- |
+| preflight.log | 新增映射回归后的完整检查，377 项测试及 20 项预检 |
+| quick.log | 仓库记录器保存的该阶段最终输入快速检查，18 项预检 |
+| document_links.json | 仓库记录器保存的该阶段文档链接检查 |
+| desktop_snapshot.json | desktop-snapshot 采集命令、时间、输入哈希及稳定性记录 |
+| desktop_manifest.json | 4 个采集源/目标的映射清单 |
+| latest_desktop_receipt.json | 全部 11 个桌面目标的哈希收据 |
+| snapshots/ | 4 个通用源文件快照，供清单与正文核对 |
+| anchor_drift.json | 早期 6 个安装锚点场景的原字节留档，非本次重跑 |
+| evidence_summary.json | 对该目录日志、收据、清单和场景结果的汇总核对 |
+| current_pdf-1.png | 该阶段 PDF 第一页的渲染图 |
+| current_pdf-2.png | 该阶段 PDF 第二页的渲染图 |
+| pdf_render.json | PDF 输入哈希、渲染命令、时间及输出图片哈希 |
+| clone_quick.log | 完整历史独立克隆的 18 项快速检查日志 |
+| clone_verification.json | 独立克隆核验记录，确认不依赖私有 commit-map |
+| publication.json | 该阶段提交、实际 Git 增删统计及远端发布核对 |
+
+本次仓库外备份存储修订仅修改本页及历史清理说明，不修改应用代码、桌面主文档或简历。私有迁移与恢复报告位于上述 D 盘备份目录；本次文档验证记录位于 artifacts/backup_storage_repair_20261011/，与前述阶段留档分开。文件数及增删统计以 Git 实际差异为准，编辑徽章不是交付统计。
 
 ## 测试临时数据与历史核查产物
 
