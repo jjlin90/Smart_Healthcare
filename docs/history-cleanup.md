@@ -22,6 +22,8 @@
 
 **仓库外恢复备份。** 当前恢复入口为 `D:/CodexPrivacyBackups/Smart_Healthcare-20261011-114023`，位于项目及应用容器之外。已从原容器备份复制全部 22 个文件，逐个核对 SHA-256，并通过 Windows 文件句柄核对目标的实际物理路径确在 D 盘；另保存 `backup_relocation_verification.json`，因此目标目录共 23 个文件。原容器副本保留，当前恢复不依赖它。
 
+两处私有备份目录均关闭 ACL 继承，仅允许当前 Windows 用户、SYSTEM 和 Administrators 访问，并逐文件检查不存在其他访问主体。这是访问控制，不是加密；以同一用户身份运行的扫描或同步程序仍可能读取，备份内容不应纳入云同步或公开共享。原补丁、标识清单及不同阶段的简历备份按历史用途保留；即使字节相同，也不删除迁移报告所绑定的原文件，不将这些私人文件加入 Git。
+
 此前“USERPROFILE/AppData/Local 即宿主实际备份位置”的说明有误。Codex 应用中的文件访问被重定向，Windows 文件句柄返回的原物理目录为用户目录下的 `AppData/Local/Packages/OpenAI.Codex_2p2nqsd0c76g0/LocalCache/Local/CodexPrivacyBackups/Smart_Healthcare-20261011-114023`。普通宿主 PowerShell 查不到此前的逻辑路径，不能据此判断备份丢失，也不能归因于查询者用了沙箱环境。原目录属于应用容器存储，不宜作为唯一长期备份；下面的当前恢复命令直接使用已核验的仓库外 D 盘路径，避免环境变量及应用重定向差异：
 
 ```powershell

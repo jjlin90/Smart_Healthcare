@@ -330,7 +330,16 @@ python scripts/verify_delivery_evidence.py --evidence-dir artifacts/evidence_val
 | clone_verification.json | 独立克隆核验记录，确认不依赖私有 commit-map |
 | publication.json | 该阶段提交、实际 Git 增删统计及远端发布核对 |
 
-本次仓库外备份存储修订仅修改本页及历史清理说明，不修改应用代码、桌面主文档或简历。私有迁移与恢复报告位于上述 D 盘备份目录；本次文档验证记录位于 artifacts/backup_storage_repair_20261011/，与前述阶段留档分开。文件数及增删统计以 Git 实际差异为准，编辑徽章不是交付统计。
+仓库外备份存储修订阶段（提交 08edaf5）仅修改本页及历史清理说明，不修改应用代码、桌面主文档或简历。私有迁移与恢复报告位于上述 D 盘备份目录。该阶段文档验证记录位于 artifacts/backup_storage_repair_20261011/，以下完整列出其 4 个文件及记录时点；同一目录的文件不必对应同一 HEAD，不能用目录名代替逐文件时间与输入核对：
+
+| 文件 | HEAD 与记录时点（UTC，2026-10-11） | 范围 |
+| --- | --- | --- |
+| quick.log | 84a4fcc；05:19:46–05:19:55，提交前 | 18 项快速检查；检查的是当时修订后的工作区，输入哈希及稳定性见末尾 RUN 元数据 |
+| document_links.json | 84a4fcc；05:19:56，提交前 | 31 份文档、0 个链接问题、46 个外部 URL；记录当时工作区文档哈希 |
+| publication_preflight.log | 推送 08edaf5 时的提交后钩子输出，归属见 publication.json；日志自身无 RUN 时间元数据 | 20 项完整预检、377 项测试和 pip check；不将保存时刻冒充运行起止时间 |
+| publication.json | 08edaf5；05:22:07 的发布核对 | 远端 main 与 HEAD 一致、工作区干净；Git 实际差异为 2 个文件、28 行新增、6 行删除 |
+
+此表是该阶段的历史清单，保留原文件与原 HEAD；后续提交不自动改写或重新归属这些记录。补充清单和权限说明后的文档检查只作为后续发布验证，不能声称上述 4 份文件因此重新生成。文件数及增删统计以 Git 实际差异为准，编辑徽章不是交付统计。
 
 ## 测试临时数据与历史核查产物
 
