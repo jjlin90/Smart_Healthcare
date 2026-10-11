@@ -1,4 +1,4 @@
-"""Record quick preflight or local document links with reproducible run metadata."""
+"""Record preflight, document links or existing desktop bytes with run metadata."""
 from __future__ import annotations
 
 import argparse
@@ -132,17 +132,101 @@ def record(kind: str, output: Path, desktop: Path | None = None) -> int:
     return code
 
 
+def record_desktop_snapshot(output: Path, receipt_path: Path, manifest_path: Path) -> int:
+    """Capture existing targets into a new ignored directory; never edit the desktop."""
+    output = output.resolve()
+    if not output.is_relative_to(ROOT / 'artifacts'):
+        raise ValueError('snapshot output must be under artifacts/')
+    ignored = subprocess.run(['git', 'check-ignore', '-q', '--no-index', '--', str(output)], cwd=ROOT)
+    if ignored.returncode:
+        raise ValueError('snapshot output must be ignored')
+    baseline_paths = [receipt_path, manifest_path]
+    baseline_data = {path: path.read_bytes() for path in baseline_paths}
+    baselines_before = {str(path.resolve()): hashlib.sha256(value).hexdigest() for path, value in baseline_data.items()}
+    receipt = json.loads(baseline_data[receipt_path].decode('utf-8-sig'))
+    manifest = json.loads(baseline_data[manifest_path].decode('utf-8-sig'))
+    if not isinstance(receipt, dict):
+        raise ValueError('snapshot: invalid receipt')
+    entries = receipt.get('entries', [])
+    if not isinstance(entries, list) or not entries or receipt.get('count') != len(entries) or not isinstance(manifest, list) or not manifest:
+        raise ValueError('snapshot: invalid receipt or manifest')
+    targets = [Path(item['target']).resolve() for item in entries]
+    projected = [Path(item['target']).resolve() for item in manifest]
+    if len(set(targets)) != len(targets) or len(set(projected)) != len(projected):
+        raise ValueError('snapshot: duplicate targets')
+    if not set(projected) <= set(targets):
+        raise ValueError('snapshot: manifest target missing from receipt')
+    if any(not path.is_file() for path in targets):
+        raise ValueError('snapshot: target file is missing')
+    output.mkdir()  # Exclusive directory creation also protects every existing report.
+    (output / 'snapshots').mkdir()
+    started = datetime.now(timezone.utc).isoformat()
+    head = git('rev-parse', 'HEAD')
+    checker_before = hashes([Path(__file__).resolve()])
+    data = {target: target.read_bytes() for target in targets}
+    before = {str(path): hashlib.sha256(value).hexdigest() for path, value in data.items()}
+    new_manifest = []
+    for index, item in enumerate(manifest, 1):
+        target = Path(item['target']).resolve()
+        source = output / 'snapshots' / f'source_{index}{target.suffix.lower()}'
+        source.write_bytes(data[target])
+        new_manifest.append({'source': str(source), 'target': str(target),
+                             'before_sha256': before[str(target)], 'after_sha256': before[str(target)],
+                             'previous_recorded_sha256': item['after_sha256'],
+                             'operation': 'snapshot_existing_desktop_bytes'})
+    head_after = git('rev-parse', 'HEAD')
+    stable = (before == hashes(targets) and head == head_after
+              and baselines_before == hashes(baseline_paths)
+              and checker_before == hashes([Path(__file__).resolve()]))
+    metadata = {'run_id': str(uuid.uuid4()), 'kind': 'desktop-snapshot',
+                'started_at_utc': started, 'finished_at_utc': datetime.now(timezone.utc).isoformat(),
+                'head': head, 'head_after': head_after, 'cwd': str(ROOT),
+                'command': [sys.executable, str(Path(__file__).resolve()), '--kind', 'desktop-snapshot',
+                            '--output', str(output), '--receipt', str(receipt_path.resolve()),
+                            '--manifest', str(manifest_path.resolve())],
+                'exit_code': int(not stable), 'inputs_unchanged': stable,
+                'input_sha256': before, 'baseline_sha256': baselines_before,
+                'checker_source_sha256': checker_before,
+                'operation': 'read_current_desktop_files_without_modifying_them',
+                'entries': new_manifest}
+    new_entries = []
+    for item in entries:
+        target = str(Path(item['target']).resolve())
+        new_entries.append({**item, 'target': target, 'sha256': before[target],
+                            'previous_recorded_sha256': item['sha256'],
+                            'previous_source_receipt': item.get('source_receipt'),
+                            'source_receipt': str(output / 'desktop_snapshot.json'), 'verified': stable})
+    new_receipt = {'verified_at_utc': metadata['finished_at_utc'], 'count': len(entries),
+                   'scope': 'Current target hashes read without editing desktop files; declared manifest subset captured.',
+                   'entries': new_entries}
+    for name, value in [('desktop_snapshot.json', metadata), ('desktop_manifest.json', new_manifest),
+                        ('latest_desktop_receipt.json', new_receipt)]:
+        with (output / name).open('x', encoding='utf-8') as stream:
+            json.dump(value, stream, ensure_ascii=False, indent=2)
+    print(json.dumps({'output': str(output), 'exit_code': metadata['exit_code'],
+                      'run_id': metadata['run_id'], 'inputs_unchanged': stable}, ensure_ascii=False))
+    return metadata['exit_code']
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--kind', choices=('quick', 'links'), required=True)
-    parser.add_argument('--output', type=Path, required=True, help='new file under ignored artifacts/')
+    parser.add_argument('--kind', choices=('quick', 'links', 'desktop-snapshot'), required=True)
+    parser.add_argument('--output', type=Path, required=True, help='new file, or new directory for desktop-snapshot, under ignored artifacts/')
     parser.add_argument('--desktop', type=Path, help='optional desktop directory for links mode')
+    parser.add_argument('--receipt', type=Path, help='existing target receipt for desktop-snapshot')
+    parser.add_argument('--manifest', type=Path, help='existing declared subset for desktop-snapshot')
     args = parser.parse_args()
     if args.desktop is not None and args.kind != 'links':
         parser.error('--desktop requires --kind links')
+    if args.kind == 'desktop-snapshot' and (args.receipt is None or args.manifest is None):
+        parser.error('desktop-snapshot requires --receipt and --manifest')
+    if args.kind != 'desktop-snapshot' and (args.receipt is not None or args.manifest is not None):
+        parser.error('--receipt/--manifest require --kind desktop-snapshot')
     try:
+        if args.kind == 'desktop-snapshot':
+            return record_desktop_snapshot(args.output, args.receipt, args.manifest)
         return record(args.kind, args.output, args.desktop)
-    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as exc:
         print(f'Recording failed: {exc}', file=sys.stderr)
         return 1
 

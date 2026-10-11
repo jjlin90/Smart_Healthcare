@@ -130,3 +130,98 @@ def test_preflight_requires_recorder_and_its_regressions():
             report, [path for path in paths if path != preflight_git.ROOT / omitted])
         assert report.errors == ['实现或复现所需文件尚未加入 Git 索引：' + omitted]
         assert not report.passed
+
+
+@pytest.fixture
+def desktop_baseline(repository):
+    desktop = repository / 'artifacts/desktop'
+    desktop.mkdir()
+    targets = [desktop / 'primary.md', desktop / 'other.html']
+    for path in targets:
+        path.write_text('# Current desktop\n', encoding='utf-8')
+    entries = [{'target': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+               for path in targets]
+    receipt = repository / 'artifacts/old_receipt.json'
+    receipt.write_text(json.dumps({'count': len(entries), 'entries': entries}), encoding='utf-8')
+    manifest = repository / 'artifacts/old_manifest.json'
+    manifest.write_text(json.dumps([{'target': entries[0]['target'], 'after_sha256': entries[0]['sha256']}]), encoding='utf-8')
+    return receipt, manifest, targets
+
+
+def test_desktop_snapshot_records_source_bytes_without_modifying_targets(repository, desktop_baseline):
+    receipt, manifest, targets = desktop_baseline
+    targets[0].write_text('# A later edit\n', encoding='utf-8')
+    before = {path: path.read_bytes() for path in targets}
+    output = repository / 'artifacts/new_snapshot'
+    assert recorder.record_desktop_snapshot(output, receipt, manifest) == 0
+    snapshot = json.loads((output / 'desktop_snapshot.json').read_text(encoding='utf-8'))
+    merged = json.loads((output / 'latest_desktop_receipt.json').read_text(encoding='utf-8'))
+    projection = json.loads((output / 'desktop_manifest.json').read_text(encoding='utf-8'))
+    assert snapshot['operation'] == 'read_current_desktop_files_without_modifying_them'
+    assert snapshot['inputs_unchanged'] is True and len(snapshot['baseline_sha256']) == 2
+    assert len(merged['entries']) == merged['count'] == len(snapshot['input_sha256']) == 2
+    assert Path(projection[0]['source']).name == 'source_1.md'
+    assert Path(projection[0]['source']).read_bytes() == before[targets[0]]
+    assert projection[0]['previous_recorded_sha256'] != projection[0]['after_sha256']
+    assert all(path.read_bytes() == value for path, value in before.items())
+
+
+@pytest.mark.parametrize('change,reason', [
+    ('duplicate', 'snapshot: duplicate targets'),
+    ('not_in_receipt', 'snapshot: manifest target missing from receipt'),
+    ('missing_file', 'snapshot: target file is missing'),
+])
+def test_desktop_snapshot_rejects_invalid_baselines(repository, desktop_baseline, change, reason):
+    receipt, manifest, targets = desktop_baseline
+    if change == 'duplicate':
+        value = json.loads(receipt.read_text(encoding='utf-8'))
+        value['entries'].append(value['entries'][0])
+        value['count'] += 1
+        receipt.write_text(json.dumps(value), encoding='utf-8')
+    elif change == 'not_in_receipt':
+        manifest.write_text(json.dumps([{'target': str(repository / 'absent.md'), 'after_sha256': 'old'}]), encoding='utf-8')
+    else:
+        targets[0].unlink()
+    output = repository / 'artifacts/invalid_snapshot'
+    with pytest.raises(ValueError, match=reason):
+        recorder.record_desktop_snapshot(output, receipt, manifest)
+    assert not output.exists()
+
+
+def test_desktop_snapshot_rejects_target_change_during_capture(repository, desktop_baseline, monkeypatch):
+    receipt, manifest, targets = desktop_baseline
+    original = recorder.hashes
+
+    def changed(paths):
+        if paths == [path.resolve() for path in targets]:
+            targets[0].write_text('# Changed during capture\n', encoding='utf-8')
+        return original(paths)
+
+    monkeypatch.setattr(recorder, 'hashes', changed)
+    output = repository / 'artifacts/drift_snapshot'
+    assert recorder.record_desktop_snapshot(output, receipt, manifest) == 1
+    snapshot = json.loads((output / 'desktop_snapshot.json').read_text(encoding='utf-8'))
+    assert snapshot['exit_code'] == 1 and snapshot['inputs_unchanged'] is False
+    receipt_value = json.loads((output / 'latest_desktop_receipt.json').read_text(encoding='utf-8'))
+    assert all(item['verified'] is False for item in receipt_value['entries'])
+
+
+def test_desktop_snapshot_preserves_existing_directory(repository, desktop_baseline):
+    receipt, manifest, _ = desktop_baseline
+    output = repository / 'artifacts/existing_snapshot'
+    output.mkdir()
+    evidence = output / 'evidence.txt'
+    evidence.write_bytes(b'preserve')
+    with pytest.raises(FileExistsError):
+        recorder.record_desktop_snapshot(output, receipt, manifest)
+    assert evidence.read_bytes() == b'preserve'
+    assert list(output.iterdir()) == [evidence]
+
+
+def test_desktop_snapshot_cli_requires_explicit_baselines(repository, monkeypatch, capsys):
+    monkeypatch.setattr(sys, 'argv', ['record_document_checks.py', '--kind', 'desktop-snapshot',
+                                    '--output', str(repository / 'artifacts/snapshot')])
+    with pytest.raises(SystemExit) as raised:
+        recorder.main()
+    assert raised.value.code == 2
+    assert 'desktop-snapshot requires --receipt and --manifest' in capsys.readouterr().err
