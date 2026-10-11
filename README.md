@@ -211,7 +211,7 @@ python -m pytest -q
 python -m compileall -q backend scripts streamlit_app.py
 ```
 
-最近一次完整验证记录（2026-10-11）：**370 项自动化测试、20 项完整预检、18 项快速预检通过**，语法与依赖一致性检查通过。最近一次完整验证的数字集中维护于本节；其他项目说明引用本节，历史轮次保留在[修复与证据记录](docs/intent-fusion.md#历史修复与证据)。存在 LangChain MCP 与 Starlette WSGI 的已知依赖弃用警告，本机 pytest 缓存目录不可写时还可能出现缓存警告，警告总数随环境变化。档案编辑 REST 回归覆盖医生与药师成功保存、管理员写入拒绝、授权撤销、账号停用、匿名请求、姓名/年龄/性别越界、病史条目长度与数量约束，以及提交失败时档案和审计共同回滚；该路径不生成 MCP ToolExecution。
+最近一次完整验证记录（2026-10-11）：**377 项自动化测试、20 项完整预检、18 项快速预检通过**，语法与依赖一致性检查通过。最近一次完整验证的数字集中维护于本节；其他项目说明引用本节，历史轮次保留在[修复与证据记录](docs/intent-fusion.md#历史修复与证据)。存在 LangChain MCP 与 Starlette WSGI 的已知依赖弃用警告，本机 pytest 缓存目录不可写时还可能出现缓存警告，警告总数随环境变化。档案编辑 REST 回归覆盖医生与药师成功保存、管理员写入拒绝、授权撤销、账号停用、匿名请求、姓名/年龄/性别越界、病史条目长度与数量约束，以及提交失败时档案和审计共同回滚；该路径不生成 MCP ToolExecution。
 
 2026-10-07 增加 27 项回归，验证父子委托范围、活动锁容量、真实 MCPAdapter 的 `isError` 处理、JSON 文本块脱敏、证件号替换顺序、导入病史保留/显式清空、无效配置、训练集隔离和患者表单切换。详情见 [2026-10-07 全面核查记录](docs/audit-2026-10-07.md)。
 
@@ -231,7 +231,7 @@ python scripts/evaluate_intent.py --output artifacts/intent_fusion_eval.json
 
 仓库内置不依赖第三方扫描器的预检脚本，会分别扫描工作区候选文件和 Git 暂存内容中的疑似密钥，并检查忽略规则、私钥文件、超大文件、Python 语法和 `.env.example` 配置项完整性。普通模式和 `--quick` 均检查工作区 Markdown 的内联、Wiki 本地文件链接与章节锚点，并要求本地链接目标已纳入 Git 索引、声明 LF 的工作区文件不含 CR，因此提交钩子也会拦截这类断链及换行问题；不请求外部网站，不核对桌面文件或标准引用式链接。预检还会拒绝跟踪 `output/`、`.mimosa/` 和本地简历生成脚本。完整模式还会运行 pytest 与 `pip check`。模式匹配不是完整的数据泄露防护，上传前仍应人工审阅暂存差异；已泄露的密钥需要撤销重置，不能只删除文件：
 
-2026-10-07 的“30 份文档链接检查”为历史快照（仓库 14 份、桌面 16 份）。2026-10-10 当前范围为 31 份（仓库 15 份、桌面 16 份）；提交钩子检查的是仓库内候选 Markdown，不包含桌面。历史额外核查脚本、桌面收据和备份保存在被忽略的 `artifacts/audit_20261007/` 中，融合修复证据位于 `artifacts/review_20261010/`，独立安全入口证据位于 `artifacts/safety_routing_20261010/`，最近一次桌面核对收据位于 `artifacts/evidence_validation_review_20261010/post_commit_review/desktop_capture_repro_20261011/latest_desktop_receipt.json`；该收据只对应记录时刻的目标字节，后续变化需重新核对，均不随克隆分发。
+2026-10-07 的“30 份文档链接检查”为历史快照（仓库 14 份、桌面 16 份）。2026-10-10 当前范围为 31 份（仓库 15 份、桌面 16 份）；提交钩子检查的是仓库内候选 Markdown，不包含桌面。历史额外核查脚本、桌面收据和备份保存在被忽略的 `artifacts/audit_20261007/` 中，融合修复证据位于 `artifacts/review_20261010/`，独立安全入口证据位于 `artifacts/safety_routing_20261010/`，最近一次桌面核对收据位于 `artifacts/history_backup_path_followup_20261011/latest_desktop_receipt.json`；该收据只对应记录时刻的目标字节，后续变化需重新核对，均不随克隆分发。
 
 ```powershell
 conda activate Smart_Healthcare

@@ -308,6 +308,10 @@ python scripts/verify_delivery_evidence.py --evidence-dir artifacts/evidence_val
 
 上述默认命令只打印核对结果，可重复执行。需要保存时添加 --output 并指定尚不存在的新文件；输出采用排他创建，已有文件会报告失败并保持原字节，避免覆盖历史汇总。工具随 Git 分发，本机日志、收据及桌面目标仍属本地证据；仅有汇总 JSON 不能独立重现，需提供对应日志/报告，或在克隆环境重新执行预检。
 
+**隐私清理后续核验（2026-10-11）。** 截图中的备份查询使用了隔离环境的 LOCALAPPDATA，未指向宿主目录；修订后的路径示例和再次实际恢复 26 个原提交的核验见[历史清理说明](history-cleanup.md#2026-10-11-姓名与提交邮箱清理)。旧报告继续保留原 SHA，不修改其历史字段。新增 7 项 SHA 映射回归后，项目总测试由 370 增至 377；映射校验合并在原有交付检查中，完整/快速检查仍为 20/18 项。映射内容指纹、新 SHA 可达性和必需交付路径随仓库检查，不依赖本机 commit-map；私有 bundle 的实际恢复属于独立本机核验，不计为公开 pytest。
+
+本次后续检查记录保存于 artifacts/history_backup_path_followup_20261011/：preflight.log 为新增映射回归后的完整检查；quick.log、document_links.json 由仓库记录器保存最终文档输入；桌面采集的三个 JSON 与 snapshots/ 由 desktop-snapshot 模式读取当前 11 个目标及 4 项清单子集产生；anchor_drift.json 保留早期场景的原字节；evidence_summary.json 核对该目录的结果，不称历史场景为本次重新执行。当前 PDF 从只更新测试数量的既有 HTML 生成，两页渲染图及 pdf_render.json 对应该目录中的当前 PDF 快照。
+
 ## 测试临时数据与历史核查产物
 
 完整预检使用 tempfile.TemporaryDirectory 创建仓库外的系统临时目录，将 pytest 的 --basetemp 指向其中的子目录，执行结束后自动清理。手工核查也应使用新建的系统临时子目录；pytest 会清理 --basetemp 指定的目标，不能指向需要保留文件的目录。

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import ast
+import hashlib
+import json
 import re
 import shlex
 import subprocess
@@ -17,6 +19,8 @@ MAX_TEXT_BYTES = 2 * 1024 * 1024
 MAX_REPOSITORY_FILE_BYTES = 25 * 1024 * 1024
 # Extend this explicit policy when adding a repository development tool.
 DEV_ONLY_TOOLS = frozenset({'pytest', 'pytest-asyncio', 'locust', 'pyyaml'})
+# Public, sanitized rewrite record; update deliberately after a new history rewrite.
+HISTORY_REWRITE_MAP_SHA256 = "7385d5d789d348389b03f3851695209960adf6962f2f49e02cb6345451e893f2"
 
 FORBIDDEN_TRACKED_PARTS = {
     "__pycache__",
@@ -55,6 +59,8 @@ FORBIDDEN_SUFFIXES = {
 }
 
 REQUIRED_TRACKED_PATHS = {
+    "docs/git-history-rewrite-map.json",
+    "tests/test_history_rewrite_map.py",
     "scripts/record_document_checks.py",
     "tests/test_record_document_checks.py",
     "requirements-dev.txt",
@@ -232,8 +238,43 @@ def check_required_project_files_tracked(report: Report, tracked: list[Path]) ->
     missing = sorted(REQUIRED_TRACKED_PATHS - tracked_names)
     if missing:
         report.error("实现或复现所需文件尚未加入 Git 索引：" + ", ".join(missing))
-    else:
-        report.ok("迁移、数据集、模型脚本和关键测试均已加入 Git 索引")
+    elif check_history_rewrite_map(report):
+        report.ok("迁移、数据集、模型脚本、关键测试和脱敏 SHA 映射均已入索引，映射内容及新提交可达性通过")
+
+
+def check_history_rewrite_map(report: Report) -> bool:
+    """Validate the delivered rewrite record without requiring private old objects."""
+    def unique_keys(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:
+                raise ValueError("重复 JSON 键")
+            value[key] = item
+        return value
+
+    try:
+        path = ROOT / "docs/git-history-rewrite-map.json"
+        data = json.loads(path.read_text(encoding="utf-8-sig"), object_pairs_hook=unique_keys)
+        if not isinstance(data, dict) or data.get("schema_version") != 1:
+            raise ValueError("无效 schema_version")
+        mapping = data.get("commits")
+        if not isinstance(mapping, dict) or len(mapping) != 26:
+            raise ValueError("必须包含本次改写的 26 组 SHA")
+        if any(not isinstance(x, str) or not re.fullmatch(r"[a-f0-9]{40}", x)
+               for pair in mapping.items() for x in pair):
+            raise ValueError("必须使用完整小写 SHA-1")
+        if len(set(mapping.values())) != len(mapping):
+            raise ValueError("新 SHA 不得重复")
+        canonical = json.dumps(data, sort_keys=True, separators=(",", ":")).encode()
+        if hashlib.sha256(canonical).hexdigest() != HISTORY_REWRITE_MAP_SHA256:
+            raise ValueError("记录与已核验的脱敏映射指纹不同；再次改写历史需同步映射和校验基准")
+        history = run(["git", "rev-list", "HEAD"])
+        if history.returncode or not set(mapping.values()) <= set(history.stdout.splitlines()):
+            raise ValueError("新 SHA 未全部位于当前 HEAD 历史；浅克隆需补齐历史")
+    except (OSError, UnicodeError, ValueError) as exc:
+        report.error(f"脱敏 SHA 映射校验失败：{exc}")
+        return False
+    return True
 
 
 def check_local_imports_tracked(report: Report, tracked: list[Path], candidates: list[Path] | None = None) -> None:
