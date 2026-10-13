@@ -10,14 +10,14 @@ from sqlalchemy import select
 
 from backend.database import SessionLocal, init_db
 from backend.models import PatientProfile
-from backend.schemas import ProfileUpdate, WriteToolArguments
+from backend.schemas import ProfileFields, WriteToolArguments
 
 
 async def upsert(args: argparse.Namespace) -> None:
     # Validate before opening the database, using the same clinical limits as
     # the REST and MCP write paths.
     patient_id = WriteToolArguments(patient_id=args.patient_id).patient_id
-    data = ProfileUpdate(
+    data = ProfileFields(
         name=args.name, age=args.age, gender=args.gender,
         allergies=args.allergy or [], conditions=args.condition or [],
         medications=args.medication or [],

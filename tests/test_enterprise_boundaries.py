@@ -83,6 +83,7 @@ async def test_profile_put_permissions_validation_and_audit(records, profile_api
     from backend.models import AuditLog
     import json
     payload = {"name": "Updated", "age": 35, "gender": "unknown", "allergies": ["test"], "conditions": [], "medications": []}
+    payload["expected_revision"] = (await profile_api.get("/api/patients/patient/profile")).json()["revision"]
     async with records() as db:
         user = await db.scalar(select(User))
         if case in {"doctor", "pharmacist", "medical_admin", "system_admin"}:
@@ -107,7 +108,7 @@ async def test_profile_put_permissions_validation_and_audit(records, profile_api
         field, value = invalid_fields[case]
         payload[field] = value
     response = await profile_api.put("/api/patients/patient/profile", json=payload)
-    assert response.status_code == expected
+    assert response.status_code == expected, response.text
     async with records() as db:
         profile = await db.scalar(select(PatientProfile))
         audits = (await db.scalars(select(AuditLog))).all()
@@ -127,12 +128,66 @@ async def test_profile_put_commit_failure_rolls_back_profile_and_audit(records, 
     async def failed_commit(db):
         await db.flush()
         raise SQLAlchemyError("injected commit failure")
+    revision = (await profile_api.get("/api/patients/patient/profile")).json()["revision"]
     monkeypatch.setattr(AsyncSession, "commit", failed_commit)
-    response = await profile_api.put("/api/patients/patient/profile", json={"name": "Changed", "age": 40, "gender": "unknown"})
+    response = await profile_api.put("/api/patients/patient/profile", json={"expected_revision": revision, "name": "Changed", "age": 40, "gender": "unknown"})
     assert response.status_code == 500
     async with records() as db:
         assert (await db.scalar(select(PatientProfile))).name == "Test"
         assert await db.scalar(select(AuditLog)) is None
+
+
+async def test_stale_profile_form_cannot_overwrite_new_staff_edit(records, profile_api):
+    from backend.models import AuditLog
+    import json
+    original = (await profile_api.get("/api/patients/patient/profile")).json()
+    payload = {"expected_revision": original["revision"], "name": "First edit", "age": 35, "gender": "unknown"}
+    assert (await profile_api.put("/api/patients/patient/profile", json=payload)).status_code == 200
+    payload["name"] = "Stale overwrite"
+    assert (await profile_api.put("/api/patients/patient/profile", json=payload)).status_code == 409
+    async with records() as db:
+        assert (await db.scalar(select(PatientProfile))).name == "First edit"
+        audits = (await db.scalars(select(AuditLog))).all()
+        assert len(audits) == 1
+        assert "name" in json.loads(audits[0].detail)["changed_fields"]
+
+
+async def test_profile_edit_requires_snapshot_revision(profile_api):
+    response = await profile_api.put("/api/patients/patient/profile", json={"name":"Test","age":30,"gender":"unknown"})
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("owner,expected", [("staff", 200), ("other_staff", 404)])
+async def test_intent_feedback_is_owned_and_requires_review(records, profile_api, owner, expected):
+    import json
+    from backend.models import AuditLog
+    async with records() as db:
+        db.add(AuditLog(patient_id="patient", action="agent_response", detail=json.dumps({
+            "request_id": "feedback-request-123", "staff_user_id": owner,
+            "task_id": "task-test", "intent": "药品信息查询"})))
+        db.add(AuditLog(patient_id="patient", action="agent_response", detail="legacy diagnostic"))
+        await db.commit()
+    response = await profile_api.post("/api/chat/feedback", json={
+        "patient_id": "patient", "request_id": "feedback-request-123",
+        "expected_intents": ["临床指南检索", "临床指南检索"], "comment": "应检索指南"})
+    assert response.status_code == expected
+    async with records() as db:
+        feedback = (await db.scalars(select(AuditLog).where(AuditLog.action == "intent_feedback"))).all()
+        assert len(feedback) == (1 if expected == 200 else 0)
+        if feedback:
+            data = json.loads(feedback[0].detail)
+            assert data["review_status"] == "pending_clinical_review"
+            assert data["expected_intents"] == ["临床指南检索"]
+            assert data["predicted_intent"] == "药品信息查询"
+
+
+async def test_feedback_cannot_bypass_revoked_patient_authorization(records, profile_api):
+    async with records() as db:
+        await db.execute(delete(PatientAccess))
+        await db.commit()
+    response = await profile_api.post("/api/chat/feedback", json={
+        "patient_id": "patient", "request_id": "feedback-request-123", "expected_intents": ["临床指南检索"]})
+    assert response.status_code == 403
 
 
 async def token_context(monkeypatch, token):

@@ -589,7 +589,7 @@ def test_workspace_patient_switch_discards_previous_unsaved_profile_edits(monkey
     app.number_input[0].set_value(45)
     next(widget for widget in app.text_input if widget.label.startswith("过敏史")).set_value("unsaved-p1-allergy")
     app.run(timeout=10)
-    app.selectbox[0].set_value("p2").run(timeout=10)
+    next(widget for widget in app.selectbox if "患者" in widget.label).set_value("p2").run(timeout=10)
     assert not app.exception
     assert app.number_input[0].value == 30
     assert next(widget for widget in app.text_input if widget.label.startswith("过敏史")).value == ""
@@ -665,3 +665,135 @@ async def test_local_turn_capacity_cannot_evict_an_active_conversation():
                 pytest.fail("The original conversation must remain locked")
     async with memory.turn("patient", "new"):
         pass
+
+
+@pytest.mark.parametrize("channel", ["scope", "planner", "bert", "vector"])
+async def test_model_failure_logs_exclude_medical_payload(monkeypatch, caplog, channel):
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+    from backend import agents
+    from backend.config import get_settings
+
+    private = "隐私测试姓名，敏感临床原文"
+    if channel == "scope":
+        monkeypatch.setattr(agents.DomainGuard, "_llm_assess", AsyncMock(side_effect=RuntimeError(private)))
+        assert (await agents.DomainGuard().assess("帮我处理一下")).scope == "uncertain"
+    elif channel == "planner":
+        completions = SimpleNamespace(create=AsyncMock(return_value=SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content='{"steps":[{"agent":"invalid","task":"' + private + '"}]}'))],
+        )))
+        monkeypatch.setattr(agents, "ModelClients", lambda: SimpleNamespace(main=SimpleNamespace(chat=SimpleNamespace(completions=completions))))
+        decision = agents.IntentDecision(intents=["症状评估"], complex_task=True, reason="test")
+        assert (await agents.Planner().plan("test", decision, {})).steps[0].agent == "SymptomAgent"
+    else:
+        def failure(*args, **kwargs):
+            raise RuntimeError(private)
+        monkeypatch.setattr(get_settings(), f"intent_{channel}_model_path", "local-test-model")
+        monkeypatch.setattr(agents, f"_load_{channel}_bundle", failure)
+        assert getattr(agents.IntentClassifier, f"_{channel}_classify_sync")("test") is None
+    assert caplog.records
+    assert private not in caplog.text
+    assert "敏感临床原文" not in caplog.text
+
+
+@pytest.mark.parametrize("mode", ["stream", "sync"])
+@pytest.mark.parametrize("text,finish", [
+    ("真实工具结果的汇总", "stop"),
+    ("只输出了半句", "length"),
+    ("被过滤的片段", "content_filter"),
+    ("缺少结束标记", None),
+    ("  \n", "stop"),
+    ("disclaimer_only", "stop"),
+])
+async def test_synthesis_requires_content_and_normal_completion(monkeypatch, mode, text, finish):
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock
+    from backend import agents
+    if text == "disclaimer_only":
+        text = agents.DISCLAIMER
+    closed = []
+    class Stream:
+        def __aiter__(self):
+            return self.generate()
+        async def generate(self):
+            yield SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=text), finish_reason=None)])
+            if finish is not None:
+                yield SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=None), finish_reason=finish)])
+            yield SimpleNamespace(choices=[])  # Trailing usage chunk.
+        async def close(self):
+            closed.append(True)
+    result = Stream() if mode == "stream" else SimpleNamespace(choices=[SimpleNamespace(
+        message=SimpleNamespace(content=text), finish_reason=finish,
+    )])
+    clients = SimpleNamespace(main=SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=AsyncMock(return_value=result)))))
+    monkeypatch.setattr(agents, "ModelClients", lambda: clients)
+    async def answer():
+        planner = agents.Planner()
+        if mode == "stream":
+            return "".join([part async for part in planner.synthesize_stream("test", [{"answer": "evidence"}], {})])
+        return await planner.synthesize("test", [{"answer": "evidence"}], {})
+    if finish == "stop" and text.replace(agents.DISCLAIMER, "").strip():
+        assert text in await answer()
+    else:
+        with pytest.raises(RuntimeError, match="完整有效答复"):
+            await answer()
+    if mode == "stream":
+        assert closed == [True]
+
+
+@pytest.mark.parametrize("text,finish", [("", "stop"), ("  ", "stop"), ("disclaimer_only", "stop"), ("半句", "length"), ("结果", "content_filter")])
+async def test_successful_tool_does_not_make_invalid_specialist_answer_successful(monkeypatch, clinical_delegation, text, finish):
+    from fastmcp import Client, FastMCP
+    from langchain_core.messages import AIMessage
+    from backend import agents
+    from backend.config import get_settings
+    server = FastMCP("answer-completion-test")
+    calls = []
+    @server.tool
+    async def load_patient_history(patient_id: str) -> dict:
+        calls.append(patient_id)
+        return {"allergies": []}
+    class Runtime:
+        def __init__(self, tools):
+            self.tools = tools
+        async def ainvoke(self, *args, **kwargs):
+            await self.tools[0].ainvoke({"patient_id": "wrong-model-patient"})
+            content = agents.DISCLAIMER if text == "disclaimer_only" else text
+            return {"messages": [AIMessage(content=content, response_metadata={"finish_reason": finish})]}
+    monkeypatch.setattr(get_settings(), "siliconflow_api_key", "test-key")
+    monkeypatch.setattr(agents, "ChatOpenAI", lambda **kwargs: object())
+    monkeypatch.setattr(agents, "MCPClient", lambda *args, **kwargs: Client(server))
+    monkeypatch.setattr(agents, "create_agent", lambda model, tools, **kwargs: Runtime(tools))
+    with pytest.raises(RuntimeError, match="完整有效答复"):
+        await agents.MCPToolAgent("SymptomAgent").run("读取病史", "authorized_patient", {})
+    assert calls == ["authorized_patient"]
+
+
+async def test_incomplete_summary_never_reaches_persistence_or_done(monkeypatch):
+    from types import SimpleNamespace
+    from unittest.mock import AsyncMock, Mock
+    from backend import agents, main
+    from backend.schemas import ChatRequest, UserContext
+    from backend.safety import SafetyDecision
+
+    async def generate(*args):
+        yield "未完成的回答片段"
+        agents.Planner._require_complete_answer("未完成的回答片段", "length")
+    monkeypatch.setattr(agents.SafetyGuard, "assess", AsyncMock(return_value=SafetyDecision(risk_level="no_signal", source="rule")))
+    monkeypatch.setattr(agents.DomainGuard, "assess", AsyncMock(return_value=agents.ScopeDecision(scope="medical", medical_request="查询阿莫西林说明书", reason="test", source="rule")))
+    monkeypatch.setattr(agents.IntentClassifier, "classify", AsyncMock(return_value=agents.IntentDecision(intents=["药品信息查询"], complex_task=False, reason="test")))
+    monkeypatch.setattr(main.coordinator, "_call_a2a", AsyncMock(return_value={"agent": "DrugAgent", "answer": "工具证据", "trace": [{"tool": "query_drug_info", "status": "completed"}],
+                        "observations": [{"tool": "query_drug_info", "content": {"drug": "阿莫西林"}, "truncated": False}]}))
+    monkeypatch.setattr(agents.Planner, "synthesize_stream", generate)
+    profile = SimpleNamespace(name="test", allergy_history="[]", past_medical_history="[]", current_medications="[]")
+    monkeypatch.setattr(main, "require_profile", AsyncMock(return_value=profile))
+    memory = ConversationMemory(use_redis=False)
+    monkeypatch.setattr(main, "conversation_memory", memory)
+    writer = Mock(side_effect=AssertionError("Incomplete answers must not be saved"))
+    monkeypatch.setattr(main, "SessionLocal", writer)
+    response = await main.chat_stream(ChatRequest(patient_id="p", message="查询阿莫西林说明书"), UserContext(username="u", user_id="u", role="doctor"), object())
+    events = "".join([event async for event in response.body_iterator])
+    assert "event: delta" in events and "event: error" in events
+    assert "event: done" not in events
+    writer.assert_not_called()
+    assert not memory._sessions

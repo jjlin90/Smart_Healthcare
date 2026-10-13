@@ -48,6 +48,7 @@ def documents(desktop: Path | None) -> list[Path]:
 
 def check_links(paths: list[Path]) -> dict:
     issues, urls = [], set()
+    heading_cache = {}
     for path in paths:
         body = _markdown_without_fences(path.read_text(encoding='utf-8-sig'))
         body = re.sub(r'(`+)[^\n]*?\1', lambda m: ' ' * len(m[0]), body)
@@ -73,7 +74,9 @@ def check_links(paths: list[Path]) -> dict:
             if not target.is_file():
                 reason = 'missing_file'
             elif anchor and target.suffix.lower() == '.md':
-                titles, anchors = _markdown_headings(target.read_text(encoding='utf-8-sig'))
+                if target not in heading_cache:
+                    heading_cache[target] = _markdown_headings(target.read_text(encoding='utf-8-sig'))
+                titles, anchors = heading_cache[target]
                 if anchor not in (titles if wiki else anchors):
                     reason = 'missing_anchor'
             if reason:

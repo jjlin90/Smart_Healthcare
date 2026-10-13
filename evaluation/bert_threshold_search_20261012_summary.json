@@ -1,0 +1,1156 @@
+{
+  "evaluated_on": "2026-10-12",
+  "generated_at": "2026-10-12T08:02:54.523199+00:00",
+  "pipeline": "bert_sigmoid_multilabel_v4_validation_threshold_search",
+  "model_artifacts_sha256": {
+    "model.safetensors": "fa5c366d2c08ba04f858519e357daac41f123896f8c3b1fd59bb8377e9279386",
+    "config.json": "2b56c48acf89829f67b8772eee3184c2454616e63aa4750007330bba40f82b6d",
+    "tokenizer.json": "b4e3f0941d6626578c197ecdaa07949255ee9edb501c0f470436497aa1711440",
+    "intent_thresholds.json": "cf59fe28bd8cfc1c8e5508a859edd4b71192984655a5d3a2956dbfaad37518f7"
+  },
+  "datasets": {
+    "train": {
+      "path": "evaluation/datasets/multilabel_v4/intent_train.jsonl",
+      "case_count": 3100,
+      "sha256": "fcbae45bb63526b72e083edea1ed1c494565c74ac61d6978499382966daecadc"
+    },
+    "validation": {
+      "path": "evaluation/datasets/multilabel_v4/intent_validation.jsonl",
+      "case_count": 640,
+      "sha256": "af820ee5f4a2fca7e8f295453220e4c33e38311584f29d8c49d7984eca65b830"
+    },
+    "test": {
+      "path": "evaluation/datasets/multilabel_v4/intent_test.jsonl",
+      "case_count": 1340,
+      "sha256": "ef3da135dc7e3c604bc6ed3becfd94433cf5888c5b9829c430511c5aeda88bb3"
+    },
+    "challenge": {
+      "path": "evaluation/datasets/intent_challenge.jsonl",
+      "case_count": 400,
+      "sha256": "87d75d1e48217016621702edda1398517fa18c9bfecc98d7155f1ed9a50ca850"
+    }
+  },
+  "normalized_text_overlap": {
+    "train/validation": 0,
+    "train/test": 0,
+    "train/challenge": 0,
+    "validation/test": 0,
+    "validation/challenge": 0,
+    "test/challenge": 0
+  },
+  "selection": {
+    "objective": "validation macro-F1; tie: exact-match, micro-F1; equal profiles retain current",
+    "per_label_tie_rule": "nearest current threshold, then lower threshold",
+    "selection_data": "validation_only",
+    "selected_profile": "current",
+    "selected_thresholds": {
+      "症状评估": 0.5,
+      "药品信息查询": 0.5,
+      "临床指南检索": 0.5,
+      "检验结果辅助解读": 0.5,
+      "院内分诊建议": 0.5,
+      "随访管理": 0.5,
+      "用药审核": 0.5,
+      "临床知识查询": 0.5,
+      "转诊协同": 0.5,
+      "检查报告辅助解读": 0.5
+    },
+    "uniform_breakpoint_count": 6492,
+    "uniform_optimum": {
+      "threshold": 0.5,
+      "macro_f1": 1.0,
+      "micro_f1": 1.0,
+      "exact_match": 1.0,
+      "false_positive_labels": 0,
+      "missed_labels": 0
+    },
+    "equally_best_uniform_grid_values": [
+      0.2,
+      0.21,
+      0.22,
+      0.23,
+      0.24,
+      0.25,
+      0.26,
+      0.27,
+      0.28,
+      0.29,
+      0.3,
+      0.31,
+      0.32,
+      0.33,
+      0.34,
+      0.35000000000000003,
+      0.36,
+      0.37,
+      0.38,
+      0.39,
+      0.4,
+      0.41000000000000003,
+      0.42,
+      0.43,
+      0.44,
+      0.45,
+      0.46,
+      0.47000000000000003,
+      0.48,
+      0.49,
+      0.5,
+      0.51,
+      0.52,
+      0.53,
+      0.54,
+      0.55,
+      0.56,
+      0.5700000000000001,
+      0.58,
+      0.59,
+      0.6,
+      0.61,
+      0.62,
+      0.63,
+      0.64,
+      0.65,
+      0.66,
+      0.67,
+      0.68,
+      0.6900000000000001
+    ],
+    "per_label_search": {
+      "症状评估": {
+        "threshold": 0.5,
+        "validation_f1": 1.0,
+        "equally_best_candidate_count": 83,
+        "smallest_best_candidate": 0.05,
+        "largest_best_candidate": 0.860707700252533
+      },
+      "药品信息查询": {
+        "threshold": 0.5,
+        "validation_f1": 1.0,
+        "equally_best_candidate_count": 67,
+        "smallest_best_candidate": 0.04,
+        "largest_best_candidate": 0.6998267769813538
+      },
+      "临床指南检索": {
+        "threshold": 0.5,
+        "validation_f1": 1.0,
+        "equally_best_candidate_count": 78,
+        "smallest_best_candidate": 0.04,
+        "largest_best_candidate": 0.8097488880157471
+      },
+      "检验结果辅助解读": {
+        "threshold": 0.5,
+        "validation_f1": 1.0,
+        "equally_best_candidate_count": 78,
+        "smallest_best_candidate": 0.08,
+        "largest_best_candidate": 0.8428415656089783
+      },
+      "院内分诊建议": {
+        "threshold": 0.5,
+        "validation_f1": 1.0,
+        "equally_best_candidate_count": 78,
+        "smallest_best_candidate": 0.05,
+        "largest_best_candidate": 0.8169102072715759
+      },
+      "随访管理": {
+        "threshold": 0.5,
+        "validation_f1": 1.0,
+        "equally_best_candidate_count": 68,
+        "smallest_best_candidate": 0.05,
+        "largest_best_candidate": 0.7149364948272705
+      },
+      "用药审核": {
+        "threshold": 0.5,
+        "validation_f1": 1.0,
+        "equally_best_candidate_count": 83,
+        "smallest_best_candidate": 0.05,
+        "largest_best_candidate": 0.8693177700042725
+      },
+      "临床知识查询": {
+        "threshold": 0.5,
+        "validation_f1": 1.0,
+        "equally_best_candidate_count": 82,
+        "smallest_best_candidate": 0.05,
+        "largest_best_candidate": 0.859574019908905
+      },
+      "转诊协同": {
+        "threshold": 0.5,
+        "validation_f1": 1.0,
+        "equally_best_candidate_count": 78,
+        "smallest_best_candidate": 0.05,
+        "largest_best_candidate": 0.8148218989372253
+      },
+      "检查报告辅助解读": {
+        "threshold": 0.5,
+        "validation_f1": 1.0,
+        "equally_best_candidate_count": 64,
+        "smallest_best_candidate": 0.2,
+        "largest_best_candidate": 0.8228076696395874
+      }
+    },
+    "validation_grid": [
+      {
+        "threshold": 0.0,
+        "macro_f1": 0.23203002993747807,
+        "micro_f1": 0.23204419889502761,
+        "exact_match": 0.0,
+        "false_positive_labels": 5560,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.01,
+        "macro_f1": 0.23406449502092505,
+        "micro_f1": 0.2340158796489762,
+        "exact_match": 0.0,
+        "false_positive_labels": 5499,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.02,
+        "macro_f1": 0.3984641330197762,
+        "micro_f1": 0.3886190145732131,
+        "exact_match": 0.040625,
+        "false_positive_labels": 2643,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.03,
+        "macro_f1": 0.7983097199335355,
+        "micro_f1": 0.7898448519040903,
+        "exact_match": 0.61875,
+        "false_positive_labels": 447,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.04,
+        "macro_f1": 0.9797630638532011,
+        "micro_f1": 0.9795918367346939,
+        "exact_match": 0.95,
+        "false_positive_labels": 35,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.05,
+        "macro_f1": 0.997055342847198,
+        "micro_f1": 0.9970326409495549,
+        "exact_match": 0.9921875,
+        "false_positive_labels": 5,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.06,
+        "macro_f1": 0.9976331360946744,
+        "micro_f1": 0.997624703087886,
+        "exact_match": 0.99375,
+        "false_positive_labels": 4,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.07,
+        "macro_f1": 0.9976331360946744,
+        "micro_f1": 0.997624703087886,
+        "exact_match": 0.99375,
+        "false_positive_labels": 4,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.08,
+        "macro_f1": 0.9982248520710059,
+        "micro_f1": 0.9982174688057041,
+        "exact_match": 0.9953125,
+        "false_positive_labels": 3,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.09,
+        "macro_f1": 0.9982248520710059,
+        "micro_f1": 0.9982174688057041,
+        "exact_match": 0.9953125,
+        "false_positive_labels": 3,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.1,
+        "macro_f1": 0.9988095238095237,
+        "micro_f1": 0.9988109393579072,
+        "exact_match": 0.996875,
+        "false_positive_labels": 2,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.11,
+        "macro_f1": 0.9988095238095237,
+        "micro_f1": 0.9988109393579072,
+        "exact_match": 0.996875,
+        "false_positive_labels": 2,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.12,
+        "macro_f1": 0.9988095238095237,
+        "micro_f1": 0.9988109393579072,
+        "exact_match": 0.996875,
+        "false_positive_labels": 2,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.13,
+        "macro_f1": 0.9994011976047904,
+        "micro_f1": 0.9994051160023796,
+        "exact_match": 0.9984375,
+        "false_positive_labels": 1,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.14,
+        "macro_f1": 0.9994011976047904,
+        "micro_f1": 0.9994051160023796,
+        "exact_match": 0.9984375,
+        "false_positive_labels": 1,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.15,
+        "macro_f1": 0.9994011976047904,
+        "micro_f1": 0.9994051160023796,
+        "exact_match": 0.9984375,
+        "false_positive_labels": 1,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.16,
+        "macro_f1": 0.9994011976047904,
+        "micro_f1": 0.9994051160023796,
+        "exact_match": 0.9984375,
+        "false_positive_labels": 1,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.17,
+        "macro_f1": 0.9994011976047904,
+        "micro_f1": 0.9994051160023796,
+        "exact_match": 0.9984375,
+        "false_positive_labels": 1,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.18,
+        "macro_f1": 0.9994011976047904,
+        "micro_f1": 0.9994051160023796,
+        "exact_match": 0.9984375,
+        "false_positive_labels": 1,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.19,
+        "macro_f1": 0.9994011976047904,
+        "micro_f1": 0.9994051160023796,
+        "exact_match": 0.9984375,
+        "false_positive_labels": 1,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.2,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.21,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.22,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.23,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.24,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.25,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.26,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.27,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.28,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.29,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.3,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.31,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.32,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.33,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.34,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.35000000000000003,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.36,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.37,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.38,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.39,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.4,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.41000000000000003,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.42,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.43,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.44,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.45,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.46,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.47000000000000003,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.48,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.49,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.5,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.51,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.52,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.53,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.54,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.55,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.56,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.5700000000000001,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.58,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.59,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.6,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.61,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.62,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.63,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.64,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.65,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.66,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.67,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.68,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.6900000000000001,
+        "macro_f1": 1.0,
+        "micro_f1": 1.0,
+        "exact_match": 1.0,
+        "false_positive_labels": 0,
+        "missed_labels": 0
+      },
+      {
+        "threshold": 0.7000000000000001,
+        "macro_f1": 0.9994152046783625,
+        "micro_f1": 0.9994044073853484,
+        "exact_match": 0.9984375,
+        "false_positive_labels": 0,
+        "missed_labels": 1
+      },
+      {
+        "threshold": 0.71,
+        "macro_f1": 0.9994152046783625,
+        "micro_f1": 0.9994044073853484,
+        "exact_match": 0.9984375,
+        "false_positive_labels": 0,
+        "missed_labels": 1
+      },
+      {
+        "threshold": 0.72,
+        "macro_f1": 0.9987862738607525,
+        "micro_f1": 0.99880810488677,
+        "exact_match": 0.996875,
+        "false_positive_labels": 0,
+        "missed_labels": 2
+      },
+      {
+        "threshold": 0.73,
+        "macro_f1": 0.9987862738607525,
+        "micro_f1": 0.99880810488677,
+        "exact_match": 0.996875,
+        "false_positive_labels": 0,
+        "missed_labels": 2
+      },
+      {
+        "threshold": 0.74,
+        "macro_f1": 0.9987862738607525,
+        "micro_f1": 0.99880810488677,
+        "exact_match": 0.996875,
+        "false_positive_labels": 0,
+        "missed_labels": 2
+      },
+      {
+        "threshold": 0.75,
+        "macro_f1": 0.9969127013862871,
+        "micro_f1": 0.9970149253731343,
+        "exact_match": 0.9921875,
+        "false_positive_labels": 0,
+        "missed_labels": 5
+      },
+      {
+        "threshold": 0.76,
+        "macro_f1": 0.9969127013862871,
+        "micro_f1": 0.9970149253731343,
+        "exact_match": 0.9921875,
+        "false_positive_labels": 0,
+        "missed_labels": 5
+      },
+      {
+        "threshold": 0.77,
+        "macro_f1": 0.9963140240455282,
+        "micro_f1": 0.996415770609319,
+        "exact_match": 0.990625,
+        "false_positive_labels": 0,
+        "missed_labels": 6
+      },
+      {
+        "threshold": 0.78,
+        "macro_f1": 0.9957082195935699,
+        "micro_f1": 0.99581589958159,
+        "exact_match": 0.9890625,
+        "false_positive_labels": 0,
+        "missed_labels": 7
+      },
+      {
+        "threshold": 0.79,
+        "macro_f1": 0.9957082195935699,
+        "micro_f1": 0.99581589958159,
+        "exact_match": 0.9890625,
+        "false_positive_labels": 0,
+        "missed_labels": 7
+      },
+      {
+        "threshold": 0.8,
+        "macro_f1": 0.9957082195935699,
+        "micro_f1": 0.99581589958159,
+        "exact_match": 0.9890625,
+        "false_positive_labels": 0,
+        "missed_labels": 7
+      },
+      {
+        "threshold": 0.81,
+        "macro_f1": 0.9944769103728642,
+        "micro_f1": 0.9946140035906643,
+        "exact_match": 0.9859375,
+        "false_positive_labels": 0,
+        "missed_labels": 9
+      },
+      {
+        "threshold": 0.8200000000000001,
+        "macro_f1": 0.9907065405892196,
+        "micro_f1": 0.990990990990991,
+        "exact_match": 0.9765625,
+        "false_positive_labels": 0,
+        "missed_labels": 15
+      },
+      {
+        "threshold": 0.8300000000000001,
+        "macro_f1": 0.9869677468964746,
+        "micro_f1": 0.9873417721518988,
+        "exact_match": 0.9671875,
+        "false_positive_labels": 0,
+        "missed_labels": 21
+      },
+      {
+        "threshold": 0.84,
+        "macro_f1": 0.983255407031284,
+        "micro_f1": 0.9836660617059891,
+        "exact_match": 0.9578125,
+        "false_positive_labels": 0,
+        "missed_labels": 27
+      },
+      {
+        "threshold": 0.85,
+        "macro_f1": 0.9782480094116689,
+        "micro_f1": 0.9787234042553191,
+        "exact_match": 0.9453125,
+        "false_positive_labels": 0,
+        "missed_labels": 35
+      },
+      {
+        "threshold": 0.86,
+        "macro_f1": 0.972222103287997,
+        "micro_f1": 0.9731051344743277,
+        "exact_match": 0.93125,
+        "false_positive_labels": 0,
+        "missed_labels": 44
+      },
+      {
+        "threshold": 0.87,
+        "macro_f1": 0.9625368861601702,
+        "micro_f1": 0.9636027143738433,
+        "exact_match": 0.9078125,
+        "false_positive_labels": 0,
+        "missed_labels": 59
+      },
+      {
+        "threshold": 0.88,
+        "macro_f1": 0.9438568699946055,
+        "micro_f1": 0.946047678795483,
+        "exact_match": 0.8671875,
+        "false_positive_labels": 0,
+        "missed_labels": 86
+      },
+      {
+        "threshold": 0.89,
+        "macro_f1": 0.9218901438957714,
+        "micro_f1": 0.9244558258642765,
+        "exact_match": 0.8171875,
+        "false_positive_labels": 0,
+        "missed_labels": 118
+      },
+      {
+        "threshold": 0.9,
+        "macro_f1": 0.8990849450503788,
+        "micro_f1": 0.9026779882429784,
+        "exact_match": 0.7703125,
+        "false_positive_labels": 0,
+        "missed_labels": 149
+      },
+      {
+        "threshold": 0.91,
+        "macro_f1": 0.8635081190335907,
+        "micro_f1": 0.8671611598111936,
+        "exact_match": 0.7203125,
+        "false_positive_labels": 0,
+        "missed_labels": 197
+      },
+      {
+        "threshold": 0.92,
+        "macro_f1": 0.8192853645054903,
+        "micro_f1": 0.8235294117647058,
+        "exact_match": 0.6875,
+        "false_positive_labels": 0,
+        "missed_labels": 252
+      },
+      {
+        "threshold": 0.93,
+        "macro_f1": 0.7663208941352994,
+        "micro_f1": 0.7692307692307693,
+        "exact_match": 0.6640625,
+        "false_positive_labels": 0,
+        "missed_labels": 315
+      },
+      {
+        "threshold": 0.9400000000000001,
+        "macro_f1": 0.7121745969775235,
+        "micro_f1": 0.7155963302752294,
+        "exact_match": 0.6375,
+        "false_positive_labels": 0,
+        "missed_labels": 372
+      },
+      {
+        "threshold": 0.9500000000000001,
+        "macro_f1": 0.6194907654562297,
+        "micro_f1": 0.6240786240786241,
+        "exact_match": 0.559375,
+        "false_positive_labels": 0,
+        "missed_labels": 459
+      },
+      {
+        "threshold": 0.96,
+        "macro_f1": 0.5176584155293722,
+        "micro_f1": 0.5263157894736842,
+        "exact_match": 0.459375,
+        "false_positive_labels": 0,
+        "missed_labels": 540
+      },
+      {
+        "threshold": 0.97,
+        "macro_f1": 0.3187832020397109,
+        "micro_f1": 0.33663366336633666,
+        "exact_match": 0.265625,
+        "false_positive_labels": 0,
+        "missed_labels": 670
+      },
+      {
+        "threshold": 0.98,
+        "macro_f1": 0.11438061539206537,
+        "micro_f1": 0.125,
+        "exact_match": 0.0875,
+        "false_positive_labels": 0,
+        "missed_labels": 784
+      },
+      {
+        "threshold": 0.99,
+        "macro_f1": 0.0,
+        "micro_f1": 0.0,
+        "exact_match": 0.0,
+        "false_positive_labels": 0,
+        "missed_labels": 840
+      },
+      {
+        "threshold": 1.0,
+        "macro_f1": 0.0,
+        "micro_f1": 0.0,
+        "exact_match": 0.0,
+        "false_positive_labels": 0,
+        "missed_labels": 840
+      }
+    ]
+  },
+  "validation_result": {
+    "case_count": 640,
+    "exact_match": 1.0,
+    "micro_precision": 1.0,
+    "micro_recall": 1.0,
+    "micro_f1": 1.0,
+    "macro_f1": 1.0,
+    "false_positive_labels": 0,
+    "missed_labels": 0,
+    "bert_boundary_rate": 0.0
+  },
+  "holdouts": {
+    "test": {
+      "case_count": 1340,
+      "exact_match": 1.0,
+      "micro_precision": 1.0,
+      "micro_recall": 1.0,
+      "micro_f1": 1.0,
+      "macro_f1": 1.0,
+      "false_positive_labels": 0,
+      "missed_labels": 0,
+      "bert_boundary_rate": 0.0007462686567164179,
+      "groups": {
+        "single": {
+          "case_count": 1040,
+          "exact_match": 1.0,
+          "micro_precision": 1.0,
+          "micro_recall": 1.0,
+          "micro_f1": 1.0,
+          "macro_f1": 1.0,
+          "false_positive_labels": 0,
+          "missed_labels": 0,
+          "bert_boundary_rate": 0.0,
+          "empty_prediction_rate": 0.0
+        },
+        "multi": {
+          "case_count": 300,
+          "exact_match": 1.0,
+          "micro_precision": 1.0,
+          "micro_recall": 1.0,
+          "micro_f1": 1.0,
+          "macro_f1": 1.0,
+          "false_positive_labels": 0,
+          "missed_labels": 0,
+          "bert_boundary_rate": 0.0033333333333333335,
+          "empty_prediction_rate": 0.0
+        }
+      }
+    },
+    "challenge": {
+      "case_count": 400,
+      "exact_match": 0.87,
+      "micro_precision": 0.9718804920913884,
+      "micro_recall": 0.9216666666666666,
+      "micro_f1": 0.9461077844311377,
+      "macro_f1": 0.9466237994833355,
+      "false_positive_labels": 16,
+      "missed_labels": 47,
+      "bert_boundary_rate": 0.08,
+      "groups": {
+        "single": {
+          "case_count": 100,
+          "exact_match": 0.6,
+          "micro_precision": 0.8450704225352113,
+          "micro_recall": 0.6,
+          "micro_f1": 0.7017543859649122,
+          "macro_f1": 0.49523809523809514,
+          "false_positive_labels": 11,
+          "missed_labels": 40,
+          "bert_boundary_rate": 0.21,
+          "empty_prediction_rate": 0.29
+        },
+        "multi": {
+          "case_count": 250,
+          "exact_match": 0.972,
+          "micro_precision": 1.0,
+          "micro_recall": 0.986,
+          "micro_f1": 0.9929506545820745,
+          "macro_f1": 0.991738496364982,
+          "false_positive_labels": 0,
+          "missed_labels": 7,
+          "bert_boundary_rate": 0.04,
+          "empty_prediction_rate": 0.0
+        },
+        "ood": {
+          "case_count": 50,
+          "exact_match": 0.9,
+          "micro_precision": 0.0,
+          "micro_recall": 0.0,
+          "micro_f1": 0.0,
+          "macro_f1": 0.0,
+          "false_positive_labels": 5,
+          "missed_labels": 0,
+          "bert_boundary_rate": 0.02,
+          "empty_prediction_rate": 0.9
+        }
+      }
+    }
+  },
+  "holdout_confirmation": {
+    "test": {
+      "exact_match_delta": 0.0,
+      "micro_f1_delta": 0.0,
+      "macro_f1_delta": 0.0,
+      "false_positive_delta": 0,
+      "missed_label_delta": 0,
+      "no_regression": true
+    },
+    "challenge": {
+      "exact_match_delta": 0.0,
+      "micro_f1_delta": 0.0,
+      "macro_f1_delta": 0.0,
+      "false_positive_delta": 0,
+      "missed_label_delta": 0,
+      "no_regression": true
+    }
+  },
+  "runtime": {
+    "torch": "2.14.0+cu130",
+    "transformers": "5.17.0",
+    "device": "cuda",
+    "batch_size": 16,
+    "elapsed_seconds": 5.3356972999999925
+  },
+  "decision": {
+    "active_thresholds": {
+      "症状评估": 0.5,
+      "药品信息查询": 0.5,
+      "临床指南检索": 0.5,
+      "检验结果辅助解读": 0.5,
+      "院内分诊建议": 0.5,
+      "随访管理": 0.5,
+      "用药审核": 0.5,
+      "临床知识查询": 0.5,
+      "转诊协同": 0.5,
+      "检查报告辅助解读": 0.5
+    },
+    "action": "Retain the already active 0.5 per-label thresholds; no model, .env, fusion or uncertainty-margin changes.",
+    "reason": "Current profile ties for the maximum attainable validation F1 and exact-match. No per-label improvement; test/challenge metrics reproduced without regression."
+  },
+  "verification": {
+    "fresh_prediction_count": 2380,
+    "independent_metric_checks": "All three datasets match scripts.intent_metrics and sklearn; all 101 validation grid entries independently checked.",
+    "targeted_pytest_passed": 61,
+    "configuration_check": "passed",
+    "historical_model_artifacts_and_validation_provenance": "passed"
+  },
+  "source_report": {
+    "path": "artifacts/bert_threshold_search_20261012.json",
+    "sha256": "d99e9a45f4b2fc8496b281ff4e99e8617523f116387d25567263d6ecb66b7561",
+    "note": "Full report and fresh score caches are local ignored artifacts; rerun the calibration command to reproduce inference and selection."
+  },
+  "scope": "Optimum on available validation among uniform and per-label F1 profiles; not a claim of real-world or unique optimality.",
+  "warning": "Synthetic templates are similar across splits. Macro-F1 on OOD-only groups is zero by definition; use empty-set exact-match for OOD rejection. Boundary rate alone is not full-pipeline LLM review rate."
+}

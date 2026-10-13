@@ -15,6 +15,7 @@ class TokenResponse(BaseModel):
 
 
 class ChatRequest(BaseModel):
+    task_mode: Literal["auto", "new", "continue", "modify"] = "auto"
     request_id: str = Field(default_factory=lambda: uuid4().hex, min_length=8, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
     patient_id: str = Field(min_length=1, max_length=64)
     message: str = Field(min_length=1, max_length=2000)
@@ -27,6 +28,14 @@ class UserContext(BaseModel):
     user_id: str
     role: Literal["doctor", "pharmacist", "medical_admin", "system_admin"]
     legacy_patient_id: str | None = None
+
+
+class ClinicalFeedback(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    patient_id: str = Field(min_length=1, max_length=64)
+    request_id: str = Field(min_length=8, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
+    expected_intents: list[Literal["症状评估", "药品信息查询", "临床指南检索", "检验结果辅助解读", "院内分诊建议", "随访管理", "用药审核", "临床知识查询", "转诊协同", "检查报告辅助解读"]] = Field(min_length=1, max_length=10)
+    comment: str = Field(default="", max_length=1000)
 
 
 ClinicalEntry = Annotated[str, Field(min_length=1, max_length=500)]
@@ -80,10 +89,14 @@ def validate_write_arguments(name: str, arguments: dict) -> None:
         raise ValueError("转诊科室或原因无效")
 
 
-class ProfileUpdate(BaseModel):
+class ProfileFields(BaseModel):
     name: str = Field(min_length=1, max_length=64)
     age: int = Field(ge=0, le=150)
     gender: str = Field(min_length=1, max_length=10)
     allergies: list[ClinicalEntry] = Field(default_factory=list, max_length=100)
     conditions: list[ClinicalEntry] = Field(default_factory=list, max_length=100)
     medications: list[ClinicalEntry] = Field(default_factory=list, max_length=100)
+
+
+class ProfileUpdate(ProfileFields):
+    expected_revision: str = Field(min_length=64, max_length=64, pattern=r"^[a-f0-9]{64}$")

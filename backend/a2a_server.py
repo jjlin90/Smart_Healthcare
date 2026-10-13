@@ -9,6 +9,7 @@ Examples:
 import argparse
 import asyncio
 import json
+import hashlib
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -26,6 +27,7 @@ from backend.access import active_staff, require_patient
 from backend.config import get_settings
 from backend.database import SessionLocal
 from backend.service_auth import delegated_context, verify_delegation, validate_service_secret
+from backend.task_budget import remaining_seconds
 from python_a2a.server.http import create_flask_app
 
 AGENTS = {
@@ -44,9 +46,13 @@ class MedicalA2AServer(A2AServer):
         self.runtime_loop = None
 
     async def execute(self, payload: dict, claims: dict) -> dict:
+        # Reject expired work before even loading a patient profile.
+        remaining_seconds(get_settings().request_timeout_seconds, claims)
         task = SpecialistRequest.model_validate(payload)
         if claims["agent"] != self.agent_name or task.patient_id != claims["patient_id"]:
             raise ValueError("Delegation scope mismatch")
+        if claims.get("grounding_sha256") and hashlib.sha256((task.original_request or "").encode()).hexdigest() != claims["grounding_sha256"]:
+            raise ValueError("Original request scope mismatch")
         async with SessionLocal() as db:
             user = await active_staff(db, claims["staff_id"])
             profile = await require_patient(db, user, task.patient_id)
@@ -56,9 +62,10 @@ class MedicalA2AServer(A2AServer):
                 "conditions": json.loads(profile.past_medical_history or "[]"),
                 "medications": json.loads(profile.current_medications or "[]"),
             }
-        with delegated_context(claims):
-            async with asyncio.timeout(get_settings().request_timeout_seconds):
-                return await self.runtime.run(task.task, task.patient_id, trusted_profile, task.history)
+        with delegated_context({**claims, "grounding_text": task.original_request or task.task}):
+            async with asyncio.timeout(remaining_seconds(get_settings().request_timeout_seconds)):
+                result = await self.runtime.run(task.task, task.patient_id, trusted_profile, task.history)
+                return {**result, **{key: claims[key] for key in ("task_id", "plan_version", "step_id") if key in claims}}
 
     def handle_message(self, message: Message) -> Message:
         try:
@@ -68,7 +75,7 @@ class MedicalA2AServer(A2AServer):
             claims = g.delegation
             pending = asyncio.run_coroutine_threadsafe(self.execute(payload, claims), self.runtime_loop)
             try:
-                result = pending.result(timeout=get_settings().request_timeout_seconds + 5)
+                result = pending.result(timeout=remaining_seconds(get_settings().request_timeout_seconds, claims))
             except TimeoutError:
                 pending.cancel()
                 raise
@@ -87,6 +94,7 @@ class MedicalA2AServer(A2AServer):
 class SpecialistRequest(BaseModel):
     task: str = Field(min_length=1, max_length=4000)
     patient_id: str = Field(min_length=1, max_length=64)
+    original_request: str | None = Field(default=None, min_length=1, max_length=4096)
     history: list[dict[str, str]] = Field(default_factory=list, max_length=20)
 
     @field_validator("history")

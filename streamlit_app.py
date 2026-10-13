@@ -96,6 +96,7 @@ def _sse_events(message: str) -> Iterator[tuple[str, dict[str, Any]]]:
         "message": message,
         "conversation_id": st.session_state.conversation_id,
         "approved_actions": st.session_state.approved_actions,
+        "task_mode": st.session_state.get("task_mode", "auto"),
     }
     with httpx.stream(
         "POST",
@@ -279,7 +280,13 @@ def _render_profile(profile: dict[str, Any] | None) -> None:
         safe_value = escape(str(value))
         st.markdown(f'<div class="profile-label">{safe_label}</div><div class="profile-value">{safe_value}</div>', unsafe_allow_html=True)
     with st.expander("编辑档案"):
-        with st.form(f"profile_form_{st.session_state.patient_id}"):
+        if st.button("重新加载档案", key=f"reload_profile_{st.session_state.patient_id}"):
+            st.session_state.profile = None
+            # Reset the form explicitly so stale widget values cannot silently
+            # be resubmitted with a new revision after a conflict.
+            st.session_state.profile_form_version = st.session_state.get("profile_form_version", 0) + 1
+            st.rerun()
+        with st.form(f"profile_form_{st.session_state.patient_id}_{st.session_state.get('profile_form_version', 0)}"):
             name = st.text_input("姓名", value=profile.get("name") or "")
             age = st.number_input("年龄", min_value=0, max_value=150, value=int(profile.get("age") or 0))
             gender = st.text_input("性别", value=profile.get("gender") or "")
@@ -290,7 +297,9 @@ def _render_profile(profile: dict[str, Any] | None) -> None:
         if saved:
             split = lambda value: [item.strip() for item in value.replace("，", ",").split(",") if item.strip()]
             try:
-                _put(f"/api/patients/{st.session_state.patient_id}/profile", {"name": name, "age": age, "gender": gender, "allergies": split(allergies), "conditions": split(conditions), "medications": split(medications)})
+                if not profile.get("revision"):
+                    raise RuntimeError("档案缺少编辑版本，请重新加载后保存")
+                _put(f"/api/patients/{st.session_state.patient_id}/profile", {"expected_revision": profile["revision"], "name": name, "age": age, "gender": gender, "allergies": split(allergies), "conditions": split(conditions), "medications": split(medications)})
                 st.session_state.profile = None
                 st.success("档案已保存")
                 st.rerun()
@@ -315,6 +324,23 @@ def _render_workspace() -> None:
                 for card in item.get("cards", []):
                     _render_card(card)
                 st.markdown(item["content"])
+        if st.session_state.messages and st.session_state.messages[-1].get("request_id"):
+            with st.expander("反馈本轮院内任务分类"):
+                with st.form("clinical_intent_feedback"):
+                    expected = st.multiselect("本轮实际需要的工作", ["症状评估", "药品信息查询", "临床指南检索", "检验结果辅助解读", "院内分诊建议", "随访管理", "用药审核", "临床知识查询", "转诊协同", "检查报告辅助解读"])
+                    comment = st.text_area("补充说明", max_chars=1000)
+                    submitted = st.form_submit_button("提交复核反馈")
+                if submitted:
+                    if not expected:
+                        st.warning("请先选择本轮实际需要的院内工作。")
+                    else:
+                        try:
+                            _post("/api/chat/feedback", {"patient_id": st.session_state.patient_id,
+                                  "request_id": st.session_state.messages[-1]["request_id"],
+                                  "expected_intents": expected, "comment": comment})
+                            st.success("反馈已保存，待临床复核后用于改进。")
+                        except (httpx.HTTPError, RuntimeError) as exc:
+                            st.error(f"反馈保存失败：{exc}")
         if st.session_state.agent_trace:
             with st.expander("查看安全路由与工具执行记录"):
                 st.json(st.session_state.agent_trace)
@@ -325,6 +351,9 @@ def _render_workspace() -> None:
                 if st.checkbox(label, key=f"approve_{name}"):
                     selections.append(name)
             st.session_state.approved_actions = selections
+        task_modes = {"自动判断": "auto", "新任务": "new", "补充原任务": "continue", "更正原任务": "modify"}
+        selection = st.selectbox("本次院内任务", list(task_modes), help="更正时请完整描述新的工作目标；写动作需要重新勾选。")
+        st.session_state.task_mode = task_modes[selection]
         prompt = st.chat_input("录入临床辅助问题；结果仅供医务人员参考", disabled=not st.session_state.patient_id)
         if prompt:
             st.session_state.request_id = uuid4().hex
@@ -360,7 +389,7 @@ def _render_workspace() -> None:
                         if not completed:
                             raise RuntimeError("连接已中断，尚未收到任务完成确认")
                     placeholder.markdown(answer)
-                st.session_state.messages.append({"role": "assistant", "content": answer, "cards": cards})
+                st.session_state.messages.append({"role": "assistant", "content": answer, "cards": cards, "request_id": st.session_state.request_id})
                 st.session_state.agent_trace = trace
                 st.rerun()
             except (httpx.HTTPError, RuntimeError, json.JSONDecodeError) as exc:

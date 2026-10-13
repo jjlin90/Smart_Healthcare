@@ -180,7 +180,8 @@ async def test_mixed_scope_only_sends_extracted_medical_request_to_agent(monkeyp
 
     async def fake_a2a(_agent, payload):
         seen_tasks.append(payload["task"])
-        return {"agent": "SymptomAgent", "answer": "医疗结果", "trace": []}
+        return {"agent": "SymptomAgent", "answer": "医疗结果", "trace": [{"tool": "analyze_symptoms", "status": "completed"}],
+                "observations": [{"tool": "analyze_symptoms", "content": {"assessment": "待医生复核"}, "truncated": False}]}
 
     monkeypatch.setattr(DomainGuard, "assess", mixed_scope)
     monkeypatch.setattr(IntentClassifier, "classify", intent)
@@ -291,7 +292,7 @@ async def test_synthesis_forwards_model_native_deltas(monkeypatch):
     closed = []
     class FakeStream:
         def __init__(self):
-            self.parts = iter(["第一段", "第二段", DISCLAIMER])
+            self.parts = iter([("第一段", None), ("第二段", None), (DISCLAIMER, "stop")])
 
         def __aiter__(self):
             return self
@@ -301,10 +302,10 @@ async def test_synthesis_forwards_model_native_deltas(monkeypatch):
 
         async def __anext__(self):
             try:
-                part = next(self.parts)
+                part, finish_reason = next(self.parts)
             except StopIteration as exc:
                 raise StopAsyncIteration from exc
-            return SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=part))])
+            return SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=part), finish_reason=finish_reason)])
 
     class FakeCompletions:
         async def create(self, **kwargs):

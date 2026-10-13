@@ -21,6 +21,7 @@ from backend.database import SessionLocal
 from backend.models import AuditLog, Consultation, PatientProfile, Referral
 from backend.resilience import get_breaker
 from backend.mcp_security import DelegationVerifier, PatientAuthorization
+from backend.task_budget import remaining_seconds
 
 mcp = FastMCP("MedAgent Medical MCP Server", instructions="医疗工具返回仅供医生参考。", auth=DelegationVerifier(), middleware=[PatientAuthorization()], mask_error_details=True)
 
@@ -63,7 +64,7 @@ async def _hospital_post(base_url: str, path: str, payload: dict[str, Any], *, r
         raise RuntimeError(f"医院接口未配置：{path}")
     async def request() -> dict[str, Any]:
         body = json.dumps(payload, ensure_ascii=False, separators=(",", ":")).encode()
-        async with httpx.AsyncClient(timeout=get_settings().external_request_timeout) as client:
+        async with httpx.AsyncClient(timeout=remaining_seconds(get_settings().external_request_timeout)) as client:
             response = await client.post(f"{base_url.rstrip('/')}/{path.lstrip('/')}", content=body, headers=_auth_headers(body))
             response.raise_for_status()
             data = response.json()

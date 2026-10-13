@@ -12,23 +12,25 @@ import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from sqlalchemy import select, text
+from sqlalchemy import select, text, update
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from prometheus_client import make_asgi_app
 from redis.exceptions import RedisError
 
-from backend.agents import ConfigurationError, _load_bert_bundle, _load_vector_bundle, _resolve_project_path, coordinator, close_model_connections
+from backend.agents import ConfigurationError, SafetyGuard, _load_bert_bundle, _load_vector_bundle, _resolve_project_path, coordinator, close_model_connections
 from backend.auth import create_token, get_current_user, verify_password, hash_password
 from backend.config import get_settings
 from backend.database import SessionLocal, get_db, init_db, engine
 from backend.memory import conversation_memory
 from backend.models import AuditLog, Consultation, PatientAccess, PatientProfile, User, ToolExecution
 from backend.observability import HTTP_LATENCY, HTTP_REQUESTS
-from backend.schemas import ChatRequest, ProfileUpdate, StaffLoginRequest, TokenResponse, UserContext
+from backend.schemas import ChatRequest, ClinicalFeedback, ProfileUpdate, StaffLoginRequest, TokenResponse, UserContext
 from backend.access import active_staff, patient_ids, require_patient, require_write_role
-from backend.service_auth import delegated_context
+from backend.service_auth import delegated_context, request_context
 from backend.rate_limit import login_limiter
+from backend.task_context import select_turn
+from backend.profile_revision import EDITABLE_FIELDS, profile_revision
 
 logger = logging.getLogger(__name__)
 
@@ -277,6 +279,7 @@ async def get_profile(
         "conditions": parse_list(profile.past_medical_history),
         "medications": parse_list(profile.current_medications),
         "updated_at": profile.updated_at,
+        "revision": profile_revision(profile),
     }
 
 
@@ -289,13 +292,24 @@ async def update_profile(
 ) -> dict:
     require_write_role(user, "profile_updated")
     profile = await require_profile(db, user, patient_id)
-    profile.name = request.name
-    profile.age = request.age
-    profile.gender = request.gender
-    profile.allergy_history = json.dumps(request.allergies, ensure_ascii=False)
-    profile.past_medical_history = json.dumps(request.conditions, ensure_ascii=False)
-    profile.current_medications = json.dumps(request.medications, ensure_ascii=False)
-    db.add(AuditLog(patient_id=patient_id, action="profile_updated", detail=json.dumps({"staff_user_id": user.user_id}, ensure_ascii=False)))
+    if request.expected_revision != profile_revision(profile):
+        raise HTTPException(status_code=409, detail="患者档案已更新，请重新加载并核对差异后保存")
+    changes = {"name": request.name, "age": request.age, "gender": request.gender,
+               "allergy_history": json.dumps(request.allergies, ensure_ascii=False),
+               "past_medical_history": json.dumps(request.conditions, ensure_ascii=False),
+               "current_medications": json.dumps(request.medications, ensure_ascii=False)}
+    before = {field: getattr(profile, field) for field in EDITABLE_FIELDS}
+    # Compare and swap in SQL closes the window between read and commit.
+    conditions = [getattr(PatientProfile, field) == value for field, value in before.items()]
+    saved = await db.execute(update(PatientProfile).where(
+        PatientProfile.patient_id == patient_id, *conditions).values(**changes).execution_options(synchronize_session=False))
+    if saved.rowcount != 1:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="患者档案被其他员工更新，请重新加载后核对")
+    db.add(AuditLog(patient_id=patient_id, action="profile_updated", detail=json.dumps({
+        "staff_user_id": user.user_id, "expected_revision": request.expected_revision,
+        "changed_fields": [field for field in EDITABLE_FIELDS if before[field] != changes[field]],
+    }, ensure_ascii=False)))
     await db.commit()
     return {"updated": True}
 
@@ -351,12 +365,18 @@ async def chat_stream(
     async def run_events():
         history = await conversation_memory.get(patient_id, memory_id)
         checkpoint = await conversation_memory.get_checkpoint(patient_id, memory_id)
-        effective_message = request.message
-        if checkpoint and checkpoint.get("intent") == "需要澄清" and len(history) >= 2:
-            effective_message = f"前次院内任务：{history[-2]['content'][:1900]}\n本次补充：{request.message}"
-        yield coordinator._event("session", {"conversation_id": conversation_id, "request_id": request.request_id})
+        turn = select_turn(request.message, checkpoint, history, request.task_mode)
+        parent_context = request_context.get() or {}
+        parent_context.update(task_id=turn.task_id, plan_version=turn.plan_version)
+        parent_context["conversation_key"] = memory_id
+        effective_message = turn.message
+        parent_context["grounding_text"] = effective_message
+        history = turn.history
+        yield coordinator._event("session", {"conversation_id": conversation_id, "request_id": request.request_id,
+                                             "task_id": turn.task_id, "plan_version": turn.plan_version, "task_mode": turn.mode})
         answer_parts: list[str] = []
         completion: dict[str, Any] = {}
+        evidence_records: list[dict[str, Any]] = []
         received_done = False
         metadata: dict[str, Any] = {
             "intent": "",
@@ -367,16 +387,32 @@ async def chat_stream(
             "persist_consultation": True,
         }
         try:
-            await conversation_memory.save_checkpoint(patient_id, memory_id, {"phase": "started"})
-            async for event_name, data in coordinator.stream_native(
-                effective_message,
-                patient_id,
-                agent_profile,
-                history,
-            ):
+            await conversation_memory.save_checkpoint(patient_id, memory_id, {"phase": "started", "task_context": turn.snapshot()})
+            async def task_events():
+                if turn.clarification:
+                    safety = await SafetyGuard().assess(request.message, agent_profile, [])
+                    safety_result = coordinator._safety_result(safety)
+                    if safety_result is not None:
+                        yield "meta", {"intent": safety_result.intent, "agent": safety_result.agent,
+                                       "scope": safety_result.scope, "safety": safety.metadata(),
+                                       "persist_consultation": safety_result.persist_consultation}
+                        yield "delta", {"text": safety_result.answer}
+                        yield "done", {"scope": safety_result.scope, "department": safety_result.department}
+                        return
+                    yield "meta", {"intent": "需要澄清", "agent": "TaskContextGuard", "persist_consultation": False}
+                    yield "delta", {"text": turn.clarification}
+                    yield "done", {"scope": "medical_clarification"}
+                else:
+                    async for item in coordinator.stream_native(effective_message, patient_id, agent_profile, history):
+                        yield item
+            async for event_name, data in task_events():
+                if event_name == "evidence":
+                    evidence_records.extend(data.get("records", []))
+                    continue  # Detailed provenance belongs to authorized storage.
                 if event_name == "meta":
                     metadata.update(data)
-                    await conversation_memory.save_checkpoint(patient_id, memory_id, {"phase": "agents_completed", **metadata})
+                    turn.plan_version = int(parent_context.get("plan_version", turn.plan_version))
+                    await conversation_memory.save_checkpoint(patient_id, memory_id, {"phase": "agents_completed", **metadata, "task_context": turn.snapshot()})
                 elif event_name == "delta":
                     answer_parts.append(str(data.get("text", "")))
                 elif event_name == "done":
@@ -404,6 +440,22 @@ async def chat_stream(
                         intent=str(metadata.get("intent", "")),
                         suggested_department=metadata.get("department"),
                     ))
+                for record in evidence_records:
+                    evidence_json = json.dumps({
+                        "staff_user_id": user.user_id, "request_id": request.request_id,
+                        "task_id": turn.task_id, "plan_version": turn.plan_version,
+                        "evidence": record,
+                    }, ensure_ascii=False, default=str)
+                    if len(evidence_json.encode()) <= 60000:
+                        write_db.add(AuditLog(patient_id=patient_id, action="tool_evidence", detail=evidence_json))
+                    else:
+                        parts = [evidence_json[i:i+8000] for i in range(0, len(evidence_json), 8000)]
+                        for index, part in enumerate(parts):
+                            write_db.add(AuditLog(patient_id=patient_id, action="tool_evidence_part", detail=json.dumps({
+                                "staff_user_id": user.user_id, "request_id": request.request_id,
+                                "evidence_id": record.get("evidence_id"), "part": index,
+                                "part_count": len(parts), "payload_segment": part,
+                            }, ensure_ascii=False)))
                 write_db.add(AuditLog(
                     patient_id=patient_id,
                     action="agent_response" if metadata.get("persist_consultation", True) else "request_filtered",
@@ -416,6 +468,10 @@ async def chat_stream(
                         "scope": metadata.get("scope"),
                         "stream_mode": metadata.get("stream_mode"),
                         "safety": metadata.get("safety"),
+                        "task_id": turn.task_id,
+                        "plan_version": turn.plan_version,
+                        "task_mode": turn.mode,
+                        "intent_diagnostics": metadata.get("intent_diagnostics"),
                     }, ensure_ascii=False),
                 ))
                 await write_db.commit()
@@ -425,20 +481,24 @@ async def chat_stream(
                 "phase": "completed",
                 "intent": metadata.get("intent"),
                 "agent": metadata.get("agent"),
+                "task_context": turn.snapshot(),
+                "missing_slots": metadata.get("missing_slots", []),
             })
             yield coordinator._event("done", {**completion, "conversation_id": conversation_id})
         except Exception as exc:
             # Translate SDK/transport failures at the SSE boundary too.
             _log_stream_failure("execution", request.request_id, exc)
+            turn.plan_version = int(parent_context.get("plan_version", turn.plan_version))
             # CancelledError remains uncaught so disconnect cancellation propagates.
             try:
-                await conversation_memory.save_checkpoint(patient_id, memory_id, {"phase": "failed", "error_type": type(exc).__name__})
+                await conversation_memory.save_checkpoint(patient_id, memory_id, {"phase": "failed", "error_type": type(exc).__name__, "task_context": turn.snapshot()})
             except RedisError as checkpoint_exc:
                 _log_stream_failure("failure_checkpoint", request.request_id, checkpoint_exc)
             yield coordinator._event("error", {"message": "临床辅助请求未完成，请稍后重试或联系管理员。", "error_type": type(exc).__name__})
 
     async def event_stream():
-        context = {"staff_id": user.user_id, "patient_id": patient_id, "approved_actions": request.approved_actions, "request_id": request.request_id}
+        context = {"staff_id": user.user_id, "patient_id": patient_id, "approved_actions": request.approved_actions, "request_id": request.request_id,
+                   "deadline_at": time.time() + get_settings().request_timeout_seconds}
         try:
             async with conversation_memory.turn(patient_id, memory_id):
                 with delegated_context(context):
@@ -466,3 +526,35 @@ async def operation_status(request_id: str, user: UserContext = Depends(get_curr
         await require_profile(db, user, row.patient_id)
         result.append({"tool": row.tool_name, "status": row.status, "created_at": row.created_at})
     return result
+
+
+@app.post("/api/chat/feedback")
+async def clinical_feedback(request: ClinicalFeedback, user: UserContext = Depends(get_current_user),
+                            db: AsyncSession = Depends(get_db)) -> dict:
+    """Staff corrections form reviewed regression candidates, not live labels."""
+    await require_profile(db, user, request.patient_id)
+    rows = (await db.scalars(select(AuditLog).where(
+        AuditLog.patient_id == request.patient_id,
+        AuditLog.action.in_(["agent_response", "request_filtered"]),
+    ).order_by(AuditLog.created_at.desc()).limit(100))).all()
+    original = None
+    for row in rows:
+        try:
+            metadata = json.loads(row.detail)
+        except (ValueError, TypeError):
+            continue  # Legacy diagnostics are not necessarily structured JSON.
+        if not isinstance(metadata, dict):
+            continue
+        if metadata.get("request_id") == request.request_id and metadata.get("staff_user_id") == user.user_id:
+            original = metadata
+            break
+    if original is None:
+        raise HTTPException(status_code=404, detail="未找到您提交的院内任务记录")
+    db.add(AuditLog(patient_id=request.patient_id, action="intent_feedback", detail=json.dumps({
+        "staff_user_id": user.user_id, "request_id": request.request_id,
+        "task_id": original.get("task_id"), "predicted_intent": original.get("intent"),
+        "expected_intents": list(dict.fromkeys(request.expected_intents)), "comment": request.comment,
+        "review_status": "pending_clinical_review",
+    }, ensure_ascii=False)))
+    await db.commit()
+    return {"recorded": True, "review_status": "pending_clinical_review"}

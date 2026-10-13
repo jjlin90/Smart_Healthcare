@@ -3,6 +3,7 @@
 from contextlib import contextmanager
 from contextvars import ContextVar
 from datetime import UTC, datetime, timedelta
+import math
 from typing import Any
 from uuid import uuid4
 
@@ -46,6 +47,13 @@ def issue_delegation(audience: str, agent: str, tools: list[str]) -> str:
         raise ValueError("子委托不得扩大父委托工具范围")
     now = datetime.now(UTC)
     expires_at = now + timedelta(seconds=settings.request_timeout_seconds + 30)
+    if context.get("deadline_at") is not None:
+        deadline = context["deadline_at"]
+        if type(deadline) not in (int, float) or not math.isfinite(deadline):
+            raise ValueError("Invalid task deadline")
+        expires_at = min(expires_at, datetime.fromtimestamp(math.ceil(deadline), UTC))
+        if deadline <= now.timestamp():
+            raise TimeoutError("Task budget exhausted")
     # Child MCP delegations must not extend a verified A2A parent's lifetime.
     if context.get("exp") is not None:
         parent_expiry = datetime.fromtimestamp(float(context["exp"]), UTC)
@@ -58,6 +66,7 @@ def issue_delegation(audience: str, agent: str, tools: list[str]) -> str:
         "exp": expires_at,
         "jti": uuid4().hex,
     }
+    claims.pop("grounding_text", None)
     return jwt.encode(claims, signing_key, algorithm="HS256")
 
 
@@ -73,4 +82,10 @@ def verify_delegation(token: str, audience: str) -> dict[str, Any]:
     if (claims["sub"] != claims["staff_id"] or not isinstance(claims.get("tools"), list)
             or not all(isinstance(tool, str) and tool for tool in claims["tools"])):
         raise JWTError("Invalid delegation subject")
+    if "task_id" in claims and (not isinstance(claims["task_id"], str) or not claims["task_id"]
+                               or type(claims.get("plan_version")) is not int or claims["plan_version"] < 1):
+        raise JWTError("Invalid task scope")
+    deadline = claims.get("deadline_at")
+    if deadline is not None and (type(deadline) not in (int, float) or not math.isfinite(deadline)):
+        raise JWTError("Invalid task deadline")
     return claims

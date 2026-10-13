@@ -477,6 +477,7 @@ def check_markdown_links(report: Report, candidates: list[Path], tracked: list[P
     documents = [path for path in candidates if path.suffix.lower() == ".md" and path.is_file()]
     findings: list[str] = []
     tracked_targets = {path.resolve() for path in tracked} if tracked is not None else None
+    heading_cache = {}
     for document in documents:
         body = _markdown_without_fences(document.read_text(encoding="utf-8-sig"))
         # Inline code can contain illustrative links; retain line numbers.
@@ -501,7 +502,9 @@ def check_markdown_links(report: Report, candidates: list[Path], tracked: list[P
             elif tracked_targets is not None and target not in tracked_targets:
                 reason = "目标尚未纳入 Git 索引，克隆后不可用"
             elif anchor and target.suffix.lower() == ".md":
-                titles, anchors = _markdown_headings(target.read_text(encoding="utf-8-sig"))
+                if target not in heading_cache:
+                    heading_cache[target] = _markdown_headings(target.read_text(encoding="utf-8-sig"))
+                titles, anchors = heading_cache[target]
                 if anchor not in (titles if wiki else anchors):
                     reason = "章节锚点不存在"
             if reason:
