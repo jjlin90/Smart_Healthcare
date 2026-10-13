@@ -28,7 +28,13 @@ async def require_live_task(claims: dict) -> None:
     Production requires Redis. Local TTL caches in separate service processes
     cannot provide this cross-process fence; that limitation stays explicit.
     """
-    if not claims.get("task_id") or not claims.get("conversation_key") or not get_settings().redis_url:
+    settings = get_settings()
+    scoped = (isinstance(claims.get("task_id"), str) and bool(claims["task_id"].strip())
+              and isinstance(claims.get("conversation_key"), str) and bool(claims["conversation_key"].strip())
+              and type(claims.get("plan_version")) is int and claims["plan_version"] >= 1)
+    if settings.app_env == "production" and (not scoped or not settings.redis_url):
+        raise ValueError("production task fence requires task scope and Redis")
+    if not scoped or not settings.redis_url:
         return
     from backend.memory import conversation_memory
     checkpoint = await conversation_memory.get_checkpoint(claims["patient_id"], claims["conversation_key"])

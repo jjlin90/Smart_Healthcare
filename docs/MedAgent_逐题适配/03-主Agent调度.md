@@ -170,6 +170,8 @@
 
 **代码依据：** [backend/intent_fusion.py](../../backend/intent_fusion.py)、[backend/agents.py](../../backend/agents.py)、[backend/config.py](../../backend/config.py)
 
+**本题图与结构示例：** [example-001](#example-001)
+
 ## q-010
 
 ### 主问题｜意图识别错了怎么办？
@@ -308,6 +310,8 @@
 
 **代码依据：** [backend/task_context.py](../../backend/task_context.py)、[backend/main.py](../../backend/main.py)、[backend/a2a_server.py](../../backend/a2a_server.py)
 
+**本题图与结构示例：** [example-002](#example-002)
+
 ## q-017
 
 ### 追问｜多轮对话中用户突然换问题，是否重置任务状态？
@@ -331,6 +335,8 @@
 **在 MedAgent 中怎么补全：** 当前补充仍是有界的原问题与本轮信息组合，并非完整按字段合并。设计上把槽位按任务保存来源和时效，同任务只继承仍适用的字段，明确新值只覆盖对应字段；换患者或换任务不继承业务槽，身份始终重新从可信会话核验。
 
 **代码依据：** [backend/task_context.py](../../backend/task_context.py)、[backend/main.py](../../backend/main.py)、[backend/a2a_server.py](../../backend/a2a_server.py)
+
+**本题图与结构示例：** [example-003](#example-003)
 
 ## q-018
 
@@ -642,6 +648,8 @@
 
 **代码依据：** [backend/clinical_slots.py](../../backend/clinical_slots.py)、[backend/schemas.py](../../backend/schemas.py)、[backend/agents.py](../../backend/agents.py)
 
+**本题图与结构示例：** [example-004](#example-004)
+
 ## q-038
 
 ### 主问题｜主 Agent 如何分发路由？
@@ -666,6 +674,8 @@
 
 **代码依据：** [backend/agents.py](../../backend/agents.py)、[backend/evidence.py](../../backend/evidence.py)
 
+**本题图与结构示例：** [example-005](#example-005)
+
 ## q-039
 
 ### 追问｜根据意图、槽位、权限、工具可用性、任务复杂度路由怎么做？
@@ -688,6 +698,8 @@
 
 **代码依据：** [backend/agents.py](../../backend/agents.py)、[backend/evidence.py](../../backend/evidence.py)
 
+**本题图与结构示例：** [example-006](#example-006)
+
 ## q-040
 
 ### 追问｜是规则路由，还是大模型规划路由？
@@ -709,6 +721,8 @@
 **在 MedAgent 中怎么补全：** 计划能表达依赖与独立查询，当前没有无限自主改计划：只读依据缺失最多一次重新识别，普通工具故障不等于意图错误。若扩展更多节点，增加节点超时、验收条件、输入引用和版本化节点状态，同时限制重规划预算。
 
 **代码依据：** [backend/agents.py](../../backend/agents.py)、[backend/evidence.py](../../backend/evidence.py)
+
+**本题图与结构示例：** [example-007](#example-007)
 
 ## q-041
 
@@ -739,6 +753,8 @@
 **在 MedAgent 中怎么补全：** 不用 A2A 也可通过进程内异步函数、自定义 HTTP 或消息队列分派，核心仍是任务契约、授权、超时和业务状态。当前统一 deadline_at 通过签名委托传到专科和 MCP，新调用只用剩余预算；服务是主从式，专科不能任意互相调用。队列、回调和长期任务是扩展项。
 
 **代码依据：** [backend/a2a_server.py](../../backend/a2a_server.py)、[backend/service_auth.py](../../backend/service_auth.py)、[backend/agents.py](../../backend/agents.py)
+
+**本题图与结构示例：** [example-008](#example-008)
 
 ## q-042
 
@@ -830,6 +846,8 @@ Schema 不只是为了让 JSON 格式好看，更重要的是把 Agent 之间的
 
 **代码依据：** [backend/mcp_tools.py](../../backend/mcp_tools.py)、[backend/mcp_security.py](../../backend/mcp_security.py)、[backend/agents.py](../../backend/agents.py)
 
+**本题图与结构示例：** [example-009](#example-009)、[example-010](#example-010)
+
 ## q-045
 
 ### 追问｜输入 schema、输出 schema、错误 schema 是否统一？
@@ -851,6 +869,8 @@ Schema 不只是为了让 JSON 格式好看，更重要的是把 Agent 之间的
 **在 MedAgent 中怎么补全：** 工具注册要同时维护参数、输出、错误、权限、读写属性和版本契约；新增工具先做契约测试和权限回归，再开放给对应专科。不能把工具描述中的 readOnlyHint 当真正的服务端授权。
 
 **代码依据：** [backend/mcp_tools.py](../../backend/mcp_tools.py)、[backend/mcp_security.py](../../backend/mcp_security.py)、[backend/agents.py](../../backend/agents.py)
+
+**本题图与结构示例：** [example-011](#example-011)
 
 ## q-046
 
@@ -900,6 +920,8 @@ Schema 不只是为了让 JSON 格式好看，更重要的是把 Agent 之间的
 
 **代码依据：** [backend/intent_fusion.py](../../backend/intent_fusion.py)、[backend/agents.py](../../backend/agents.py)、[backend/config.py](../../backend/config.py)
 
+**本题图与结构示例：** [example-012](#example-012)
+
 ## q-048
 
 ### 追问｜路由规则表 + LLM fallback + 置信度阈值怎么配合？
@@ -917,6 +939,8 @@ Schema 不只是为了让 JSON 格式好看，更重要的是把 Agent 之间的
 **在 MedAgent 中怎么补全：** 阈值通过独立验证集选择，测试和挑战集只评估冻结结果。医疗急症由独立安全入口处理；意图置信分数不代表患者低风险。LLM 复核失败停止分派，不悄悄回到冲突候选。
 
 **代码依据：** [backend/intent_fusion.py](../../backend/intent_fusion.py)、[backend/agents.py](../../backend/agents.py)、[backend/config.py](../../backend/config.py)
+
+**本题图与结构示例：** [example-013](#example-013)
 
 ## q-049
 
@@ -1004,6 +1028,8 @@ Schema 不只是为了让 JSON 格式好看，更重要的是把 Agent 之间的
 
 **代码依据：** [backend/agents.py](../../backend/agents.py)、[backend/a2a_context.py](../../backend/a2a_context.py)
 
+**本题图与结构示例：** [example-014](#example-014)
+
 ## q-054
 
 ### 追问｜单 Agent、串行多 Agent、并行多 Agent、循环 Agent 分别是什么场景？
@@ -1072,6 +1098,8 @@ Schema 不只是为了让 JSON 格式好看，更重要的是把 Agent 之间的
 
 **代码依据：** [backend/mcp_tools.py](../../backend/mcp_tools.py)、[backend/resilience.py](../../backend/resilience.py)、[backend/mcp_security.py](../../backend/mcp_security.py)
 
+**本题图与结构示例：** [example-015](#example-015)
+
 ## q-057
 
 ### 追问｜异常路由、重试、降级、转人工、返回澄清问题怎么用？
@@ -1117,6 +1145,8 @@ Schema 不只是为了让 JSON 格式好看，更重要的是把 Agent 之间的
 **在 MedAgent 中怎么补全：** 备用模型、备用数据源或跳过非关键步骤必须有已验证契约，不能凭空说存在。只有确实可逆的本地事务能回滚；外部写入走查询、对账、补偿或责任医生复核。对于无法确认的临床问题，应给出失败原因和人工核对路径。
 
 **代码依据：** [backend/mcp_tools.py](../../backend/mcp_tools.py)、[backend/resilience.py](../../backend/resilience.py)、[backend/mcp_security.py](../../backend/mcp_security.py)
+
+**本题图与结构示例：** [example-016](#example-016)
 
 ## q-059
 
@@ -1167,4 +1197,767 @@ Schema 不只是为了让 JSON 格式好看，更重要的是把 Agent 之间的
 **在 MedAgent 中怎么补全：** 进一步按角色实测模型分级，统计每个成功院内任务的 Token、费用和耗时，并同时看漏检、错误路由与人工纠错量。缓存必须包含权限、患者对象、输入与数据版本，患者数据和临床实时状态不能跨用户复用。
 
 **代码依据：** [backend/config.py](../../backend/config.py)、[backend/agents.py](../../backend/agents.py)、[backend/observability.py](../../backend/observability.py)
+
+**本题图与结构示例：** [example-017](#example-017)、[example-018](#example-018)、[example-019](#example-019)、[example-020](#example-020)、[example-021](#example-021)、[example-022](#example-022)、[example-023](#example-023)
+
+## 原文图与结构示例（ToB适配）
+
+以下逐块保留原文的图、伪代码、JSON 和文本结构，通用交易示例改为院内患者记录与转诊协同。这些是面试原理或扩展方案示例，可能包含尚未实现的角色、参数级审批、语义验收、持久恢复和队列；不能作为当前项目已实现的接口或代码。当前实现以各题项目口述、代码依据及主流程图为准。
+
+### example-001
+
+**Q3｜意图分了几类？**
+
+来源：03-主Agent调度.md 第 96 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-009)
+
+```json
+{
+  "version": "1.0",
+  "routes": [
+    {
+      "intent": "patient_record_query",
+      "target_agent": "query_agent",
+      "required_slots": ["patient_id"],
+      "risk_level": "low"
+    },
+    {
+      "intent": "referral_request",
+      "target_agent": "tool_agent",
+      "required_slots": ["patient_id", "referral_reason"],
+      "risk_level": "high",
+      "require_confirmation": true
+    }
+  ],
+  "fallback": {
+    "target_node": "clarification_node",
+    "min_confidence": 0.75
+  }
+}
+```
+
+### example-002
+
+**Q6｜意图漂移怎么处理？**
+
+来源：03-主Agent调度.md 第 184 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-016)
+
+```mermaid
+flowchart TD
+    A[task-001：查询患者记录 12345] --> B[院内员工：顺便帮我查一下本科室本月用药审核记录]
+    B --> C[检测到意图发生明显变化]
+    C --> D[新建 task-002：销售数据查询/分析]
+```
+
+### example-003
+
+**Q6｜意图漂移怎么处理？**
+
+来源：03-主Agent调度.md 第 207 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-017)
+
+```mermaid
+flowchart TD
+    A[院内员工：查患者阿司匹林说明书] --> B[task-001]
+    C[院内员工：改查华法林说明书] --> D[仍然是 task-001，只更新药品名称]
+    E[院内员工：另外帮我看看本月销售额] --> F[新建 task-002]
+```
+
+### example-004
+
+**Q12｜槽位不完整怎么办？**
+
+来源：03-主Agent调度.md 第 322 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-037)
+
+```text
+槽位识别不是只靠大模型抽字段。
+
+一般会分三层：
+1. 规则层：处理明确格式，比如时间、编号、金额、手机号、ID。
+2. 模型层：处理自然语言中的实体和业务对象。
+3. 校验层：根据 schema 检查字段类型、枚举范围、必填项。
+
+如果缺少关键槽位，主 Agent 不会直接分发任务，而是进入澄清追问。
+如果槽位置信度低，会让院内员工确认。
+如果槽位与历史上下文冲突，以院内员工最新明确输入为准。
+```
+
+### example-005
+
+**Q13｜主 Agent 如何分发路由？**
+
+来源：03-主Agent调度.md 第 347 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-038)
+
+```mermaid
+flowchart TD
+    A[院内员工请求] --> B[意图识别]
+    B --> C[槽位补全]
+    C --> D[权限过滤]
+    D --> E[Agent 能力匹配]
+    E --> F[判断单Agent / 多Agent]
+    F --> G[生成执行计划]
+    G --> H[Schema校验]
+    H --> I[执行]
+```
+
+### example-006
+
+**Q13｜主 Agent 如何分发路由？**
+
+来源：03-主Agent调度.md 第 369 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-039)
+
+```text
+intent = sales_analysis
+slots = {time_range, region}
+permission = allow_sales_data
+agent_status = healthy
+complexity = multi_step
+```
+
+### example-007
+
+**Q13｜主 Agent 如何分发路由？**
+
+来源：03-主Agent调度.md 第 389 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-040)
+
+```text
+固定、高风险、强约束路径
+→ 规则路由
+
+复杂、长尾、需要动态拆解路径
+→ LLM 规划
+
+最终
+→ Schema + 权限 + 能力检查再次约束
+```
+
+### example-008
+
+**Q14｜你的任务分发字段怎么设计？**
+
+来源：03-主Agent调度.md 第 422 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-041)
+
+```json
+{
+  "task_id": "task-20260820-001",
+  "plan_version": 1,
+  "session_id": "session-1001",
+  "trace_id": "trace-8f3a",
+  "user_id": "user-1001",
+  "intent": "monthly_sales_analysis",
+  "slots": {
+    "month": "2026-07",
+    "region": "华东"
+  },
+  "target_agents": ["query_agent", "analysis_agent"],
+  "execution_mode": "serial",
+  "dependencies": {
+    "analysis_agent": ["query_agent"]
+  },
+  "priority": "normal",
+  "timeout_ms": 15000,
+  "retry_policy": {
+    "max_attempts": 2,
+    "backoff": "exponential",
+    "retry_on": ["timeout", "rate_limited"]
+  },
+  "fallback_policy": {
+    "on_failure": "return_partial",
+    "handoff": "human"
+  }
+}
+```
+
+### example-009
+
+**Q15｜JSON Schema 怎么设计？**
+
+来源：03-主Agent调度.md 第 487 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-044)
+
+```mermaid
+flowchart TD
+    A[主Agent] --> B[TaskRequest Schema]
+    B --> C[子Agent]
+    C --> D[TaskResponse Schema]
+    D --> A
+    C --> E[失败]
+    E --> F[ErrorResponse Schema]
+```
+
+### example-010
+
+**Q15｜JSON Schema 怎么设计？**
+
+来源：03-主Agent调度.md 第 514 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-044)
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "TaskResponse.schema.json",
+  "type": "object",
+  "required": [
+    "task_id",
+    "trace_id",
+    "plan_version",
+    "step_id",
+    "attempt_id",
+    "status",
+    "data",
+    "error"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trace_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "plan_version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "step_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attempt_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": ["success", "failed", "partial", "blocked", "unknown", "cancelled"]
+    },
+    "data": {
+      "type": ["object", "null"]
+    },
+    "error": {
+      "type": ["object", "null"]
+    },
+    "operation_id": {
+      "type": ["string", "null"]
+    },
+    "observed_at": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": []
+    },
+    "unresolved": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": []
+    }
+  },
+  "additionalProperties": false
+}
+```
+
+### example-011
+
+**Q15｜JSON Schema 怎么设计？**
+
+来源：03-主Agent调度.md 第 590 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-045)
+
+```text
+OrderAgentInput
+AnalysisAgentInput
+KnowledgeAgentInput
+```
+
+### example-012
+
+**Q16｜主 Agent 怎么判断调用哪个 Agent？**
+
+来源：03-主Agent调度.md 第 619 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-047)
+
+```text
+Agent名称
+负责业务
+输入Schema
+输出Schema
+支持的意图
+需要的权限
+可调用工具
+当前健康状态
+```
+
+### example-013
+
+**Q16｜主 Agent 怎么判断调用哪个 Agent？**
+
+来源：03-主Agent调度.md 第 638 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-048)
+
+```mermaid
+flowchart TD
+    A[路由规则命中] --> B[直接执行]
+    C[规则未命中] --> D[从候选Agent能力集合中让LLM选择]
+    D --> E{LLM置信度足够？}
+    E -->|是| F[进入Schema和权限校验]
+    E -->|否| G[澄清 / 兜底]
+```
+
+### example-014
+
+**Q18｜一个任务是否可以调用多个 Agent？**
+
+来源：03-主Agent调度.md 第 681 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-053)
+
+```mermaid
+flowchart TD
+    A[调度器] --> B[step-1：销售数据查询]
+    A --> C[step-2：库存数据查询]
+    A --> D[step-3：客诉数据查询]
+    B --> E[分析 Agent]
+    C --> E
+    D --> E
+    E --> F[建议 Agent]
+    F --> G[审查 Agent]
+```
+
+### example-015
+
+**Q19｜路由失败怎么办？**
+
+来源：03-主Agent调度.md 第 725 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-056)
+
+```mermaid
+flowchart TD
+    A[信息不足] --> B[澄清院内员工]
+    C[临时故障] --> D[重试 / 备用Agent]
+    E[路由配置错误] --> F[兜底Agent + 告警]
+    G[无法安全处理] --> H[人工介入]
+```
+
+### example-016
+
+**Q19｜路由失败怎么办？**
+
+来源：03-主Agent调度.md 第 759 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-058)
+
+```text
+task_id
+当前意图
+已抽取槽位
+已经执行的步骤
+失败原因
+工具返回
+院内员工上下文
+```
+
+### example-017
+
+**1. 总入口：主 Agent 本质上是带状态的控制流程**
+
+来源：03-主Agent调度.md 第 799 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-061)
+
+```python
+# 每次收到一条院内员工消息进入此函数；返回最终回答、澄清问题或处理状态。
+def handle_turn(message, session_id, auth_context):
+    # 身份来自服务端认证；不能采用模型输出的 user_id / permissions。
+    user = authenticate(auth_context)
+    # 按院内员工和会话读取当前任务，避免跨院内员工读取状态。
+    previous = store.load_active_task(user.id, session_id)
+    task = select_task(message, previous, user, session_id)  # 见第 3 节
+    # 任务归属尚不明确时先问清楚，不能把消息写入错误任务。
+    if task.needs_clarification:
+        return task.question
+
+    decision = recognize_intent(message, task)              # 见第 2 节
+    # 未达到可接受条件时停止执行；低置信度不等于可以随便选一个意图。
+    if decision.action != "accept":
+        return clarification_or_handoff(decision)
+
+    # 例如从“查患者记录”改为“转诊申请”：重新检查槽位，并废弃旧执行计划。
+    if task.intent != decision.intent:
+        task.change_intent(decision.intent)
+        task.revalidate_slots_and_invalidate_plan()
+        # 只保留适用于新意图且来源可信的字段；旧确认随计划失效。
+
+    slot_result = fill_slots(message, task)                 # 见第 3 节
+    # 保存当前进度，下一轮对话或恢复执行时继续使用。
+    store.save(task)
+    # ready 表示执行必需的参数已经齐全且通过校验。
+    if slot_result.action != "ready":
+        return slot_result.question_or_handoff
+
+    plan = build_plan(task, user)                           # 见第 4 节
+    # 没有合法可执行的计划时，返回阻塞原因，不调用子 Agent。
+    if plan.action != "ready":
+        return plan.explanation
+
+    # 展示具体操作供确认，确认记录绑定院内员工、任务及操作参数摘要。
+    # 下一轮“确认”应延续当前任务，不能被识别成无关闲聊。
+    if plan.has_write and not confirmation_matches(task, plan, user):
+        store.save_pending_confirmation(task, plan)
+        return render_confirmation(plan)
+
+    # 先记录计划再执行，便于追踪本次实际派发了哪些操作。
+    store.save_plan(task, plan)
+    result = executor.run(plan, user)                       # 边界见第 5、6 节
+    # 失败和部分成功分别呈现，不能包装成任务全部完成。
+    if result.status != "success":
+        return render_failure_or_partial(result)
+    # 业务验收：院内员工要转诊状态，只返回患者记录存在还不算完成目标。
+    if not satisfies_goal(result, task.intent, task.slots):
+        return recover_wrong_route(task, result, user)      # 见第 6 节
+    # 基于真实执行结果组织回答，保留依据，不凭空补充业务结论。
+    return summarize_with_evidence(result)
+```
+
+### example-018
+
+**2. 意图识别：逐层尝试，允许拒绝判断**
+
+来源：03-主Agent调度.md 第 859 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-061)
+
+```python
+# 意图白名单：患者记录查询、转诊申请申请、知识问答；未知标签不得直接执行。
+INTENTS = {"patient_record_query", "referral_request", "knowledge_qa"}
+
+# 输入本轮消息和任务上下文；输出接受、澄清等结构化决策。
+def recognize_intent(message, task):
+    # 补槽或确认中的“12345”“确认”，必须结合当前待答问题理解。
+    text = resolve_reference(message, task.pending_question, task.context)
+    # 例如“这个”对应多个患者记录：指代未消解，先追问具体对象。
+    if text.ambiguous:
+        return Decision(action="clarify", question=text.question)
+
+    # 按层尝试：规则 → 分类模型 → 语义匹配 → LLM；可靠命中后提前返回。
+    for stage in [rules, classifier, embedding_matcher, llm_classifier]:
+        candidate = stage.predict(text, allowed_intents=INTENTS)
+        # 检查返回结构和意图标签；非法结果交给下一层处理。
+        if not valid_intent_output(candidate, INTENTS):
+            continue
+        # 本示例一次聚焦一个目标，多意图先让院内员工确定先后。
+        if candidate.multiple_intents:
+            return Decision(action="clarify", question="先查询患者记录，还是申请转诊申请？")
+
+        # 每层使用自己的验证集阈值；相似度不是概率。
+        # LLM 自报 confidence（置信度）不能直接当成已校准的正确率。
+        if acceptance_policy[stage.name].accept(candidate):
+            return Decision(action="accept", intent=candidate.intent)
+
+    # 所有层都无法可靠判断，显式追问，避免默认误路由。
+    return Decision(action="clarify", question="您想查询患者记录，还是申请转诊申请？")
+```
+
+### example-019
+
+**3. 任务隔离与补槽：先确定归属，再更新字段**
+
+来源：03-主Agent调度.md 第 896 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-061)
+
+```python
+# 按意图定义必填/可选字段；此处简写，完整 schema 还需字段类型等约束。
+SLOT_SCHEMAS = {
+    "patient_record_query": {"required": ["patient_id"], "optional": []},
+    "referral_request": {
+        "required": ["patient_id", "referral_reason"], "optional": []
+    },
+    "knowledge_qa": {"required": [], "optional": []},
+}
+
+# 判断新消息属于旧任务还是新任务；task_id 隔离业务状态。
+def select_task(message, previous, user, session_id):
+    # 会话没有进行中的任务时，创建独立任务及空槽位。
+    if previous is None:
+        return new_task(user.id, session_id)
+    # 四种关系依次表示：继续补充、修改目标、另起任务、无法确定。
+    relation = classify_relation(message, previous)  # continue / modify / new / unclear
+    if relation == "unclear":
+        return NeedClarification("您是在继续刚才的任务，还是要处理新的事情？")
+    if relation == "new":
+        # 保存旧任务的可恢复进度；保存检查点本身不等于取消已发出的操作。
+        store.checkpoint(previous)
+        return new_task(user.id, session_id)         # 不自动复制旧槽位
+    return previous                                 # 继续补充，或修改同一任务
+
+
+# 仅抽取当前意图需要的参数，返回可执行状态或补充问题。
+def fill_slots(message, task):
+    schema = SLOT_SCHEMAS[task.intent]
+    # 规则识别编号；NER / LLM 处理自然语言。冲突交给校验，不能静默覆盖。
+    proposals = extract_slot_candidates(message, schema, task.context)
+    # 统一字段格式并校验类型、取值和歧义；不能把规范化变成猜测。
+    checked = normalize_and_validate(proposals, schema)
+    # 抽取结果不可靠则追问；最多 3 轮的计数由任务状态持久化维护。
+    if checked.invalid_or_ambiguous:
+        return ask_or_handoff(task, checked.first_question, max_rounds=3)
+
+    for field, candidate in checked.fields.items():
+        # 只接受院内员工明确给出的完整字段，不能用“改成别的”覆盖患者标识。
+        if candidate.explicit_and_complete:
+            if task.slots.get(field) != candidate.value:
+                # 参数变了，院内员工对旧参数的确认不再适用于新操作。
+                task.invalidate_plan_and_confirmation()
+            # 记录字段值、来源和对话轮次，便于解释覆盖依据与排查错误。
+            task.set_slot(field, candidate.value, source="user", turn=task.turn)
+        # 未提到的字段继续保留；残缺指代不能清空或覆盖原值。
+
+    # 检查合并后的槽位，历史已提供的有效字段不用重复询问。
+    missing = required_fields_missing(task.slots, schema)
+    # 一次追问最关键的缺失字段；多轮仍缺失则交由兜底处理。
+    if missing:
+        return ask_or_handoff(task, question_for(missing[0]), max_rounds=3)
+    return SlotResult(action="ready")
+```
+
+### example-020
+
+**4. 路由与契约：模型提建议，服务端把关**
+
+来源：03-主Agent调度.md 第 957 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-061)
+
+```python
+# 显式维护意图到 Agent 的映射，固定业务优先走可审计的规则。
+ROUTES = {
+    "patient_record_query": "patient_record_agent",
+    "referral_request": "referral_agent",
+    "knowledge_qa": "knowledge_agent",
+}
+
+# 生成并校验执行计划；registry 是能力注册表，policy 是权限策略接口。
+def build_plan(task, user):
+    # 先筛选具备该业务能力的 Agent，避免仅凭名称选择。
+    candidates = registry.find_capable(task.intent)
+    # 再过滤无调用权限或不健康的 Agent，缩小可选范围。
+    candidates = [a for a in candidates
+                  if policy.can_invoke(user, a, task.slots) and a.healthy]
+    if not candidates:
+        return PlanResult(action="blocked", explanation="当前没有可用且有权限的处理路径")
+
+    target = ROUTES.get(task.intent)
+    if target is not None:
+        # 固定路由目标不满足约束时，不能改用 LLM 绕过规则。
+        if target not in ids(candidates):
+            return configured_fallback_or_block(task, candidates)
+        # 固定路径只生成一个执行步骤，槽位作为该步骤的输入参数。
+        draft = single_step_plan(target, task.slots)
+    else:
+        # 无固定路由时，让模型在候选集合内规划；输出仍须独立校验。
+        draft = llm.plan(task, allowed_agents=descriptions(candidates))
+
+    # 结构校验只判断契约是否满足，不证明计划业务上正确或已获授权。
+    validate_schema(draft, PLAN_SCHEMA)
+    validate_step_ids_and_dependencies(draft)       # 引用存在、step_id 唯一、无环
+    for step in draft.steps:
+        # require 表示强制检查，失败即抛错；防止模型编造或越权选择 Agent。
+        require(step.agent in ids(candidates))
+        validate_schema(step.input, registry[step.agent].input_schema)
+        # 按每一步的实际参数再鉴权，防止整体任务有权限但具体资源无权限。
+        require(policy.can_invoke(user, step.agent, step.input))
+
+    # 外层协议由服务端组装，不相信 LLM 生成的身份或无限重试配置。
+    # 封装分发协议：task_id 标识任务，trace_id 追踪调用链，超时单位为毫秒。
+    return envelope(
+        draft, action="ready", task_id=task.id, user_id=user.id,
+        trace_id=new_trace_id(), plan_version=task.plan_version,
+        timeout_ms=15000, max_attempts=2,
+        has_write=registry.any_write_step(draft),
+    )
+```
+
+### example-021
+
+**生成并校验执行计划；registry 是能力注册表，policy 是权限策略接口。**
+
+来源：03-主Agent调度.md 第 1010 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-061)
+
+```python
+# 步骤 id 是本次调用的唯一标识；agent 是执行者，同一执行者可出现多次。
+plan.steps = [
+    # 无前置依赖，患者记录查询可以立即开始。
+    Step(id="read_patient_record", agent="patient_record_agent", depends_on=[],
+         input={"patient_id": "12345"}),
+    # 同样无前置依赖，可与患者记录查询并行。
+    Step(id="read_policy", agent="knowledge_agent", depends_on=[],
+         input={"query": "院内转诊规则"}),
+    # 必须等两个查询成功；input_refs 表示引用上游真实结果，不是复制占位文本。
+    Step(id="assess_referral", agent="referral_assessment_agent",
+         depends_on=["read_patient_record", "read_policy"],
+         input_refs={"order": "read_patient_record.data", "policy": "read_policy.data"}),
+]
+# 这是“评估能否转诊申请”的只读计划，不等于院内员工已经授权执行转诊申请。
+```
+
+### example-022
+
+**5. 多 Agent 执行：只派发依赖已满足的节点**
+
+来源：03-主Agent调度.md 第 1031 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-061)
+
+```python
+# 执行只读有向无环图：前置步骤成功后，下游步骤才允许进入就绪队列。
+def run_readonly_dag(plan, user):
+    # 提前拒绝循环依赖，例如 A 等 B、B 又等 A，否则流程无法推进。
+    validate_acyclic(plan)
+    # pending 保存未完成步骤；results 按 step_id 保存通过校验的成功结果。
+    pending, results = index_by_step_id(plan.steps), {}
+    # 使用单调时钟计算整条计划的截止时间，避免系统时间调整影响超时判断。
+    deadline = monotonic_now() + plan.timeout_ms / 1000
+
+    while pending:
+        if monotonic_now() >= deadline:
+            return failed_or_partial(results, error="deadline_exceeded")
+        # 筛出所有依赖都已成功的节点；空依赖列表自动满足条件。
+        ready = [s for s in pending.values()
+                 if all(dep in results for dep in s.depends_on)]
+        # 仍有待执行步骤却没有就绪节点，说明依赖无法满足，停止而非空转。
+        if not ready:
+            return failed_or_partial(results, error="dependency_blocked")
+
+        # 示例限流：最多同时派发 3 个只读步骤；失败时不放行下游。
+        batch = parallel_map(
+            ready, max_concurrency=3, deadline=deadline,
+            fn=lambda s: dispatch_readonly_step(s, results, plan, user, deadline),
+        )
+        # parallel_map 约定返回步骤与响应的配对，便于将结果写回对应节点。
+        # 即使实现因 deadline 或取消提前返回，也不能静默遗漏步骤，
+        # 否则遗漏节点仍在 pending，下一轮会被再次派发。
+        require(
+            len(batch) == len(ready)
+            and {step.id for step, _ in batch} == {step.id for step in ready}
+        )
+        for step, response in batch:
+            if response.status != "success":
+                # 不把 blocked / unknown / cancelled 压成 failed；保留步骤返回的六值语义。
+                return stop_plan_preserving_status(
+                    response,
+                    completed_results=results,
+                )
+            # 只有成功结果进入依赖表；失败或部分结果不能释放下游。
+            results[step.id] = response
+            # 从待执行集合移除，避免后续循环重复派发同一步骤。
+            del pending[step.id]
+    # 所有步骤完成后返回聚合结果，由主入口继续做业务目标验收。
+    return success(results)
+
+
+# 单步派发边界：绑定输入、执行前校验、调用、返回结果校验。
+def dispatch_readonly_step(step, results, plan, user, deadline):
+    # 把 read_patient_record.data 等引用替换成已完成步骤的实际数据。
+    args = resolve_input_refs(step, results)
+    validate_schema(args, registry[step.agent].input_schema)
+    # 该执行器只接受只读能力；写操作需走带操作确认的执行路径。
+    require(registry[step.agent].read_only)
+    # 用最终参数再次鉴权，避免规划后权限变化或上游结果引入越权对象。
+    require(policy.can_invoke(user, step.agent, args))
+    # DispatchRequest 是运行时派发信封；input 已由 input_refs 解析成实际参数。
+    request = DispatchRequest(
+        task_id=plan.task_id,
+        trace_id=plan.trace_id,
+        plan_version=plan.plan_version,
+        step_id=step.id,
+        input=args,
+    )
+    response = dispatch_with_resilience_policy(
+        step, request, user, deadline
+    )  # 重试、熔断与对账策略以模块 05 为准
+    # 检查子 Agent 返回契约，格式正确之后还要核对任务与步骤归属。
+    validate_schema(response, TASK_RESPONSE_SCHEMA)              # 顶层通信信封
+    if response.data is not None:
+        validate_schema(response.data, registry[step.agent].result_schema)
+    # 防止异步旧响应或其他任务的结果混入当前任务。
+    require(
+        response.task_id == plan.task_id
+        and response.trace_id == plan.trace_id
+        and response.plan_version == plan.plan_version
+        and response.step_id == step.id
+        and execution_log.is_current_result_attempt(
+            plan.task_id, step.id, response.attempt_id
+        )
+    )
+    return response
+```
+
+### example-023
+
+**6. 错路由与调用失败：按结构化状态分支**
+
+来源：03-主Agent调度.md 第 1121 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-061)
+
+```python
+# 03 只展示调度器与稳定性执行器的交接，不复制重试、熔断和幂等实现。
+def dispatch_with_resilience_policy(step, request, principal, deadline):
+    # 函数名和参数形状与模块 05 的权威实现一致。
+    response = execute_resilient_step(step, request, principal, deadline)
+
+    # unknown 表示写操作可能已经生效，只进入对账队列，绝不能自动重提。
+    if response.status == "unknown":
+        reconciliation_queue.enqueue(response)
+    # blocked 表示缺少输入、授权或预算；交给上层澄清/审批，而不是技术重试。
+    elif response.status == "blocked":
+        blocking_router.record_requirement(response)
+    return response
+
+
+# 工具调用成功但业务目标不匹配时进入这里，区别于网络故障重试。
+def recover_wrong_route(task, result, user):
+    # 业务账本/执行日志判断副作用，不能只问 LLM“是否已经执行”。
+    state = execution_log.side_effect_state(task.id)
+    # 已产生副作用或状态未知时，先补偿/核实，不能直接重跑整个任务。
+    if state in {"committed", "unknown"}:
+        return compensation_or_handoff(task, result)
+    # 本例最多自动修正一次路由，防止识别和执行反复循环。
+    if task.replan_count >= 1:
+        return handoff_with_checkpoint(task, reason="修正后仍未满足目标")
+    task.replan_count += 1
+    task.invalidate_plan_and_confirmation()
+    # 只复用来源可靠、仍适用的上下文，移除错误意图引出的中间假设。
+    task.keep_only_verified_reusable_context()
+    # 保存当前进度，下一轮对话或恢复执行时继续使用。
+    store.save(task)
+    return restart_from_intent_with_evidence(task, result, user)
+    # 重新经过意图、槽位、权限及确认检查，不能直接跳回执行节点。
+```
 

@@ -211,7 +211,7 @@ python -m pytest -q
 python -m compileall -q backend scripts streamlit_app.py
 ```
 
-最近一次完整测试记录（2026-10-13）：**463 项自动化测试通过，耗时 30.82 秒**。新增覆盖独立只读并发、依赖结果传递、批准写动作串行、同批失败等待、任务更正与版本拒绝、关键槽位依据、空或截断工具结果阻断，以及医务人员反馈的授权与归属。历史 2026-10-12 的 399 项测试、20 项完整预检及 18 项快速预检是当时的记录，不表示本次重新执行了 Git 交付预检。存在 LangChain MCP beta 和 Starlette WSGI 弃用警告。档案编辑 REST 回归仍覆盖字段约束、角色权限与事务回滚，不生成 MCP ToolExecution。
+最近一次完整测试记录（2026-10-13）：**479 项自动化测试通过，耗时 24.11 秒**。新增覆盖独立只读并发、依赖结果传递、批准写动作串行、同批失败等待、任务更正与版本拒绝、关键槽位依据、空或截断工具结果阻断，以及医务人员反馈的授权与归属。历史 2026-10-12 的 399 项测试、20 项完整预检及 18 项快速预检是当时的记录，不表示本次重新执行了 Git 交付预检。存在 LangChain MCP beta 和 Starlette WSGI 弃用警告。档案编辑 REST 回归仍覆盖字段约束、角色权限与事务回滚，不生成 MCP ToolExecution。
 
 2026-10-13：新增[全部 14 份文档逐题适配](docs/MedAgent_逐题适配/README.md)与[工程改进对照](docs/MedAgent_文档对照与工程改进_2026-10-13.md)。当前最多三步计划支持 `depends_on`：独立只读步骤同批并行，依赖步骤传递脱敏依据，批准写动作的计划串行。任务选择、A2A 回包和 Redis 活跃任务校验绑定任务版本；按意图核对真实工具依据，只有只读覆盖不匹配允许一次纠错重路由。详细证据和参数来源入授权审计，工作台反馈保存待临床复核，不自动训练。
 
@@ -233,7 +233,7 @@ python scripts/evaluate_intent.py --output artifacts/intent_fusion_eval.json
 
 仓库内置不依赖第三方扫描器的预检脚本，会分别扫描工作区候选文件和 Git 暂存内容中的疑似密钥，并检查忽略规则、私钥文件、超大文件、Python 语法和 `.env.example` 配置项完整性。普通模式和 `--quick` 均检查工作区 Markdown 的内联、Wiki 本地文件链接与章节锚点，并要求本地链接目标已纳入 Git 索引、声明 LF 的工作区文件不含 CR，因此提交钩子也会拦截这类断链及换行问题；不请求外部网站，不核对桌面文件或标准引用式链接。预检还会拒绝跟踪 `output/`、`.mimosa/` 和本地简历生成脚本。完整模式还会运行 pytest 与 `pip check`。模式匹配不是完整的数据泄露防护，上传前仍应人工审阅暂存差异；已泄露的密钥需要撤销重置，不能只删除文件：
 
-2026-10-07 的“30 份文档链接检查”为历史快照（仓库 14 份、桌面 16 份）。2026-10-10 当前范围为 31 份（仓库 15 份、桌面 16 份）；提交钩子检查的是仓库内候选 Markdown，不包含桌面。历史额外核查脚本、桌面收据和备份保存在被忽略的 `artifacts/audit_20261007/` 中，融合修复证据位于 `artifacts/review_20261010/`，独立安全入口证据位于 `artifacts/safety_routing_20261010/`，最近一次桌面核对收据位于 `artifacts/history_backup_path_followup_20261011/latest_desktop_receipt.json`；该收据只对应记录时刻的目标字节，后续变化需重新核对，均不随克隆分发。
+2026-10-07 的“30 份文档链接检查”为历史快照（仓库 14 份、桌面 16 份）。2026-10-10 当时范围为 31 份（仓库 15 份、桌面 16 份）；提交钩子检查的是仓库内候选 Markdown，不包含桌面。历史额外核查脚本、桌面收据和备份保存在被忽略的 `artifacts/audit_20261007/` 中，融合修复证据位于 `artifacts/review_20261010/`，独立安全入口证据位于 `artifacts/safety_routing_20261010/`，2026-10-11 桌面核对收据位于 `artifacts/history_backup_path_followup_20261011/latest_desktop_receipt.json`；该收据只对应记录时刻的目标字节，后续变化需重新核对，均不随克隆分发。
 
 ```powershell
 conda activate Smart_Healthcare
@@ -291,3 +291,5 @@ EMR 配置曾是未调用的预留项，现已删除。14 个工具中没有独�
 
 
 2026-10-13 完整话术补充：桌面全部 14 份资料的 1,260 处适配问答已直接合入[话术正文](docs/MedAgent_AI_多Agent项目话术.md#全文档逐题正文)。新增统一时间预算传播和独立档案的内容 revision 条件更新；旧档案客户端须先 GET 取得 revision，再以 expected_revision 保存，缺版本返回 422、内容冲突返回 409。工作台已更新，无数据库迁移。
+
+2026-10-13 复核修复：补回全部 136 个图、伪代码及结构示例，当前逐题稿和单一话术均含正文；主流程 SVG 保存到 docs/MedAgent_项目流程图.svg，生成脚本为 scripts/export_medagent_flowchart.py。生产委托必须带完整任务域和期限，MCP 活跃任务检查要求 Redis；本地无 Redis 不提供跨进程围栏。新增 16 项回归通过。当前链接检查范围为仓库全部 32 份 Markdown 加桌面话术、理解指南和 15 份题库 Markdown，共 49 份；工程对照另行检查。最新桌面同步收据为 artifacts/medagent_upgrade_20261013/desktop_sync_receipt.json，最新链接记录为 artifacts/medagent_upgrade_20261013/review_document_links.json，各历史记录仅对应当时范围。

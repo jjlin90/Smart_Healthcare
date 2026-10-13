@@ -82,6 +82,13 @@ def verify_delegation(token: str, audience: str) -> dict[str, Any]:
     if (claims["sub"] != claims["staff_id"] or not isinstance(claims.get("tools"), list)
             or not all(isinstance(tool, str) and tool for tool in claims["tools"])):
         raise JWTError("Invalid delegation subject")
+    if get_settings().app_env == "production" and (
+        not all(isinstance(claims.get(key), str) and claims[key].strip()
+                for key in ("task_id", "conversation_key", "step_id"))
+        or type(claims.get("plan_version")) is not int or claims["plan_version"] < 1
+        or claims.get("deadline_at") is None
+    ):
+        raise JWTError("Production delegation requires complete task scope and deadline")
     if "task_id" in claims and (not isinstance(claims["task_id"], str) or not claims["task_id"]
                                or type(claims.get("plan_version")) is not int or claims["plan_version"] < 1):
         raise JWTError("Invalid task scope")

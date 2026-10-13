@@ -81,7 +81,7 @@ CARDS = {
     "独立档案编辑已要求先读取 revision，再以 expected_revision 保存，服务端核对内容快照并以 SQL 比较全部原字段后更新；冲突返回 409，重载并核对后再保存。会话锁和档案保护是两层机制。图框架的 Reducer 可以管理 state，但不替代数据库并发与写操作幂等。",
     "backend/memory.py,backend/task_context.py,backend/main.py"),
 "checkpoint": (
-    "现在保存 started、agents_completed、completed、failed 阶段以及任务标识、版本、缺失字段等近期快照；Redis 可共享，未配置时使用本地 TTL。配置 Redis 时，MCP 执行前还检查任务仍处于执行中且计划版本相符；这不能撤销已提交的医院写入。会话默认 1800 秒，checkpoint 默认一天，尚未实现节点持久恢复或 SSE 重放。",
+    "现在保存 started、agents_completed、completed、failed 阶段以及任务标识、版本、缺失字段等近期快照。生产委托必须带任务、会话、版本、步骤和期限；MCP 必须借助 Redis 核对任务仍在执行且版本相符，缺配置或任务域拒绝。开发环境未配置 Redis 时使用本地 TTL，不提供跨进程围栏；这不能撤销已提交的医院写入。会话默认 1800 秒，checkpoint 默认一天，尚未实现节点持久恢复或 SSE 重放。",
     "节点恢复要持久保存计划版本、已完成步骤、输入摘要、工具依据引用和操作状态，恢复时先重新鉴权。只读证据核验时效后才能复用；写任务先核对 operation_id，结果未知绝不盲目再次执行。Checkpoint 不提供跨 HIS 的恰好一次保证。",
     "backend/memory.py,backend/main.py,backend/mcp_security.py"),
 "context": (
@@ -207,6 +207,89 @@ def explanation(block: list[str]) -> str:
     return "\n\n".join(kept)[:900]
 
 
+def source_examples(path: Path) -> list[dict]:
+    """Account for every fenced example, including material before Q1.
+
+    These are teaching examples, never additional executable application code.
+    Foreign transaction examples are consistently recast as staff-led referral
+    assessment; the adapted answer above remains the implementation authority.
+    """
+    text = path.read_text(encoding="utf-8-sig")
+    replacements = {
+        "refund_assessment_agent": "referral_assessment_agent",
+        "RefundAssessment": "ReferralAssessment", "order_query": "patient_record_query",
+        "order_agent": "patient_record_agent", "query_order": "query_patient_record",
+        "order_id": "patient_id", "read_order": "read_patient_record",
+        "refund_reason": "referral_reason", "refund_request": "referral_request",
+        "refund_agent": "referral_agent", "refund-policy": "referral-policy",
+        "refund-order": "referral-patient", "order-12345": "patient-12345",
+        "submit_refund": "submit_referral", "assess_refund": "assess_referral",
+        "verify_refund_operation": "verify_referral_operation", "refund-task": "referral-task",
+        '"refund"': '"referral"', "退款规则": "院内转诊规则", "退款": "转诊申请",
+        "订单域/用户域/商品域/财务域/售后域": "症状域/药品域/指南域",
+        "订单服务": "患者记录服务", "订单号": "患者标识", "订单": "患者记录",
+        "物流信息": "转诊状态", "这个月销售额": "本科室本月用药审核记录",
+        "查北京到上海的机票": "查患者阿司匹林说明书",
+        "改成深圳": "改查华法林说明书", "目的地": "药品名称",
+        "华东地区的售后政策": "本院的转诊协同规范", "华东地区售后政策": "本院转诊协同规范",
+        "售后系统设计": "院内转诊协同系统设计", "售后": "院内协同",
+        "发消息": "提交院内通知", "用户": "院内员工",
+    }
+    rows = []
+    for n, match in enumerate(re.finditer(r"^```([^\n]*)\n(.*?)^```\s*$", text, re.M | re.S), 1):
+        language, content = match[1].strip(), match[2].rstrip()
+        for old, new in replacements.items():
+            content = content.replace(old, new)
+        if not language:
+            try:
+                json.loads(content)
+                language = "json"
+            except ValueError:
+                language = "text"
+        prefix = text[:match.start()]
+        headings = re.findall(r"(?m)^#{1,6}\s+(.+)$", prefix)
+        rows.append({"anchor": f"example-{n:03d}", "line": prefix.count("\n") + 1,
+                     "language": language, "content": content,
+                     "title": headings[-1] if headings else "章节概览",
+                     "source_sha256": hashlib.sha256(match[0].encode()).hexdigest(),
+                     "adapted_sha256": hashlib.sha256(content.encode()).hexdigest()})
+    return rows
+
+
+def append_examples(body: list[str], path: Path, questions: list[dict]) -> list[dict]:
+    rows = source_examples(path)
+    if not rows:
+        return []
+    for row in rows:
+        previous = [q for q in questions if q["line"] < row["line"]]
+        row["question_anchor"] = previous[-1]["anchor"] if previous else None
+    # Link the explanatory lead-in to its retained blocks, so headings such as
+    # "典型处理链" no longer appear to have lost their accompanying example.
+    for question in reversed(questions):
+        associated = [row for row in rows if row["question_anchor"] == question["anchor"]]
+        heading = f"## {question['anchor']}"
+        if associated and heading in body:
+            start = body.index(heading) + 1
+            end = next((i for i in range(start, len(body)) if body[i].startswith("## q-")), len(body))
+            body[end:end] = ["**本题图与结构示例：** " + "、".join(
+                f"[{row['anchor']}](#{row['anchor']})" for row in associated), ""]
+    body += ["## 原文图与结构示例（ToB适配）", "",
+             "以下逐块保留原文的图、伪代码、JSON 和文本结构，通用交易示例改为院内患者记录与转诊协同。"
+             "这些是面试原理或扩展方案示例，可能包含尚未实现的角色、参数级审批、语义验收、持久恢复和队列；"
+             "不能作为当前项目已实现的接口或代码。当前实现以各题项目口述、代码依据及主流程图为准。", ""]
+    for row in rows:
+        previous = [q for q in questions if q["line"] < row["line"]]
+        question = previous[-1] if previous else None
+        row["question_anchor"] = question["anchor"] if question else None
+        body += [f"### {row['anchor']}", "", f"**{row['title']}**", "",
+                 f"来源：{path.with_suffix('.md').name} 第 {row['line']} 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。", ""]
+        if question:
+            body += [f"[返回对应问答](#{question['anchor']})", ""]
+        body += [f"```{row['language']}", row["content"], "```", ""]
+    return [{**row, "source": path.with_suffix('.md').name, "output": path.with_suffix('.md').name}
+            for row in rows]
+
+
 def parse_questions(path):
     lines = path.read_text(encoding="utf-8-sig").splitlines()
     entries, primary = [], 0
@@ -245,10 +328,11 @@ def build(source: Path):
     paths = sorted(source.glob("*.md")) or sorted(source.glob("*.txt"))
     if len(paths) != 14: raise ValueError(f"预期读取14份原文，实际{len(paths)}份；先核对来源")
     DEST.mkdir(parents=True, exist_ok=True)
-    manifest, lookup = [], []
+    manifest, lookup, examples = [], [], []
     index = ["# MedAgent：全部文档逐题适配", "", "核查日期：2026-10-13。用途：准备院内 ToB 多 Agent 项目的面试与连续追问。原始资料保留；本目录是逐题适配稿。", "",
              "每题先读项目口述，再看设计展开与实现边界。设计展开来自原文的原理；只有项目口述和代码依据描述当前实现。未部署的功能按扩展方案回答。个人经历、任职、客户和采购成果由本人填写。", "",
              "范围固定：院内医生、药师、医务及系统管理人员；不新增患者登录、挂号、预约、缴费、退费、自动诊疗。", "", "## 章节与覆盖数", ""]
+    index[6:6] = ["原始资料编号为 00—08、10—13，加一份横向题表，共 14 份。来源本身没有 09 号文件，编号跳过不是遗漏。", ""]
     for path in paths:
         if not re.match(r"\d\d-", path.name): continue
         source_name = path.with_suffix(".md").name
@@ -273,7 +357,8 @@ def build(source: Path):
                    "anchor": anchor, "topic": key, "kind": "followup" if entry["followup"] else "primary"}
             manifest.append(row)
             lookup.append((normalize(entry["question"]), row))
-        (DEST/source_name).write_text("\n".join(body)+"\n", encoding="utf-8")
+        examples.extend(append_examples(body, path, [q for q in manifest if q['source'] == source_name]))
+        (DEST/source_name).write_text("\n".join(body)+"\n", encoding="utf-8", newline="\n")
         index.append(f"- [{path.stem}](<{source_name}>)：{len(entries)} 道主问题与追问。")
     table_path = next(path for path in paths if not re.match(r"\d\d-", path.name))
     table_name = table_path.with_suffix(".md").name
@@ -318,15 +403,17 @@ def build(source: Path):
                  f"**对应详解：** [{matched['question']}](<{matched['output']}#{matched['anchor']}>)。", ""]
         manifest.append({"source":table_name,"line":line,"column":col+1,"question":question,"output":table_name,
                          "anchor":f"q-{n:03d}","topic":key,"kind":"table_or_sequence","match_score":round(score,3)})
-    (DEST/table_name).write_text("\n".join(body)+"\n", encoding="utf-8")
+    examples.extend(append_examples(body, table_path, [q for q in manifest if q['source'] == table_name]))
+    (DEST/table_name).write_text("\n".join(body)+"\n", encoding="utf-8", newline="\n")
     index += [f"- [{table_path.stem}]({table_name})：{len(table_questions)} 个题表单元与连问。", "",
               "## 使用建议", "", "以03章的意图、槽位和任务切换为主线，接04章执行编排，再练05/06章故障与状态，最后按07/08/13章解释工具、依据和安全。00章用于架构辨析；10/11/12章按训练理论、开发方法或院内扩展设计作答。所有章节均已纳入覆盖清单。", "",
               "[覆盖清单](coverage.json)逐项记录来源文件、行号、题目和适配稿位置；文件哈希用于确认同步的是这次读取的版本。"]
     index += ["", "全部答案也已直接合入[单一话术正文](../MedAgent_AI_多Agent项目话术.md#全文档逐题正文)，分册保留用于对照。"]
-    (DEST/"README.md").write_text("\n".join(index)+"\n", encoding="utf-8")
+    (DEST/"README.md").write_text("\n".join(index)+"\n", encoding="utf-8", newline="\n")
     result = {"date":"2026-10-13", "source_files": [{"name":p.with_suffix('.md').name,"sha256":hashlib.sha256(p.read_bytes()).hexdigest()} for p in paths],
-              "question_count":len(manifest),"questions":manifest}
-    (DEST/"coverage.json").write_text(json.dumps(result, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
+              "question_count":len(manifest),"questions":manifest,
+              "example_count":len(examples), "examples":examples}
+    (DEST/"coverage.json").write_text(json.dumps(result, ensure_ascii=False, indent=2)+"\n", encoding="utf-8", newline="\n")
     print(json.dumps({"files":len(paths),"questions":len(manifest),"output":str(DEST)}, ensure_ascii=False))
 
 

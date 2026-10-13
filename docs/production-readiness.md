@@ -88,3 +88,7 @@ python scripts/preflight_git.py
 签名绝对 deadline_at 传至 A2A/MCP，分派与新工具调用用剩余预算，医院 HTTP 使用剩余时间与单次上限的较小值。时钟同步、真实下游取消和未知写结果核对仍需医院验收。
 
 档案 GET 返回内容 revision，PUT 必填 expected_revision。服务端同时做快照核对与原字段 SQL 条件更新，冲突 409，不写审计成功记录；工作台支持重载档案并重建表单。这是内容快照保护，不是跨 HIS 全局版本或分布式锁。旧客户端缺该字段将返回 422，应更新调用方式。
+
+## 2026-10-13 复核：生产任务围栏
+
+生产 A2A/MCP 验证拒绝缺少 task_id、conversation_key、plan_version、step_id 或 deadline_at 的签名令牌。MCP 执行前要求 Redis 并检查 checkpoint 的 started 阶段及任务版本；Redis 不可用或缺配置时失败，不降为本地放行。开发环境无 Redis 的旧委托与 TTL 模式只用于本地联调，不能证明跨进程任务有效性。检查后开始的外部调用仍可能与任务失效并发，不能宣称能原子撤销医院写入。

@@ -22,15 +22,17 @@ def merge():
     chapters = [row["name"] for row in coverage["source_files"]]
     codes = {name: name[:2] if re.match(r"\d\d-", name) else "cross" for name in chapters}
     anchors = {(q["output"], q["anchor"]):f"full-{codes[q['output']]}-{q['anchor']}" for q in coverage["questions"]}
+    anchors.update({(q["output"], q["anchor"]): f"full-{codes[q['output']]}-{q['anchor']}"
+                    for q in coverage.get("examples", [])})
     base = BOOK.read_text(encoding="utf-8-sig").split(START)[0].rstrip()
     # Replace the old navigation-only appendix with the complete answers.
     base = base.split("## 2026-10-13 全文档适配与执行机制更新")[0].rstrip()
     base = re.sub(r"最近核查：\d{4}-\d{2}-\d{2}", "最近核查：2026-10-13", base, count=1)
-    intro = "本文件正文已完整纳入桌面 14 份资料的 1,260 处适配问答（包括重复问法），无需打开分册才能读答案。原项目介绍之后是[完整逐题正文](#全文档逐题正文)；答案区分当前实现、原理与扩展方案，业务范围固定为院内 ToB。"
+    intro = "本文件正文已完整纳入桌面 14 份资料的 1,260 处适配问答（包括重复问法）及 136 个图、伪代码和结构示例，无需打开分册才能读答案。原项目介绍之后是[完整逐题正文](#全文档逐题正文)；每章问答后有原文图与结构示例，区分当前实现、原理与扩展方案，业务范围固定为院内 ToB。"
     base = re.sub(r"\n本文件正文已完整纳入[^\n]*\n", "\n", base)
     first, remainder = base.split("\n", 1)
     base = first + "\n\n" + intro + "\n\n" + remainder.lstrip("\n")
-    appendix = [START, "## 全文档逐题正文", "", "以下为全部题目和答案。保留来源文件、原文行号及重复问法；主问题与追问的项目回答已直接写在本文件，不以导航代替正文。", "", "### 全文章节导航", ""]
+    appendix = [START, "## 全文档逐题正文", "", "以下为全部题目和答案。保留来源文件、原文行号及重复问法；主问题与追问的项目回答已直接写在本文件，不以导航代替正文。", "", "原始资料编号为 00—08、10—13，加一份横向题表，共 14 份；来源本身没有 09 号文件，跳号不是遗漏。", "", "### 全文章节导航", ""]
     for name in chapters:
         count = sum(q["output"] == name for q in coverage["questions"])
         appendix.append(f"- [{Path(name).stem}：{count} 处問答](#full-{codes[name]})".replace("問", "问"))
@@ -58,6 +60,8 @@ def merge():
         body = chapter[chapter.index("## q-"):]
         body = re.sub(r"(?m)^### ", "#### ", body)
         body = re.sub(r"(?m)^## (q-\d+)[ \t]*$", lambda m: "### " + anchors[(name,m[1])], body)
+        body = re.sub(r"(?m)^#### (example-\d+)[ \t]*$", lambda m: "#### " + anchors[(name,m[1])], body)
+        body = body.replace("## 原文图与结构示例（ToB适配）", "### 原文图与结构示例（ToB适配）")
         appendix += [f"## full-{codes[name]}", "", f"**{Path(name).stem}：项目适配问答**", "", rebase(body,name).rstrip(), ""]
     appendix.append(END)
     result = base + "\n\n" + "\n".join(appendix) + "\n"
@@ -67,6 +71,11 @@ def merge():
             raise ValueError("Question missing or duplicated: " + anchor)
         q["book"] = BOOK.name
         q["book_anchor"] = anchor
+    for example in coverage.get("examples", []):
+        anchor = anchors[(example["output"], example["anchor"])]
+        if result.count("#### " + anchor + "\n") != 1:
+            raise ValueError("Example missing or duplicated: " + anchor)
+        example["book_anchor"] = anchor
     BOOK.write_text(result, encoding="utf-8", newline="\n")
     coverage_path.write_text(json.dumps(coverage,ensure_ascii=False,indent=2)+"\n",encoding="utf-8",newline="\n")
     print(json.dumps({"chapters":len(chapters),"questions":len(coverage['questions']),"book_lines":len(result.splitlines()),"book":str(BOOK)},ensure_ascii=False))

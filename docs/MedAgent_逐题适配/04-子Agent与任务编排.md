@@ -118,6 +118,8 @@
 
 **代码依据：** [backend/a2a_server.py](../../backend/a2a_server.py)、[backend/service_auth.py](../../backend/service_auth.py)、[backend/agents.py](../../backend/agents.py)
 
+**本题图与结构示例：** [example-002](#example-002)
+
 ## q-008
 
 ### 追问｜共享状态、消息队列、HTTP API、事件总线、A2A 协议分别是什么？
@@ -228,6 +230,8 @@
 
 **代码依据：** [backend/mcp_tools.py](../../backend/mcp_tools.py)、[backend/resilience.py](../../backend/resilience.py)、[backend/mcp_security.py](../../backend/mcp_security.py)
 
+**本题图与结构示例：** [example-003](#example-003)
+
 ## q-014
 
 ### 追问｜重试、超时、降级、跳过、回滚、转人工分别什么时候用？
@@ -311,6 +315,8 @@
 **在 MedAgent 中怎么补全：** Prompt 可以提示忽略注入，但真正防线是白名单、schema、可信身份、固定数据源、写入确认和审计。进一步对最终参数做审批绑定、限制外部域名和文件权限、加入注入回归；不将未测试的‘万能注入检测’写成已有能力。
 
 **代码依据：** [backend/service_auth.py](../../backend/service_auth.py)、[backend/mcp_security.py](../../backend/mcp_security.py)、[backend/access.py](../../backend/access.py)、[backend/agents.py](../../backend/agents.py)
+
+**本题图与结构示例：** [example-004](#example-004)
 
 ## q-019
 
@@ -636,6 +642,8 @@ CPU 密集工作使用适合语言运行时的进程或线程池；例如 CPytho
 
 **代码依据：** [backend/agents.py](../../backend/agents.py)、[backend/a2a_context.py](../../backend/a2a_context.py)
 
+**本题图与结构示例：** [example-005](#example-005)
+
 ## q-038
 
 ### 追问｜哪些工具不能直接并行？
@@ -719,6 +727,8 @@ HTTP/数据库/模型调用优先异步 IO 或受控线程池；纯 Python CPU �
 **在 MedAgent 中怎么补全：** 并发只解决互不依赖的 IO 等待，不能把串行数据依赖打散。CPU 推理要在线程或独立模型服务中运行，并控制 GPU 与连接池并发；后台长任务应采用持久队列和状态查询，不能把 async 函数当成可靠任务队列。
 
 **代码依据：** [backend/agents.py](../../backend/agents.py)、[backend/a2a_context.py](../../backend/a2a_context.py)
+
+**本题图与结构示例：** [example-006](#example-006)
 
 ## q-043
 
@@ -958,6 +968,8 @@ replan 最好有触发条件，例如关键结果偏离预期、发现新信息�
 
 **代码依据：** [backend/evidence.py](../../backend/evidence.py)、[backend/agents.py](../../backend/agents.py)、[backend/mcp_security.py](../../backend/mcp_security.py)、[backend/main.py](../../backend/main.py)
 
+**本题图与结构示例：** [example-007](#example-007)
+
 ## q-056
 
 ### 追问｜可以根据工具返回结果重新规划怎么理解？
@@ -1041,6 +1053,8 @@ replan 最好有触发条件，例如关键结果偏离预期、发现新信息�
 **在 MedAgent 中怎么补全：** 计划能表达依赖与独立查询，当前没有无限自主改计划：只读依据缺失最多一次重新识别，普通工具故障不等于意图错误。若扩展更多节点，增加节点超时、验收条件、输入引用和版本化节点状态，同时限制重规划预算。
 
 **代码依据：** [backend/agents.py](../../backend/agents.py)、[backend/evidence.py](../../backend/evidence.py)
+
+**本题图与结构示例：** [example-008](#example-008)
 
 ## q-061
 
@@ -1522,6 +1536,8 @@ max_steps 限制总执行量；活动调用栈用于发现递归环；动作指�
 
 **代码依据：** [backend/mcp_tools.py](../../backend/mcp_tools.py)、[backend/resilience.py](../../backend/resilience.py)、[backend/mcp_security.py](../../backend/mcp_security.py)
 
+**本题图与结构示例：** [example-009](#example-009)
+
 ## q-088
 
 ### 主问题｜交给子 Agent 的应该是一句话，还是一份任务契约？
@@ -1537,6 +1553,8 @@ max_steps 限制总执行量；活动调用栈用于发现递归环；动作指�
 **在 MedAgent 中怎么补全：** 不用 A2A 也可通过进程内异步函数、自定义 HTTP 或消息队列分派，核心仍是任务契约、授权、超时和业务状态。当前统一 deadline_at 通过签名委托传到专科和 MCP，新调用只用剩余预算；服务是主从式，专科不能任意互相调用。队列、回调和长期任务是扩展项。
 
 **代码依据：** [backend/a2a_server.py](../../backend/a2a_server.py)、[backend/service_auth.py](../../backend/service_auth.py)、[backend/agents.py](../../backend/agents.py)
+
+**本题图与结构示例：** [example-010](#example-010)
 
 ## q-089
 
@@ -1569,6 +1587,8 @@ Prompt Engineering 主要设计指令表达；上下文工程还要决定每次�
 **在 MedAgent 中怎么补全：** 进一步做 Context Builder：固定职责与授权先保留，当前目标和关键临床事实次之，然后按任务需要选工具证据，最后才是历史摘要。摘要保留来源、时间和原文引用，压缩策略要用多轮任务完成率和错误继承率验证。
 
 **代码依据：** [backend/a2a_context.py](../../backend/a2a_context.py)、[backend/memory.py](../../backend/memory.py)、[backend/task_context.py](../../backend/task_context.py)
+
+**本题图与结构示例：** [example-011](#example-011)
 
 ## q-091
 
@@ -1646,6 +1666,8 @@ Prompt Engineering 主要设计指令表达；上下文工程还要决定每次�
 
 **代码依据：** [backend/agents.py](../../backend/agents.py)、[backend/mcp_security.py](../../backend/mcp_security.py)、[backend/resilience.py](../../backend/resilience.py)
 
+**本题图与结构示例：** [example-012](#example-012)
+
 ## q-096
 
 ### 主问题｜驾驭工程（Harness Engineering）到底设计什么？
@@ -1661,6 +1683,8 @@ Prompt Engineering 主要设计指令表达；上下文工程还要决定每次�
 **在 MedAgent 中怎么补全：** 进一步的长任务运行环境需要统一任务预算、持久执行队列、节点状态和验收器。框架能提供组件，业务权限和副作用状态仍由应用负责，不能仅靠装一个框架完成生产治理。
 
 **代码依据：** [backend/agents.py](../../backend/agents.py)、[backend/mcp_security.py](../../backend/mcp_security.py)、[backend/resilience.py](../../backend/resilience.py)
+
+**本题图与结构示例：** [example-013](#example-013)
 
 ## q-097
 
@@ -1714,6 +1738,8 @@ Prompt Engineering 主要设计指令表达；上下文工程还要决定每次�
 
 **代码依据：** [backend/agents.py](../../backend/agents.py)、[backend/evidence.py](../../backend/evidence.py)
 
+**本题图与结构示例：** [example-014](#example-014)
+
 ## q-100
 
 ### 追问｜用同一个模型评价自己的答案可靠吗？
@@ -1745,6 +1771,8 @@ Prompt Engineering 主要设计指令表达；上下文工程还要决定每次�
 **在 MedAgent 中怎么补全：** 系统评测按单意图、多意图、否定、短句、长上下文、范围外、权限撤销和工具故障分层。定义 gold 输入、期望路由、参数、证据与允许副作用；固定模型、数据与预算再比较。临床结论由有依据的标注和医生抽检验证，模型裁判也要独立校准。
 
 **代码依据：** [evaluation/bert_multilabel_challenge_summary.json](../../evaluation/bert_multilabel_challenge_summary.json)、[tests/test_task_contracts.py](../../tests/test_task_contracts.py)、[docs/bert-threshold-evaluation-2026-10-12.md](../../docs/bert-threshold-evaluation-2026-10-12.md)
+
+**本题图与结构示例：** [example-015](#example-015)
 
 ## q-102
 
@@ -1823,4 +1851,482 @@ Prompt Engineering 主要设计指令表达；上下文工程还要决定每次�
 **在 MedAgent 中怎么补全：** 按业务目标、可信数据和工具权限划分，而不是按每个 API 拆 Agent。增加角色前，在同一任务集上比较完成率、交接损失、耗时与成本；不能假设多角色天然准确。
 
 **代码依据：** [backend/agents.py](../../backend/agents.py)、[backend/a2a_server.py](../../backend/a2a_server.py)
+
+**本题图与结构示例：** [example-016](#example-016)
+
+## 原文图与结构示例（ToB适配）
+
+以下逐块保留原文的图、伪代码、JSON 和文本结构，通用交易示例改为院内患者记录与转诊协同。这些是面试原理或扩展方案示例，可能包含尚未实现的角色、参数级审批、语义验收、持久恢复和队列；不能作为当前项目已实现的接口或代码。当前实现以各题项目口述、代码依据及主流程图为准。
+
+### example-001
+
+**导读：先看系统，再逐题展开**
+
+来源：04-子Agent与任务编排.md 第 30 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+```mermaid
+flowchart TD
+    P[03 主 Agent：目标、槽位、计划] --> S[调度器：依赖、版本、任务总预算]
+    S --> C[上下文组装：只交付当前步骤所需信息]
+    C --> A[子 Agent：提出动作或候选结果]
+    A --> H[Harness：动作校验、工具执行、超时与记录]
+    H --> O[真实观测与产物]
+    O --> V[验收器：契约、证据、业务条件]
+    V -->|可修正且预算允许| C
+    V -->|局部目标无法完成| P
+    V -->|通过| R[版本化提交与结果聚合]
+    R --> S
+    S --> F[全部必要目标达成后返回]
+    D[(任务状态、产物、业务操作账本)] --- S
+    D --- C
+    D --- H
+    D --- R
+```
+
+### example-002
+
+**Q3｜子 Agent 之间如何通信？**
+
+来源：04-子Agent与任务编排.md 第 106 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-007)
+
+```json
+{
+  "message_id": "msg-001",
+  "task_id": "task-20260820-001",
+  "trace_id": "trace-8f3a",
+  "plan_version": 1,
+  "step_id": "query_patient_record",
+  "attempt_id": "attempt-001",
+  "source": "planner",
+  "target": "query_agent",
+  "input": {
+    "patient_id": "12345"
+  },
+  "context": {
+    "user_id": "user-1001",
+    "locale": "zh-CN"
+  },
+  "status": "pending",
+  "deadline": "2026-08-20T10:30:00+08:00",
+  "schema_version": "1.0"
+}
+```
+
+### example-003
+
+**Q5｜子 Agent 失败怎么办？**
+
+来源：04-子Agent与任务编排.md 第 169 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-013)
+
+```json
+{
+  "task_id": "task-20260820-001",
+  "trace_id": "trace-8f3a",
+  "plan_version": 1,
+  "step_id": "s2",
+  "attempt_id": "attempt-002",
+  "status": "failed",
+  "data": null,
+  "error": {
+    "code": "UPSTREAM_TIMEOUT",
+    "type": "transient",
+    "message": "患者记录服务响应超时",
+    "retryable": true,
+    "compensatable": false,
+    "retry_count": 1,
+    "completed_steps": ["s1"]
+  }
+}
+```
+
+### example-004
+
+**Q6｜子 Agent 工具权限怎么控制？**
+
+来源：04-子Agent与任务编排.md 第 222 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-018)
+
+```text
+1. 单一职责：一个 Agent 只负责一类任务。
+2. 输入输出稳定：必须有明确 schema。
+3. 工具权限最小化：只开放它需要的工具。
+4. 状态隔离：只读全局状态，写入自己的结果区域。
+5. 可观测：每个 Agent 执行前后都记录日志和 trace。
+6. 可降级：失败后有 fallback，不影响整个系统崩溃。
+```
+
+### example-005
+
+**Q13｜怎么实现多工具并行调用？**
+
+来源：04-子Agent与任务编排.md 第 341 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-037)
+
+```python
+async def call_independent_tools(steps, deadline):
+    results = {}
+
+    async def run(step):
+        timeout = remaining_seconds(deadline)
+        request = build_step_request(step, deadline=deadline)
+        try:
+            results[step.id] = await asyncio.wait_for(
+                tool_registry.call(step.tool, request),
+                timeout=timeout,
+            )
+        except Exception as exc:
+            # 转成结构化结果；是否取消其他步骤由 required/fallback 决定。
+            results[step.id] = classify_tool_failure(step, exc)
+
+    async with asyncio.TaskGroup() as group:
+        for step in steps:
+            group.create_task(run(step))
+
+    require(results.keys() == {step.id for step in steps})
+    return results
+```
+
+### example-006
+
+**Q14｜Python 多核并行和 GIL 怎么理解？**
+
+来源：04-子Agent与任务编排.md 第 393 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-042)
+
+```text
+串行：用于强依赖流程，按顺序传递结果；数据一致性另靠快照、版本或事务约束。
+并行：用于独立子任务，提高响应速度。
+异步：用于耗时任务，避免院内员工长时间等待。
+
+这不是三个互斥选项，而是两个维度：
+- 执行依赖：serial / parallel / DAG，决定步骤先后。
+- 交互方式：inline / background，决定院内员工当前等待结果还是稍后查询。
+后台任务内部同样可以串行或并行；在线请求也可以使用异步 IO。
+```
+
+### example-007
+
+**Q19｜执行过程中能否动态改计划？**
+
+来源：04-子Agent与任务编排.md 第 495 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-055)
+
+```python
+def publish_replan(task, observations):
+    old = store.load_plan(task.id)
+    # 先确认在途写操作状态；计划失效不能撤销已经发生的业务副作用。
+    if operations.has_unresolved_write(task.id):
+        return needs_reconciliation(task.id)
+    reusable = select_results_still_valid(old, task.goal, observations)
+    draft = planner.plan_remaining(task, reusable, observations)
+    validate_plan_and_budget(draft, task)         # 重新校验依赖、权限、预算及目标覆盖
+    # 原子替换当前版本，并标记旧版本的未完成步骤失效。
+    if not store.publish_if_version(task.id, expected=old.version, new=draft):
+        return conflict("期间任务已变化，需要按最新状态重新判断")
+    # 请求取消旧 worker；迟到响应仍由版本与租约校验拒收。
+    scheduler.cancel_superseded_attempts(task.id, old.version)
+    return ready(draft)
+```
+
+### example-008
+
+**Q20｜计划和工作流有什么区别？**
+
+来源：04-子Agent与任务编排.md 第 544 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-060)
+
+```json
+{
+  "task_id": "referral-task-001",
+  "plan_version": 1,
+  "goal": "查询患者记录并给出转诊申请资格评估，不提交转诊申请",
+  "interaction_mode": "inline",
+  "steps": [
+    {
+      "step_id": "read_patient_record",
+      "agent": "patient_record_agent",
+      "action": "query_patient_record",
+      "input": {"patient_id": "12345"},
+      "depends_on": [],
+      "required": true,
+      "timeout_ms": 3000
+    },
+    {
+      "step_id": "assess_referral",
+      "agent": "referral_assessment_agent",
+      "action": "assess_with_applicable_policy",
+      "input_refs": {"order": "read_patient_record.data"},
+      "depends_on": ["read_patient_record"],
+      "required": true,
+      "timeout_ms": 8000
+    }
+  ],
+  "fallback_policy": {
+    "on_missing_evidence": "blocked",
+    "on_required_step_failure": "fail",
+    "allow_partial": false,
+    "allow_write": false
+  }
+}
+```
+
+### example-009
+
+**Q29｜多 Agent 协同如何保证稳定？**
+
+来源：04-子Agent与任务编排.md 第 757 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-087)
+
+```text
+生产里一般不建议让子 Agent 完全自由互相调用。
+更稳的方式是主 Agent 统一调度：
+
+1. 主 Agent 识别任务。
+2. 主 Agent 生成计划。
+3. 主 Agent 根据计划调用子 Agent。
+4. 子 Agent 只返回结构化结果。
+5. 主 Agent 聚合结果并决定下一步。
+
+这样可以减少死循环、重复调用和职责不清的问题。
+```
+
+### example-010
+
+**Q30｜交给子 Agent 的应该是一句话，还是一份任务契约？**
+
+来源：04-子Agent与任务编排.md 第 784 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-088)
+
+```python
+# 调度器生成的步骤契约；输入引用必须指向经过权限检查的产物。
+request = StepRequest(
+    task_id="referral-task-001",
+    trace_id="trace-8f3a",              # 跨服务、模型与工具的链路关联标识
+    plan_version=3,                  # 院内员工改目标或重规划后推进计划版本
+    step_id="assess_referral",         # 本步只做评估，不负责实际转诊申请
+    agent="referral_assessment_agent", # 角色与步骤身份分开，同一角色可承担多个步骤
+    attempt_id="attempt-002",        # 本次执行标识，不充当业务幂等键
+    goal="根据患者记录与适用规则判断是否满足转诊申请条件",
+    input_refs={
+        "order": "artifact:patient-12345-v7",
+        "policy": "artifact:referral-policy-v2",
+    },
+    acceptance=[
+        "结论关联患者记录 12345",
+        "每个判断条件有对应证据",
+        "缺失关键证据时返回 blocked，不猜测通过",
+    ],
+    result_schema="ReferralAssessment.v1", # 只约束 StepResult.data，不是顶层返回信封
+    budget=Budget(max_model_calls=6, max_tool_calls=4, max_output_tokens=1200),
+    # 单步预算从父任务额度中分配，不能每个子 Agent 都拿一份完整总预算。
+    allowed_tools=["read_artifact"],
+)
+
+# 子 Agent 交付结构化产物，不能只回一句“可以退”。
+response = StepResult(
+    task_id=request.task_id,
+    trace_id=request.trace_id,
+    plan_version=request.plan_version,
+    step_id=request.step_id,
+    attempt_id=request.attempt_id,
+    status="success",                # 表示评估完成，不表示转诊申请已提交
+    data={"patient_id": "12345", "eligible": True},
+    evidence_refs=["artifact:patient-12345-v7", "artifact:referral-policy-v2"],
+    unresolved=[],
+    error=None,
+)
+```
+
+### example-011
+
+**Q31｜上下文工程和 Prompt Engineering 有什么区别？**
+
+来源：04-子Agent与任务编排.md 第 838 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-090)
+
+```python
+ctx = context_builder.build_context(
+    step=request,
+    state=local_state,
+    principal=principal,
+    token_budget=model_spec.input_budget_for(request),
+)
+```
+
+### example-012
+
+**Q33｜系统层面怎样同时管理依赖、预算和异步可靠性？**
+
+来源：04-子Agent与任务编排.md 第 883 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-095)
+
+```python
+def submit_background(task_spec, principal):
+    # 同一事务落下任务和待发送事件，消除“保存成功但忘记入队”的窗口。
+    with db.transaction() as tx:
+        task = tx.create_task(task_spec, owner=principal.id, status="queued")
+        tx.outbox_add(event_id=new_id(), kind="task_ready", task_id=task.id)
+    return {"task_id": task.id, "status": "queued"}  # 已受理，不宣称已完成
+
+
+def consume_step_event(event):
+    # 原子领取本步骤当前版本的租约；重复消息遇到已完成/已有有效租约则不执行。
+    lease = store.claim_if_runnable(event.task_id, event.plan_version, event.step_id)
+    if lease is None:
+        return acknowledge(event)
+    try:
+        # 原子预留父任务额度，所有 worker 共享计数，不能各自读后再减。
+        allocation = budgets.reserve_for_step(lease)
+        result = run_step_with_harness(lease, allocation)
+        # 只接受当前计划、当前 attempt 和有效租约的结果；旧 worker 不能覆盖。
+        store.commit_if_current(lease, result)
+        acknowledge(event)                         # 先持久化，再确认消费
+    finally:
+        budgets.settle_usage_and_release_unused(lease)
+        store.release_lease_if_owned(lease)
+```
+
+### example-013
+
+**Q34｜驾驭工程（Harness Engineering）到底设计什么？**
+
+来源：04-子Agent与任务编排.md 第 929 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-096)
+
+```python
+def execute_action(action, request, principal, lease):
+    # 该入口统一处理模型提出的工具动作；模型不能直接连接业务后端。
+    tool = registry.require_tool(action.tool)
+    require(tool.name in request.allowed_tools)
+    validate_schema(action.args, tool.input_schema)
+    require(policy.authorized(principal, tool, action.args))
+    require(store.is_current_and_not_cancelled(lease))
+    budgets.reserve_tool_call(request.task_id, request.step_id)      # 执行前从共享额度中扣除
+
+    if tool.has_write:
+        # 确认绑定具体业务操作，不因出现一句“确认”就对所有写操作放行。
+        operation = operations.load_bound_operation(request, action)
+        require(confirmation.valid_for(principal, operation))
+        # 操作 ID 跨网络重试保持稳定；改了业务参数则重新生成操作并重新授权。
+        return tool.invoke_transactionally(
+            action.args,
+            operation_id=operation.id,
+            expected_resource_version=operation.resource_version,
+            principal=principal,
+        )
+        # 后端仍需原子去重、检查资源版本及业务前置条件，并保存执行结果。
+
+    # 只读动作同样受权限、大小与超时限制，防止慢查询耗尽 worker。
+    return tool.invoke(action.args, timeout=lease.remaining_time, max_bytes=64000)
+```
+
+### example-014
+
+**Q36｜循环工程怎样让 Agent 逐步完成任务，而不是反复调用？**
+
+来源：04-子Agent与任务编排.md 第 976 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-099)
+
+```python
+def run_local_loop(request, principal, model_spec):
+    # 单步局部循环；有副作用且结果未知的动作交给恢复流程，不在这里猜测重做。
+    state = checkpoints.load_local(request)        # 恢复已用额度、历史观测和失败项
+    best = state.best_verified_partial             # 只保存有证据支撑的部分产物
+
+    while budgets.can_continue(request.task_id, request.step_id):
+        if store.cancelled_or_superseded(request):
+            return stopped("任务已取消或计划已更新")
+        ctx = context_builder.build_context(
+            step=request,
+            state=state,
+            principal=principal,
+            token_budget=model_spec.input_budget_for(request),
+        )
+        if ctx.blocked:
+            return blocked(ctx.reason)
+
+        # 每次模型调用都记账，验收器若调用模型也使用同一总预算。
+        ticket = budgets.reserve_model_call(request.task_id, request.step_id)
+        proposal = model.propose(ctx.render_for_model(), allocation=ticket)
+        validate_schema(proposal, ACTION_OR_RESULT_SCHEMA)
+
+        if proposal.kind == "tool_call":
+            # 同动作、同参数、同证据版本连续重复，提示没有获得新信息。
+            fingerprint = action_fingerprint(proposal, state.evidence_version)
+            if state.repeats_without_progress(fingerprint, limit=2):
+                return needs_replan("重复动作未产生新证据", best)
+            observation = harness.execute_and_record(proposal, request, principal)
+            if observation.side_effect_unknown:
+                return needs_reconciliation(observation.operation_id)
+            state.add_observation(fingerprint, observation)
+            # 同步更新 evidence_refs / evidence_version，供下一轮组装上下文。
+            # 真实工具结果进入下一轮上下文；成功调用不直接等于目标完成。
+        else:
+            # 子 Agent 只能交候选结果；是否通过由外部验收器决定。
+            verdict = verifier.check(proposal.result, request.acceptance, state.evidence)
+            best = keep_verified_partial(best, proposal.result, verdict)
+            if verdict.passed:
+                return success(proposal.result)
+            if not verdict.repairable:
+                return blocked(verdict.failures)
+            state.add_feedback(verdict.failures)  # 如“缺少规则生效日期”，而非“再想想”
+            if state.no_progress_rounds >= 2:
+                return needs_replan("连续修正没有减少验收缺口", best)
+
+        state.best_verified_partial = best
+        checkpoints.save_local(request, state)   # 累计计数跨重启保留，不能重启清零
+    return budget_exhausted(best)                 # 部分成果不能伪装成完整成功
+```
+
+### example-015
+
+**Q37｜单次任务的循环与系统改进循环有什么区别？**
+
+来源：04-子Agent与任务编排.md 第 1039 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-101)
+
+```text
+线上失败记录（脱敏，保留必要版本与证据）
+→ 人工确认期望结果与失败类型
+→ 固化为可重复回放的评测样本
+→ 一次改变一个主要因素，如上下文筛选或工具返回格式
+→ 相同任务、模型和预算下对照测试
+→ 检查成功率、误执行、延迟、成本与回归
+→ 小范围发布；指标恶化则回滚
+```
+
+### example-016
+
+**3. 面试串讲口径**
+
+来源：04-子Agent与任务编排.md 第 1120 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。
+
+[返回对应问答](#q-106)
+
+```text
+我先按局部目标和验收边界拆任务，不按模型数量拆系统。
+主 Agent 提出计划，调度器管理依赖、版本、预算和生命周期。
+每个子 Agent 拿到受限任务契约，Context Builder 按需组装证据与状态。
+模型提出动作，Harness 在执行前检查权限和参数，并返回真实工具观测。
+验收器检查结果是否满足业务条件；缺口可修正才继续循环，且受总预算约束。
+不能局部解决就提交重规划请求，已经完成的结果只在仍然有效时复用。
+写操作通过业务后端幂等和状态核对恢复，不能只依赖 checkpoint。
+最后用端到端成功率、成本、延迟和故障恢复验证，判断多 Agent 是否值得。
+```
 

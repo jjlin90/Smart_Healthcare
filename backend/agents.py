@@ -1071,8 +1071,7 @@ class MedicalCoordinator:
             # Do not reuse old observations as fresh evidence for a different
             # business target; the corrected plan must produce its own evidence.
             new_plan = Planner._bounded_plan(message, revised)
-            new_results = []
-            results = new_results
+            results = []
             if context.get("task_id"):
                 context["plan_version"] = int(context.get("plan_version", 1)) + 1
                 if context.get("conversation_key") and get_settings().redis_url:
@@ -1084,11 +1083,11 @@ class MedicalCoordinator:
                                          "plan_version": context["plan_version"]},
                     })
             for step in new_plan.steps:
-                new_results.append(await execute(step))
-            check_coverage(revised.intents, new_results)
+                results.append(await execute(step))
+            check_coverage(revised.intents, results)
             revised.review_reasons = [*decision.review_reasons, "execution_coverage_mismatch"]
             revised.route = [*decision.route, "execution_review", "reroute"]
-            return revised, new_results
+            return revised, results
         return decision, results
 
     @staticmethod
