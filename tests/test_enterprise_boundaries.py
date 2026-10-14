@@ -203,6 +203,35 @@ async def token_context(monkeypatch, token):
     monkeypatch.setattr(mcp_security, "get_access_token", lambda: access_token)
 
 
+@pytest.mark.parametrize("role", ["doctor", "pharmacist", "medical_admin", "system_admin"])
+async def test_staff_login_serializes_current_staff_role(records, profile_api, monkeypatch, role):
+    from backend.auth import hash_password
+    from backend.main import login_limiter
+    from backend.schemas import TokenResponse
+    password = "test-login-password-123"
+    async with records() as db:
+        user = await db.scalar(select(User).where(User.user_id == "staff"))
+        user.role = role
+        user.password_hash = hash_password(password)
+        await db.commit()
+    allowed = AsyncMock(return_value=True)
+    monkeypatch.setattr(login_limiter, "allow", allowed)
+    response = await profile_api.post("/api/auth/staff-login", json={"employee_id": "D001", "password": password})
+    assert response.status_code == 200
+    token = TokenResponse.model_validate(response.json())
+    assert token.role == role and token.access_token and token.token_type == "bearer"
+    assert response.json()["role"] == role
+    allowed.assert_awaited_once()
+
+
+@pytest.mark.parametrize("role", ["patient", "assistant"])
+def test_staff_token_response_rejects_nonstaff_role_labels(role):
+    from pydantic import ValidationError
+    from backend.schemas import TokenResponse
+    with pytest.raises(ValidationError):
+        TokenResponse(access_token="offline-token", role=role)
+
+
 async def test_disabled_staff_token_is_rejected_immediately(records, monkeypatch):
     monkeypatch.setattr(get_settings(), "secret_key", "test-staff-signing-key")
     token = create_token(UserContext(user_id="staff", username="doctor", role="doctor"))
