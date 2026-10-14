@@ -208,7 +208,6 @@ async def readiness(response: Response) -> dict[str, Any]:
 
 
 STAFF_ROLES = {"doctor", "pharmacist", "medical_admin", "system_admin"}
-HOSPITAL_WIDE_PATIENT_ROLES = {"medical_admin"}
 _DUMMY_PASSWORD_HASH = hash_password("not-an-employee-password")
 
 

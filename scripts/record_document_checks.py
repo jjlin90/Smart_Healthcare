@@ -36,6 +36,20 @@ def hashes(paths: list[Path]) -> dict[str, str]:
             for path in paths if path.is_file()}
 
 
+def expect_regression_failure(check) -> str:
+    """Detect assertion failures, including pytest.raises' Failed outcome.
+
+    A successful check means the mutation escaped detection. Unrelated errors
+    and process interrupts must propagate rather than count as detection.
+    """
+    import pytest
+    try:
+        check()
+    except (AssertionError, pytest.fail.Exception) as exc:
+        return type(exc).__name__
+    raise AssertionError("Mutation was not rejected by the regression check")
+
+
 def test_counts(path: Path) -> dict[str, int]:
     root = ET.parse(path).getroot()
     cases = root.findall('.//testcase')

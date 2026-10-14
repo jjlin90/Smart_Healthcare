@@ -232,6 +232,80 @@ def test_staff_token_response_rejects_nonstaff_role_labels(role):
         TokenResponse(access_token="offline-token", role=role)
 
 
+def test_staff_roles_match_login_access_bootstrap_and_schema_contracts():
+    from typing import get_args
+    from backend.access import STAFF_ROLES as access_roles, WRITE_ROLES, HOSPITAL_WIDE_PATIENT_ROLES
+    from backend.main import STAFF_ROLES as login_roles
+    from backend.schemas import TokenResponse, UserContext
+    from scripts.create_staff import STAFF_ROLES as bootstrap_roles, CLINICAL_ROLES
+    context_roles = set(get_args(UserContext.model_fields["role"].annotation))
+    response_roles = {
+        role for variant in TokenResponse.model_json_schema()["properties"]["role"]["anyOf"]
+        for role in variant.get("enum", [])
+    }
+    assert context_roles == response_roles == access_roles == login_roles == set(bootstrap_roles)
+    assert WRITE_ROLES == CLINICAL_ROLES <= context_roles
+    assert HOSPITAL_WIDE_PATIENT_ROLES <= context_roles - WRITE_ROLES
+
+
+@pytest.mark.parametrize("role,requires_patient,expected_scope", [
+    ("doctor", True, {"patient"}),
+    ("pharmacist", True, {"patient"}),
+    ("medical_admin", False, None),
+    ("system_admin", False, set()),
+])
+async def test_staff_bootstrap_and_authorization_follow_role_subsets(records, monkeypatch, role, requires_patient, expected_scope):
+    from backend.main import authorized_patient_ids
+    from backend.access import HOSPITAL_WIDE_PATIENT_ROLES
+    from scripts import create_staff
+    prompts = []
+    def password(prompt):
+        prompts.append(prompt)
+        return "test-bootstrap-password-123"
+    initialized = AsyncMock()
+    monkeypatch.setattr(create_staff, "getpass", password)
+    monkeypatch.setattr(create_staff, "init_db", initialized)
+    monkeypatch.setattr(create_staff, "SessionLocal", records)
+    employee_id = f"NEW-{role}"
+    if requires_patient:
+        with pytest.raises(SystemExit, match="至少需要一个已授权患者"):
+            await create_staff.create(employee_id, f"new-{role}", role, [])
+        assert not prompts
+        initialized.assert_not_awaited()
+    await create_staff.create(employee_id, f"new-{role}", role, ["patient"] if requires_patient else [])
+    assert len(prompts) == 1
+    initialized.assert_awaited_once()
+    async with records() as db:
+        user = await db.scalar(select(User).where(User.employee_id == employee_id))
+        assert user.role == role and user.active
+        context = UserContext(username=user.username, user_id=user.user_id, role=user.role)
+        scope = await authorized_patient_ids(db, context)
+        assert scope == expected_scope
+        assert (scope is None) == (role in HOSPITAL_WIDE_PATIENT_ROLES)
+        if requires_patient:
+            require_write_role(context, "save_patient_history")
+        else:
+            with pytest.raises(HTTPException) as error:
+                require_write_role(context, "save_patient_history")
+            assert error.value.status_code == 403
+
+
+async def test_hospital_scope_policy_controls_api_and_tool_authorization(records, monkeypatch):
+    from backend import access
+    from backend.main import authorized_patient_ids
+    monkeypatch.setattr(access, "HOSPITAL_WIDE_PATIENT_ROLES", frozenset())
+    async with records() as db:
+        user = await db.scalar(select(User).where(User.user_id == "staff"))
+        user.role = "medical_admin"
+        await db.commit()
+        context = await access.active_staff(db, "staff")
+        assert await access.patient_ids(db, context) == {"patient"}
+        assert await authorized_patient_ids(db, context) == {"patient"}
+        with pytest.raises(HTTPException) as error:
+            await access.require_patient(db, context, "unassigned-patient")
+        assert error.value.status_code == 403
+
+
 async def test_disabled_staff_token_is_rejected_immediately(records, monkeypatch):
     monkeypatch.setattr(get_settings(), "secret_key", "test-staff-signing-key")
     token = create_token(UserContext(user_id="staff", username="doctor", role="doctor"))

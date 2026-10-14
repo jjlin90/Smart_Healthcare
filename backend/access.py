@@ -8,6 +8,7 @@ from backend.schemas import UserContext
 
 STAFF_ROLES = {"doctor", "pharmacist", "medical_admin", "system_admin"}
 WRITE_ROLES = {"doctor", "pharmacist"}
+HOSPITAL_WIDE_PATIENT_ROLES = frozenset({"medical_admin"})
 WRITE_TOOLS = {"save_patient_history", "save_medical_record", "generate_referral"}
 
 
@@ -19,7 +20,7 @@ async def active_staff(db, user_id: str) -> UserContext:
 
 
 async def patient_ids(db, user: UserContext) -> set[str] | None:
-    if user.role == "medical_admin":
+    if user.role in HOSPITAL_WIDE_PATIENT_ROLES:
         return None
     return set((await db.scalars(select(PatientAccess.patient_id).where(PatientAccess.user_id == user.user_id))).all())
 

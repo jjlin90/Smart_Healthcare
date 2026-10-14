@@ -107,6 +107,37 @@ def test_refresh_handles_translated_paragraphs_and_rejects_missing_or_duplicate_
     assert '本轮记录' not in review_block(marked, '最新记录')
 
 
+def test_refresh_corrects_legacy_delivery_scope_and_remains_idempotent(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    from scripts import annotate_medagent_documents as annotator
+    source = annotator.ROOT
+    paths = [source / 'README.md', source / 'docs/MedAgent_文档对照与工程改进_2026-10-13.md',
+             source / 'docs/MedAgent_项目理解指南.md', source / 'docs/MedAgent_AI_多Agent项目话术.md',
+             *sorted((source / 'docs/MedAgent_逐题适配').glob('*.md')),
+             source / 'docs/MedAgent_逐题适配/coverage.json']
+    copies = []
+    for path in paths:
+        target = tmp_path / path.relative_to(source)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(path.read_bytes())
+        copies.append(target)
+    engineering = tmp_path / 'docs/MedAgent_文档对照与工程改进_2026-10-13.md'
+    lines = engineering.read_text(encoding='utf-8').splitlines()
+    assert sum(line.startswith('桌面同步') for line in lines) == 1
+    engineering.write_text('\n'.join('桌面同步包含项目文档及简历 HTML/PDF，共 23 个文件。'
+                          if line.startswith('桌面同步') else line for line in lines) + '\n', encoding='utf-8')
+    monkeypatch.setattr(annotator, 'ROOT', tmp_path)
+    monkeypatch.setattr(annotator, 'latest_test_validation', lambda: None)
+    monkeypatch.setattr(annotator.subprocess, 'run', lambda *args, **kwargs: SimpleNamespace(stdout=b''))
+    annotator.refresh()
+    paragraph = next(line for line in engineering.read_text(encoding='utf-8').splitlines() if line.startswith('桌面同步'))
+    assert '共 21 个目标' in paragraph and '单独交付，不计入此清单' in paragraph
+    assert '共 23 个文件' not in paragraph
+    first = {path: path.read_bytes() for path in copies}
+    annotator.refresh()
+    assert {path: path.read_bytes() for path in copies} == first
+
+
 def test_filename_annotations_are_removed_but_professional_terms_remain():
     from scripts.medagent_terminology import annotate_markdown
     source = '原件 .txt(纯文本文件扩展名)，适配稿 `.md`(Markdown文档格式)；Redis 和 `patient_id`。'

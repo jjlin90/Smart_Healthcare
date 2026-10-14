@@ -44,10 +44,16 @@ def test_legacy_patient_disabled_and_staff_access_migrated(tmp_path):
             create table patient_profiles (patient_id varchar(64) primary key);
             create table users (user_id varchar(64) primary key, patient_id varchar(64), role varchar(32), active boolean);
             insert into patient_profiles values ('p1');
-            insert into users values ('s1','p1','doctor',1), ('u1','p1','patient',1);
+            insert into users values
+                ('s1','p1','doctor',1), ('s2','p1','pharmacist',1),
+                ('s3',NULL,'doctor',1), ('m1','p1','medical_admin',1),
+                ('a1','p1','system_admin',1), ('u1','p1','patient',1);
         """)
     result = upgrade(path)
     assert result.returncode == 0, result.stderr
     with sqlite3.connect(path) as db:
         assert db.execute("select active from users where user_id='u1'").fetchone()[0] == 0
-        assert db.execute("select user_id,patient_id from patient_access").fetchall() == [('s1', 'p1')]
+        assert set(db.execute("select user_id,patient_id from patient_access")) == {('s1', 'p1'), ('s2', 'p1')}
+        assert dict(db.execute("select user_id,active from users")) == {
+            's1': 1, 's2': 1, 's3': 1, 'm1': 1, 'a1': 1, 'u1': 0,
+        }

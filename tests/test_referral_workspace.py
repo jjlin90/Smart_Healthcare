@@ -43,6 +43,7 @@ def test_full_workspace_login_exposes_referral_only_to_doctor_and_submits_once(m
     assert any(w.label == "创建转诊草稿（仅医生）" for w in app.expander)
     if role != "doctor":
         assert not any(w.label == "确认并创建草稿" for w in app.button)
+        assert any("仅对医生开放" in w.value and "重新登录" in w.value for w in app.info)
         assert len(posts) == 1
         return
     next(w for w in app.text_input if w.label == "医生确认的目标科室").set_value("心内科")

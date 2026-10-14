@@ -9,6 +9,29 @@ import pytest
 from scripts import record_document_checks as recorder
 
 
+@pytest.mark.parametrize('kind,expected', [('assertion', 'AssertionError'), ('pytest_raises', 'Failed')])
+def test_mutation_gate_accepts_assertion_and_missing_expected_exception(kind, expected):
+    def check():
+        if kind == 'assertion':
+            raise AssertionError('regression rejected mutation')
+        with pytest.raises(RuntimeError):
+            pass
+    assert recorder.expect_regression_failure(check) == expected
+
+
+def test_mutation_gate_rejects_undetected_mutation():
+    with pytest.raises(AssertionError, match='Mutation was not rejected'):
+        recorder.expect_regression_failure(lambda: None)
+
+
+@pytest.mark.parametrize('error', [RuntimeError, KeyboardInterrupt, SystemExit])
+def test_mutation_gate_propagates_unrelated_errors_and_interrupts(error):
+    def check():
+        raise error('unexpected failure')
+    with pytest.raises(error, match='unexpected failure'):
+        recorder.expect_regression_failure(check)
+
+
 @pytest.fixture
 def repository(tmp_path, monkeypatch):
     (tmp_path / 'scripts').mkdir()
