@@ -35,6 +35,65 @@ def metadata(path):
     return json.loads(body.split('\n[RUN] ')[1]) if path.suffix == '.log' else json.loads(body)
 
 
+@pytest.mark.parametrize('status', [0, 4])
+def test_recorded_tests_use_and_clean_system_temp_with_real_child(repository, monkeypatch, status):
+    # A tiny real child implements only the CLI arguments the recorder passes.
+    # It exercises allocation, cleanup and evidence publication independently
+    # from the outer pytest runner and without a nested full suite.
+    monkeypatch.setenv('PYTHONDONTWRITEBYTECODE', '1')
+    (repository / 'pytest.py').write_text(
+        "from pathlib import Path\nimport sys\n"
+        "base=Path(sys.argv[sys.argv.index('--basetemp')+1])\n"
+        "assert not base.is_relative_to(Path.cwd())\n"
+        "base.mkdir(parents=True)\n(base/'temporary.bin').write_bytes(b'temporary')\n"
+        "report=Path(sys.argv[sys.argv.index('--junitxml')+1])\n"
+        + "report.write_text('<testsuites><testsuite><testcase>"
+        + ('<failure/>' if status else '')
+        + "</testcase></testsuite></testsuites>',encoding='utf-8')\n"
+        + f"print('fixture result');raise SystemExit({status})\n", encoding='utf-8')
+    output = repository / 'artifacts/tests.log'
+    assert recorder.record('tests', output) == status
+    result = metadata(output)
+    temporary = Path(result['pytest_temporary_root'])
+    base = Path(result['command'][result['command'].index('--basetemp') + 1])
+    assert not temporary.is_relative_to(repository)
+    assert base.parent == temporary and result['temporary_data_cleaned'] is True
+    assert not temporary.exists()
+    assert result['test_counts']['total'] == 1 and result['inputs_unchanged'] is True
+    assert output.with_suffix('.junit.xml').is_file()
+    pointer = repository / 'artifacts/medagent_upgrade_20261013/latest_engineering_test_run.json'
+    assert pointer.is_file() == (status == 0)
+    if status == 0:
+        assert recorder.latest_test_validation()['test_counts']['passed'] == 1
+
+
+@pytest.mark.parametrize('exception', [OSError, KeyboardInterrupt])
+def test_interrupted_record_labels_abort_cleans_temp_and_preserves_success_pointer(repository, monkeypatch, exception):
+    directory = repository / 'artifacts/medagent_upgrade_20261013'
+    directory.mkdir()
+    pointer = directory / 'latest_engineering_test_run.json'
+    pointer.write_bytes(b'previous successful pointer')
+    original_run = subprocess.run
+    def interrupt(command, *args, **kwargs):
+        if '-m' in command and 'pytest' in command:
+            base = Path(command[command.index('--basetemp') + 1])
+            base.mkdir(parents=True)
+            (base / 'partial.bin').write_bytes(b'partial')
+            raise exception('private exception detail')
+        return original_run(command, *args, **kwargs)
+    monkeypatch.setattr(recorder.subprocess, 'run', interrupt)
+    output = repository / 'artifacts/aborted.log'
+    with pytest.raises(exception):
+        recorder.record('tests', output)
+    result = metadata(output)
+    assert result['status'] == 'aborted' and result['exit_code'] != 0
+    assert result['temporary_data_cleaned'] is True
+    assert not Path(result['pytest_temporary_root']).exists()
+    assert not output.with_suffix('.junit.xml').exists()
+    assert pointer.read_bytes() == b'previous successful pointer'
+    assert 'private exception detail' not in output.read_text(encoding='utf-8')
+
+
 def test_junit_counts_and_current_validation_reject_changed_code_or_counts(repository):
     directory = repository / 'artifacts/medagent_upgrade_20261013'
     directory.mkdir()

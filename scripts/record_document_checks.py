@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import ExitStack
 from datetime import datetime, timezone
 import hashlib
 import json
@@ -13,6 +14,7 @@ import sys
 from urllib.parse import unquote
 import uuid
 import time
+import tempfile
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -135,7 +137,7 @@ def record(kind: str, output: Path, desktop: Path | None = None,
     if ignored.returncode != 0 or not output.is_relative_to(ROOT / 'artifacts'):
         raise ValueError('output must be ignored under artifacts/')
     # Reserve the filename before executing; existing evidence is never overwritten.
-    with output.open('x', encoding='utf-8', newline='\n') as stream:
+    with output.open('x', encoding='utf-8', newline='\n') as stream, ExitStack() as cleanup:
         started = datetime.now(timezone.utc).isoformat()
         timer = time.monotonic()
         head = git('rev-parse', 'HEAD')
@@ -145,19 +147,40 @@ def record(kind: str, output: Path, desktop: Path | None = None,
         sources = [Path(__file__).resolve(), ROOT / 'scripts/preflight_git.py']
         source_before = hashes(sources)
         command = [sys.executable, str(ROOT / 'scripts/preflight_git.py'), '--quick']
-        junit, counts = None, None
+        junit, counts, temporary_root = None, None, None
         if kind == 'tests':
             junit = output.with_suffix('.junit.xml')
             with junit.open('x', encoding='utf-8'):
                 pass  # Reserve this unique path; never overwrite old evidence.
+            temporary_root = Path(cleanup.enter_context(
+                tempfile.TemporaryDirectory(prefix='medagent-record-tests-'))).resolve()
+            if (temporary_root.is_relative_to(ROOT.resolve()) or
+                    temporary_root.parent != Path(tempfile.gettempdir()).resolve()):
+                raise ValueError('pytest temporary directory must be in the system temp directory outside the repository')
             command = [sys.executable, '-m', 'pytest', '-p', 'pytest_asyncio.plugin', '-p', 'anyio.pytest_plugin',
-                       '-p', 'no:cacheprovider', '--basetemp', str(output.parent / (output.stem + '_tmp')),
+                       '-p', 'no:cacheprovider', '--basetemp', str(temporary_root / 'pytest'),
                        '--junitxml', str(junit), '-q']
         if kind in ('quick', 'tests'):
-            result = subprocess.run(command, cwd=ROOT, stdout=subprocess.PIPE,
-                                    stderr=subprocess.STDOUT, encoding='utf-8',
-                                    env={**os.environ, 'PYTHONIOENCODING': 'utf-8',
-                                         **({'PYTEST_DISABLE_PLUGIN_AUTOLOAD': '1'} if kind == 'tests' else {})})
+            try:
+                result = subprocess.run(command, cwd=ROOT, stdout=subprocess.PIPE,
+                                        stderr=subprocess.STDOUT, encoding='utf-8',
+                                        env={**os.environ, 'PYTHONIOENCODING': 'utf-8',
+                                             **({'PYTEST_DISABLE_PLUGIN_AUTOLOAD': '1'} if kind == 'tests' else {})})
+            except (OSError, KeyboardInterrupt) as exc:
+                cleanup.close()
+                if junit is not None and junit.is_file() and junit.stat().st_size == 0:
+                    junit.unlink()  # Only the exclusively reserved, still-empty file.
+                aborted = {'run_id': str(uuid.uuid4()), 'kind': kind, 'status': 'aborted',
+                           'started_at_utc': started, 'finished_at_utc': datetime.now(timezone.utc).isoformat(),
+                           'head': head, 'cwd': str(ROOT), 'command': command,
+                           'exit_code': 130 if isinstance(exc, KeyboardInterrupt) else 1,
+                           'aborted_exception_type': type(exc).__name__, 'inputs_unchanged': False,
+                           'pytest_temporary_root': str(temporary_root) if temporary_root else None,
+                           'temporary_data_cleaned': temporary_root is None or not temporary_root.exists()}
+                stream.write('Execution aborted before a complete result; not successful test evidence.\n[RUN] '
+                             + json.dumps(aborted, ensure_ascii=False) + '\n')
+                stream.flush()
+                raise
             code, text = result.returncode, result.stdout
             report = None
             if kind == 'tests':
@@ -172,6 +195,7 @@ def record(kind: str, output: Path, desktop: Path | None = None,
                 command += ['--desktop', str(desktop.resolve())]
             for path in extra_documents or []:
                 command += ['--extra-document', str(path.resolve())]
+        cleanup.close()
         after_paths = candidates() if kind in ('quick', 'tests') else documents(desktop, extra_documents)
         head_after = git('rev-parse', 'HEAD')
         stable = (before == hashes(after_paths) and head == head_after
@@ -188,6 +212,8 @@ def record(kind: str, output: Path, desktop: Path | None = None,
         metadata['elapsed_seconds'] = round(time.monotonic() - timer, 3)
         if kind == 'tests':
             metadata.update(test_counts=counts, junit_report=str(junit), junit_sha256=hashes([junit])[str(junit.resolve())])
+            metadata.update(pytest_temporary_root=str(temporary_root),
+                            temporary_data_cleaned=not temporary_root.exists())
         if report is None:
             stream.write(text + '\n[RUN] ' + json.dumps(metadata, ensure_ascii=False) + '\n')
         else:
