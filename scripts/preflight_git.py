@@ -741,6 +741,24 @@ def check_new_staged_content(report: Report) -> None:
         report.ok('新增文件的暂存内容与工作区一致（不代替完整暂存快照测试）')
 
 
+def check_document_delivery(report: Report, pointer: Path | None = None) -> None:
+    """Execute delivery verification, rather than treating its tests as delivery."""
+    command = [sys.executable, 'scripts/verify_delivery_evidence.py']
+    portable = run([*command, '--repository-documents'])
+    if portable.returncode:
+        report.error('仓库文档交付核验失败：' + (portable.stderr or portable.stdout).strip()[-600:])
+        return
+    current = pointer or ROOT / 'artifacts/medagent_upgrade_20261013/latest_document_delivery.json'
+    if pointer is not None or current.is_file():
+        local = run([*command, '--delivery-pointer', str(current.resolve())])
+        if local.returncode:
+            report.error('本机文档交付核验失败：' + (local.stderr or local.stdout).strip()[-600:])
+            return
+        report.ok('仓库问答/示例/链接及本机当前文档交付核验通过')
+    else:
+        report.ok('仓库问答/示例/链接交付核验通过；未提供本机记录，桌面交付未核验')
+
+
 def run_quality_commands(report: Report) -> None:
     # Use an isolated base instead of sharing pytest-of-USER across sandbox
     # sessions. testpaths restricts collection, not teardown permissions.
@@ -787,6 +805,7 @@ def print_report(report: Report) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description="GitHub 上传前安全与质量检查")
     parser.add_argument("--quick", action="store_true", help="跳过 pytest 与 pip check")
+    parser.add_argument('--delivery-pointer', type=Path, help='required local delivery pointer; otherwise verify it when the default local pointer exists')
     args = parser.parse_args()
 
     report = Report()
@@ -818,6 +837,7 @@ def main() -> int:
     check_dependency_classification(report)
     check_dependency_install_entries(report)
     check_new_staged_content(report)
+    check_document_delivery(report, args.delivery_pointer)
     if not args.quick:
         run_quality_commands(report)
     return print_report(report)

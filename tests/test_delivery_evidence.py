@@ -2,10 +2,12 @@ import hashlib
 import json
 from pathlib import Path
 import re
+from types import SimpleNamespace
 
 import pytest
 
 from scripts import verify_delivery_evidence as verifier
+from scripts import preflight_git
 
 
 def logs(tests=37, static_count=3):
@@ -143,6 +145,7 @@ def current_delivery(tmp_path, monkeypatch):
     book = root / 'docs/MedAgent_AI_多Agent项目话术.md'
     book.write_text('# Book\n本轮代码与依赖回归 5 项通过。\n### full-q\n怎么调度？\n'
                     '#### full-example\n```json\n{}\n```\n', encoding='utf-8', newline='\n')
+    (root / 'README.md').write_text('# Fixture\n', encoding='utf-8')
     target = tmp_path / 'desktop/MedAgent_AI_多Agent项目话术.md'
     target.parent.mkdir()
     target.write_bytes(book.read_bytes())
@@ -324,3 +327,111 @@ def test_each_remaining_rejection_reports_its_specific_reason(evidence, change, 
     with pytest.raises(ValueError) as error:
         verifier.summarize(directory)
     assert str(error.value) == reason
+
+
+@pytest.mark.parametrize('newline', ['\n', '\r\n'])
+@pytest.mark.parametrize('fence', ['```', '````', '~~~', '   ```'])
+def test_desktop_mapping_preserves_fence_bytes_and_only_rebases_prose(tmp_path, newline, fence):
+    root = tmp_path / 'repo'
+    source = root / 'book.md'
+    chapter = root / 'chapter.md'
+    root.mkdir()
+    chapter.write_text('# Chapter', encoding='utf-8')
+    target = tmp_path / 'desktop/book.md'
+    mapped = target.parent / 'chapters/chapter.md'
+    literal = '[literal](chapter.md)'
+    protected = newline.join([fence + 'text', literal, fence, ''])
+    content = protected + '[prose](chapter.md)' + newline
+    result = verifier.rebase_markdown(source, target, content, {chapter.resolve(): mapped}, root)
+    assert result == protected + '[prose](chapters/chapter.md)' + newline
+
+
+def test_desktop_mapping_preserves_multiline_code_spans_with_inner_ticks(tmp_path):
+    root = tmp_path / 'repo'
+    root.mkdir()
+    source = root / 'book.md'
+    chapter = root / 'chapter.md'
+    chapter.write_text('# Chapter', encoding='utf-8')
+    target = tmp_path / 'desktop/book.md'
+    span = '``before ` [literal](chapter.md)\r\nafter``'
+    content = span + '\r\n[prose](chapter.md)\r\n'
+    result = verifier.rebase_markdown(source, target, content,
+                                      {chapter.resolve(): target.parent/'moved.md'}, root)
+    assert result == span + '\r\n[prose](moved.md)\r\n'
+
+
+def test_repository_gate_works_without_private_originals_or_desktop(current_delivery):
+    directory, book, target, _, _ = current_delivery
+    (directory / 'original.txt').unlink()
+    target.unlink()
+    result = verifier.verify_repository_documents()
+    assert result['questions_verified'] == result['examples_verified'] == 1
+    assert result['document_files_checked'] == 2
+    assert 'private originals' in result['scope']
+    assert verifier.verify_repository_documents() == result
+
+
+@pytest.mark.parametrize('change,reason', [
+    ('example', 'adapted example differs'),
+    ('anchor', 'question anchor missing or duplicated'),
+    ('count', 'question count differs'),
+    ('link', 'local links failed'),
+])
+def test_repository_gate_rejects_actual_document_drift(current_delivery, change, reason):
+    directory, book, _, _, _ = current_delivery
+    if change == 'example':
+        book.write_text(book.read_text(encoding='utf-8').replace('\n{}\n', '\n{"changed":true}\n'), encoding='utf-8')
+    elif change == 'anchor':
+        book.write_text(book.read_text(encoding='utf-8').replace('### full-q', '### changed-q'), encoding='utf-8')
+    elif change == 'link':
+        with book.open('a', encoding='utf-8') as stream:
+            stream.write('\n[broken](missing.md)\n')
+    else:
+        coverage_path = book.parent / 'MedAgent_逐题适配/coverage.json'
+        coverage = json.loads(coverage_path.read_text(encoding='utf-8'))
+        coverage['question_count'] += 1
+        write_json(coverage_path.parent, coverage_path.name, coverage)
+    with pytest.raises(ValueError, match=reason):
+        verifier.verify_repository_documents()
+
+
+def test_current_document_delivery_rejects_shared_resume_scope(current_delivery):
+    directory, book, target, report, receipt = current_delivery
+    new_target = target.with_suffix('.html')
+    target.rename(new_target)
+    receipt['entries'][0]['target'] = str(new_target)
+    report['current_document_sha256'] = {str(book): verifier.sha(book)}
+    report['document_links_checked'] = 1
+    write_json(directory, 'desktop_sync_receipt.json', receipt)
+    write_json(directory, 'report.json', report)
+    write_json(directory, 'pointer.json', {'report': str(directory/'report.json'),
+                                          'report_sha256': verifier.sha(directory/'report.json')})
+    with pytest.raises(ValueError, match='shared resume belongs to a separate delivery'):
+        verifier.verify_current_delivery(directory/'pointer.json')
+
+
+@pytest.mark.parametrize('state', ['absent', 'present', 'stale', 'explicit_missing'])
+def test_preflight_executes_delivery_gates_and_blocks_stale_evidence(tmp_path, monkeypatch, state):
+    monkeypatch.setattr(preflight_git, 'ROOT', tmp_path)
+    pointer = tmp_path / 'artifacts/medagent_upgrade_20261013/latest_document_delivery.json'
+    if state in ('present', 'stale'):
+        pointer.parent.mkdir(parents=True)
+        pointer.write_text('{}', encoding='utf-8')
+    calls = []
+    def run(command):
+        calls.append(command)
+        failed = '--delivery-pointer' in command and state in ('stale', 'explicit_missing')
+        return SimpleNamespace(returncode=int(failed), stdout='{}', stderr='delivery: drift' if failed else '')
+    monkeypatch.setattr(preflight_git, 'run', run)
+    report = preflight_git.Report()
+    preflight_git.check_document_delivery(report, pointer if state == 'explicit_missing' else None)
+    assert '--repository-documents' in calls[0]
+    assert len(calls) == (1 if state == 'absent' else 2)
+    assert bool(report.errors) == (state in ('stale', 'explicit_missing'))
+    if state == 'absent':
+        assert '桌面交付未核验' in report.passed[0]
+
+
+def test_ci_executes_portable_delivery_verifier():
+    workflow = Path(__file__).resolve().parents[1] / '.github/workflows/verify.yml'
+    assert 'python scripts/verify_delivery_evidence.py --repository-documents' in workflow.read_text(encoding='utf-8')

@@ -36,6 +36,8 @@ jobs:
             constraints.txt
       - name: Install verified dependency versions
         run: python -m pip install -r requirements-dev.txt -c constraints.txt
+      - name: Verify repository interview delivery without private desktop files
+        run: python scripts/verify_delivery_evidence.py --repository-documents
       - name: Verify code, index, dependencies and regression tests
         run: |
           mkdir -p artifacts

@@ -99,7 +99,9 @@ def refresh():
               "当前文档独立核验入口为 artifacts/medagent_upgrade_20261013/latest_document_delivery.json，所指报告逐项保存当前文档哈希与覆盖清单哈希。"
               "当前核验使用随仓库分发的 scripts/verify_delivery_evidence.py，传入 --delivery-pointer 和上述入口；该命令重算文档、原件、示例与桌面正文，并核对文档宣称的测试数。"
               "桌面写入与核验共用链接映射，默认同步清单已排除独立 RAG，不依赖 --medagent-only 才排除。"
-              "独立 med_rag 的正文不改动；artifacts/medagent_upgrade_20261013/med_rag_面试全解.md 与桌面同名稿属于前轮生成副本，不作为独立项目原件或当前交付。"
+              "本仓库本轮未修改独立 med_rag 项目的正文，其他会话对该项目或共享简历的更新不属于本轮交付状态。"
+              "默认文档同步排除共享简历 HTML/PDF，简历另有需求时单独交付；不能把旧简历覆盖回桌面以消除历史收据漂移。"
+              "artifacts/medagent_upgrade_20261013/med_rag_面试全解.md 与桌面同名稿属于前轮生成副本，不作为独立项目原件或当前交付。"
               "业务仍为院内 ToB；没有新增患者自助功能，没有真实医院写入。")
     # Keep the revised texts until all required paragraphs have matched.
     readme_text = review_block(text, review)

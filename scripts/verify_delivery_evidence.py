@@ -89,12 +89,71 @@ def rebase_markdown(source: Path, target: Path, content: str,
         if ' ' in destination:
             destination = '<' + destination + '>'
         return f'[{label}]({destination})'
-    blocks = re.split(r'(^```[^\n]*\n.*?^```[ \t]*\r?$)', content, flags=re.M | re.S)
-    def prose(block):
-        pieces = re.split(r'(`+[^\n]*?`+)', block)
-        return ''.join(piece if piece.startswith('`') else re.sub(
-            r'\[([^\]\n]+)\]\((<[^>\n]+>|[^)\s]+)\)', map_link, piece) for piece in pieces)
-    return ''.join(block if block.startswith('```') else prose(block) for block in blocks)
+    def links(text):
+        return re.sub(r'\[([^\]\n]+)\]\((<[^>\n]+>|[^)\s]+)\)', map_link, text)
+
+    def prose(text):
+        # A code span may contain shorter backtick runs or newlines. Only the
+        # exact opening delimiter closes it; preserve all of its original bytes.
+        output, cursor = [], 0
+        for span in re.finditer(r'(?<!`)(`+)(?!`)(.*?)(?<!`)\1(?!`)', text, re.S):
+            output.extend((links(text[cursor:span.start()]), span[0]))
+            cursor = span.end()
+        output.append(links(text[cursor:]))
+        return ''.join(output)
+
+    output, pending, fence = [], [], None
+    for line in content.splitlines(keepends=True):
+        marker = re.match(r'^[ \t]{0,3}(`{3,}|~{3,})([^\r\n]*)', line)
+        if fence is not None:
+            output.append(line)
+            if (marker and marker[1][0] == fence[0] and
+                    len(marker[1]) >= len(fence) and not marker[2].strip()):
+                fence = None
+        elif marker:
+            output.append(prose(''.join(pending)))
+            pending = []
+            fence = marker[1]
+            output.append(line)
+        else:
+            pending.append(line)
+    output.append(prose(''.join(pending)))
+    return ''.join(output)
+
+
+def verify_repository_documents() -> dict:
+    """Portable gate for tracked book/coverage, without private desktop inputs."""
+    library = ROOT / 'docs/MedAgent_逐题适配'
+    coverage = json.loads((library / 'coverage.json').read_text(encoding='utf-8-sig'))
+    book = (ROOT / 'docs/MedAgent_AI_多Agent项目话术.md').read_text(encoding='utf-8-sig')
+    require(len(coverage['questions']) == coverage['question_count'] > 0,
+            'repository delivery: question count differs')
+    require(len(coverage['examples']) == coverage['example_count'] > 0,
+            'repository delivery: example count differs')
+    for row in coverage['questions']:
+        require(book.count('### ' + row['book_anchor'] + '\n') == 1,
+                'repository delivery: question anchor missing or duplicated')
+        require(row.get('display_question', row['question']) in book,
+                'repository delivery: displayed question missing')
+    adaptations = {'unchanged': 0, 'tob_rewrite': 0}
+    for row in coverage['examples']:
+        heading = '#### ' + row['book_anchor'] + '\n'
+        require(book.count(heading) == 1, 'repository delivery: example anchor missing or duplicated')
+        section = book.split(heading, 1)[1].split('\n#### ', 1)[0]
+        body = section.split('```' + row['language'] + '\n', 1)[1].split('\n```', 1)[0]
+        require(hashlib.sha256(body.encode()).hexdigest() == row['adapted_sha256'],
+                'repository delivery: adapted example differs')
+        require(row['adaptation'] in adaptations, 'repository delivery: invalid adaptation')
+        adaptations[row['adaptation']] += 1
+    require(adaptations == coverage['example_adaptation_counts'],
+            'repository delivery: adaptation counts differ')
+    paths = sorted([ROOT / 'README.md', *(ROOT / 'docs').rglob('*.md')])
+    links = check_links(paths)
+    require(not links['issues'], 'repository delivery: local links failed')
+    return {'document_files_checked': len(paths), 'questions_verified': len(coverage['questions']),
+            'examples_verified': len(coverage['examples']), 'example_adaptations': adaptations,
+            'scope': 'Repository question anchors, example content hashes and local links only; '
+                     'private originals, test records, desktop files and resumes are not verified.'}
 
 
 def project_desktop_document(source: Path, target: Path | None = None,
@@ -235,6 +294,8 @@ def verify_current_delivery(pointer_path: Path) -> dict:
     entries = receipt['entries']
     require(len(entries) == report['desktop_hashes_verified'] and len({r['target'] for r in entries}) == len(entries), 'delivery: inconsistent receipt targets')
     require(all(Path(row['target']).name != 'med_rag_面试全解.md' for row in entries), 'delivery: independent RAG target included')
+    require(all(Path(row['target']).suffix.lower() not in ('.html', '.pdf') for row in entries),
+            'delivery: shared resume belongs to a separate delivery')
     mapping = {Path(row['source']).resolve(): Path(row['target']) for row in entries}
     for row in entries:
         source, target = Path(row['source']), Path(row['target'])
@@ -263,10 +324,12 @@ def main() -> int:
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument('--evidence-dir', type=Path, help='historical full/quick evidence format; target drift is an error')
     mode.add_argument('--delivery-pointer', type=Path, help='current MedAgent document delivery pointer')
+    mode.add_argument('--repository-documents', action='store_true', help='portable book/coverage/link gate; no private desktop evidence')
     parser.add_argument('--output', type=Path, help='Create a new JSON summary; existing files are never overwritten')
     args = parser.parse_args()
     try:
-        result = (verify_current_delivery(args.delivery_pointer.resolve()) if args.delivery_pointer
+        result = (verify_repository_documents() if args.repository_documents else
+                  verify_current_delivery(args.delivery_pointer.resolve()) if args.delivery_pointer
                   else summarize(args.evidence_dir.resolve()))
         rendered = json.dumps(result, ensure_ascii=False, indent=2)
         if args.output:
