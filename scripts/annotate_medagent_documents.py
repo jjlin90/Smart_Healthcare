@@ -88,7 +88,8 @@ def refresh():
         text += '\n英文译注刷新入口：scripts/annotate_medagent_documents.py；逐题生成和话术合并也调用同一术语表。术语、工具名及参数名添加中文说明，代码、路径与原始资料保留原样。覆盖清单的 source 是适配映射键，original_local_path 才是本机原件路径。链接审计检查本地文件及锚点；Git 索引可分发检查另由预检执行，external_urls 仅列举外部网址。审计的 worktree_dirty 表示未提交改动，输入哈希识别实际检查内容。\n'
     validation = latest_test_validation()
     evidence = (f"本轮代码与依赖回归 {validation['test_counts']['passed']} 项通过；"
-                f"执行耗时 {validation['elapsed_seconds']} 秒，仅为本次记录，不作性能指标。执行标识 `{validation['run_id']}`。"
+                f"记录器采集耗时 {validation['elapsed_seconds']} 秒，包含元数据采集、子进程启动、测试执行与临时目录清理；"
+                f"pytest 自报的测试耗时见原始日志，两者不等同，也不作接口性能指标。执行标识 `{validation['run_id']}`。"
                 if validation else "本轮代码回归尚无与当前代码匹配的成功记录；历史 479 项不得标为当前。")
     review = ("2026-10-13：在话术、14 份题库、理解指南、工程对照和流程图补充中文译注；"
               "术语、工具名、参数名逐项说明，代码与路径不改写。文件格式集中说明：.md 是 Markdown 文档，.txt 是纯文本原件，.json 是结构化数据文件，.svg 是矢量图，.png 是位图。"

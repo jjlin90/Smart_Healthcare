@@ -140,89 +140,120 @@ def record(kind: str, output: Path, desktop: Path | None = None,
     with output.open('x', encoding='utf-8', newline='\n') as stream, ExitStack() as cleanup:
         started = datetime.now(timezone.utc).isoformat()
         timer = time.monotonic()
-        head = git('rev-parse', 'HEAD')
-        worktree_status = git('status', '--porcelain')
-        paths = candidates() if kind in ('quick', 'tests') else documents(desktop, extra_documents)
-        before = hashes(paths)
-        sources = [Path(__file__).resolve(), ROOT / 'scripts/preflight_git.py']
-        source_before = hashes(sources)
-        command = [sys.executable, str(ROOT / 'scripts/preflight_git.py'), '--quick']
+        head, command, text = None, [], ''
         junit, counts, temporary_root = None, None, None
-        if kind == 'tests':
-            junit = output.with_suffix('.junit.xml')
-            with junit.open('x', encoding='utf-8'):
-                pass  # Reserve this unique path; never overwrite old evidence.
-            temporary_root = Path(cleanup.enter_context(
-                tempfile.TemporaryDirectory(prefix='medagent-record-tests-'))).resolve()
-            if (temporary_root.is_relative_to(ROOT.resolve()) or
-                    temporary_root.parent != Path(tempfile.gettempdir()).resolve()):
-                raise ValueError('pytest temporary directory must be in the system temp directory outside the repository')
-            command = [sys.executable, '-m', 'pytest', '-p', 'pytest_asyncio.plugin', '-p', 'anyio.pytest_plugin',
-                       '-p', 'no:cacheprovider', '--basetemp', str(temporary_root / 'pytest'),
-                       '--junitxml', str(junit), '-q']
-        if kind in ('quick', 'tests'):
-            try:
+        junit_reserved, child_exit_code = False, None
+        failure_stage = 'setup'
+        try:
+            head = git('rev-parse', 'HEAD')
+            worktree_status = git('status', '--porcelain')
+            paths = candidates() if kind in ('quick', 'tests') else documents(desktop, extra_documents)
+            before = hashes(paths)
+            sources = [Path(__file__).resolve(), ROOT / 'scripts/preflight_git.py']
+            source_before = hashes(sources)
+            command = [sys.executable, str(ROOT / 'scripts/preflight_git.py'), '--quick']
+            if kind == 'tests':
+                junit = output.with_suffix('.junit.xml')
+                with junit.open('x', encoding='utf-8'):
+                    pass  # Reserve this unique path; never overwrite old evidence.
+                junit_reserved = True
+                temporary_root = Path(cleanup.enter_context(
+                    tempfile.TemporaryDirectory(prefix='medagent-record-tests-'))).resolve()
+                if (temporary_root.is_relative_to(ROOT.resolve()) or
+                        temporary_root.parent != Path(tempfile.gettempdir()).resolve()):
+                    raise ValueError('pytest temporary directory must be in the system temp directory outside the repository')
+                command = [sys.executable, '-m', 'pytest', '-p', 'pytest_asyncio.plugin', '-p', 'anyio.pytest_plugin',
+                           '-p', 'no:cacheprovider', '--basetemp', str(temporary_root / 'pytest'),
+                           '--junitxml', str(junit), '-q']
+            if kind in ('quick', 'tests'):
+                failure_stage = 'execution'
                 result = subprocess.run(command, cwd=ROOT, stdout=subprocess.PIPE,
                                         stderr=subprocess.STDOUT, encoding='utf-8',
                                         env={**os.environ, 'PYTHONIOENCODING': 'utf-8',
                                              **({'PYTEST_DISABLE_PLUGIN_AUTOLOAD': '1'} if kind == 'tests' else {})})
-            except (OSError, KeyboardInterrupt) as exc:
-                cleanup.close()
-                if junit is not None and junit.is_file() and junit.stat().st_size == 0:
-                    junit.unlink()  # Only the exclusively reserved, still-empty file.
-                aborted = {'run_id': str(uuid.uuid4()), 'kind': kind, 'status': 'aborted',
-                           'started_at_utc': started, 'finished_at_utc': datetime.now(timezone.utc).isoformat(),
-                           'head': head, 'cwd': str(ROOT), 'command': command,
-                           'exit_code': 130 if isinstance(exc, KeyboardInterrupt) else 1,
-                           'aborted_exception_type': type(exc).__name__, 'inputs_unchanged': False,
-                           'pytest_temporary_root': str(temporary_root) if temporary_root else None,
-                           'temporary_data_cleaned': temporary_root is None or not temporary_root.exists()}
-                stream.write('Execution aborted before a complete result; not successful test evidence.\n[RUN] '
-                             + json.dumps(aborted, ensure_ascii=False) + '\n')
-                stream.flush()
-                raise
-            code, text = result.returncode, result.stdout
-            report = None
+                child_exit_code = result.returncode
+                code, text = result.returncode, result.stdout
+                failure_stage = 'result_validation'
+                report = None
+                if kind == 'tests':
+                    counts = test_counts(junit)
+                    code = code or int(counts['total'] < 1 or bool(counts['failed'] or counts['errors']))
+            else:
+                report = check_links(paths)
+                code, text = int(bool(report['issues'])), ''
+                command = [sys.executable, str(Path(__file__).resolve()), '--kind', 'links',
+                           '--output', str(output)]
+                if desktop is not None:
+                    command += ['--desktop', str(desktop.resolve())]
+                for path in extra_documents or []:
+                    command += ['--extra-document', str(path.resolve())]
+            failure_stage = 'cleanup'
+            cleanup.close()
+            failure_stage = 'input_validation'
+            after_paths = candidates() if kind in ('quick', 'tests') else documents(desktop, extra_documents)
+            head_after = git('rev-parse', 'HEAD')
+            stable = (before == hashes(after_paths) and head == head_after
+                      and source_before == hashes(sources))
+            code = code or int(not stable)
+            metadata = {'run_id': str(uuid.uuid4()), 'kind': kind, 'started_at_utc': started,
+                        'finished_at_utc': datetime.now(timezone.utc).isoformat(),
+                        'head': head, 'head_after': head_after, 'cwd': str(ROOT),
+                        'worktree_dirty': bool(worktree_status),
+                        'worktree_status_sha256': hashlib.sha256(worktree_status.encode()).hexdigest(),
+                        'snapshot_basis': 'input_sha256 identifies checked working-tree bytes; HEAD alone does not describe uncommitted contents.',
+                        'command': command, 'recorder_command': [sys.executable, *sys.argv], 'exit_code': code, 'inputs_unchanged': stable,
+                        'input_sha256': before, 'checker_source_sha256': source_before}
+            metadata['elapsed_seconds'] = round(time.monotonic() - timer, 3)
             if kind == 'tests':
-                counts = test_counts(junit)
-                code = code or int(counts['total'] < 1 or bool(counts['failed'] or counts['errors']))
-        else:
-            report = check_links(paths)
-            code, text = int(bool(report['issues'])), ''
-            command = [sys.executable, str(Path(__file__).resolve()), '--kind', 'links',
-                       '--output', str(output)]
-            if desktop is not None:
-                command += ['--desktop', str(desktop.resolve())]
-            for path in extra_documents or []:
-                command += ['--extra-document', str(path.resolve())]
-        cleanup.close()
-        after_paths = candidates() if kind in ('quick', 'tests') else documents(desktop, extra_documents)
-        head_after = git('rev-parse', 'HEAD')
-        stable = (before == hashes(after_paths) and head == head_after
-                  and source_before == hashes(sources))
-        code = code or int(not stable)
-        metadata = {'run_id': str(uuid.uuid4()), 'kind': kind, 'started_at_utc': started,
-                    'finished_at_utc': datetime.now(timezone.utc).isoformat(),
-                    'head': head, 'head_after': head_after, 'cwd': str(ROOT),
-                    'worktree_dirty': bool(worktree_status),
-                    'worktree_status_sha256': hashlib.sha256(worktree_status.encode()).hexdigest(),
-                    'snapshot_basis': 'input_sha256 identifies checked working-tree bytes; HEAD alone does not describe uncommitted contents.',
-                    'command': command, 'recorder_command': [sys.executable, *sys.argv], 'exit_code': code, 'inputs_unchanged': stable,
-                    'input_sha256': before, 'checker_source_sha256': source_before}
-        metadata['elapsed_seconds'] = round(time.monotonic() - timer, 3)
-        if kind == 'tests':
-            metadata.update(test_counts=counts, junit_report=str(junit), junit_sha256=hashes([junit])[str(junit.resolve())])
-            metadata.update(pytest_temporary_root=str(temporary_root),
-                            temporary_data_cleaned=not temporary_root.exists())
-        if report is None:
-            stream.write(text + '\n[RUN] ' + json.dumps(metadata, ensure_ascii=False) + '\n')
-        else:
-            report.update(metadata)
-            report['generated_at_utc'] = metadata['finished_at_utc']
-            report['document_files'] = [{'path': path, 'sha256': digest}
-                                        for path, digest in before.items()]
-            report['extra_documents'] = [str(path.resolve()) for path in extra_documents or []]
-            stream.write(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
+                metadata.update(test_counts=counts, junit_report=str(junit), junit_sha256=hashes([junit])[str(junit.resolve())])
+                metadata.update(pytest_temporary_root=str(temporary_root),
+                                temporary_data_cleaned=not temporary_root.exists())
+            failure_stage = 'record_write'
+            if report is None:
+                stream.write(text + '\n[RUN] ' + json.dumps(metadata, ensure_ascii=False) + '\n')
+            else:
+                report.update(metadata)
+                report['generated_at_utc'] = metadata['finished_at_utc']
+                report['document_files'] = [{'path': path, 'sha256': digest}
+                                            for path, digest in before.items()]
+                report['extra_documents'] = [str(path.resolve()) for path in extra_documents or []]
+                stream.write(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
+        except (OSError, KeyboardInterrupt, ET.ParseError, ValueError, TypeError,
+                KeyError, subprocess.SubprocessError) as exc:
+            cleanup_error = None
+            try:
+                cleanup.close()
+            except OSError as cleanup_exc:
+                cleanup_error = type(cleanup_exc).__name__
+            incomplete_junit = {}
+            try:
+                if junit_reserved and junit is not None and junit.is_file():
+                    if junit.stat().st_size == 0:
+                        junit.unlink()  # Only this run's exclusively reserved empty file.
+                    else:
+                        incomplete_junit = {'incomplete_junit_report': str(junit),
+                                            'incomplete_junit_sha256': hashlib.sha256(junit.read_bytes()).hexdigest()}
+            except OSError as cleanup_exc:
+                cleanup_error = type(cleanup_exc).__name__
+            aborted = {'run_id': str(uuid.uuid4()), 'kind': kind, 'status': 'aborted',
+                       'started_at_utc': started, 'finished_at_utc': datetime.now(timezone.utc).isoformat(),
+                       'head': head, 'cwd': str(ROOT), 'command': command,
+                       'exit_code': 130 if isinstance(exc, KeyboardInterrupt) else 1,
+                       'child_exit_code': child_exit_code, 'failure_stage': failure_stage,
+                       'aborted_exception_type': type(exc).__name__, 'inputs_unchanged': False,
+                       'pytest_temporary_root': str(temporary_root) if temporary_root else None,
+                       'temporary_data_cleaned': temporary_root is None or not temporary_root.exists(),
+                       'cleanup_exception_type': cleanup_error}
+            aborted.update(incomplete_junit)
+            stream.seek(0)
+            stream.truncate()
+            if kind == 'links':
+                stream.write(json.dumps(aborted, ensure_ascii=False, indent=2) + '\n')
+            else:
+                stream.write(text + '\nRecording aborted before complete validated evidence.\n[RUN] '
+                             + json.dumps(aborted, ensure_ascii=False) + '\n')
+            stream.flush()
+            raise
     if kind == 'tests' and code == 0:
         pointer = ROOT / 'artifacts/medagent_upgrade_20261013/latest_engineering_test_run.json'
         pointer.parent.mkdir(parents=True, exist_ok=True)
@@ -334,7 +365,7 @@ def main() -> int:
         if args.kind == 'desktop-snapshot':
             return record_desktop_snapshot(args.output, args.receipt, args.manifest)
         return record(args.kind, args.output, args.desktop, args.extra_document)
-    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as exc:
+    except (OSError, ValueError, KeyError, TypeError, ET.ParseError, subprocess.SubprocessError) as exc:
         print(f'Recording failed: {exc}', file=sys.stderr)
         return 1
 

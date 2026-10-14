@@ -94,6 +94,85 @@ def test_interrupted_record_labels_abort_cleans_temp_and_preserves_success_point
     assert 'private exception detail' not in output.read_text(encoding='utf-8')
 
 
+@pytest.mark.parametrize('report_kind', ['empty', 'malformed', 'missing'])
+def test_zero_exit_with_unusable_junit_labels_failure_and_preserves_pointer(repository, monkeypatch, report_kind):
+    monkeypatch.setenv('PYTHONDONTWRITEBYTECODE', '1')
+    actions = {'empty': "report.write_text('',encoding='utf-8')",
+               'malformed': "report.write_text('<testsuites><',encoding='utf-8')",
+               'missing': 'report.unlink()'}
+    (repository / 'pytest.py').write_text(
+        "from pathlib import Path\nimport sys\n"
+        "base=Path(sys.argv[sys.argv.index('--basetemp')+1])\n"
+        "base.mkdir(parents=True)\n(base/'partial.bin').write_bytes(b'partial')\n"
+        "report=Path(sys.argv[sys.argv.index('--junitxml')+1])\n"
+        + actions[report_kind] + "\nprint('child exited normally')\n", encoding='utf-8')
+    directory = repository / 'artifacts/medagent_upgrade_20261013'
+    directory.mkdir()
+    pointer = directory / 'latest_engineering_test_run.json'
+    pointer.write_bytes(b'previous successful pointer')
+    output = repository / 'artifacts/unusable.log'
+    assert invoke(monkeypatch, output, kind='tests') == 1
+    result = metadata(output)
+    assert result['status'] == 'aborted' and result['exit_code'] == 1
+    assert result['child_exit_code'] == 0 and result['failure_stage'] == 'result_validation'
+    assert result['temporary_data_cleaned'] is True
+    assert not Path(result['pytest_temporary_root']).exists()
+    assert pointer.read_bytes() == b'previous successful pointer'
+    junit = output.with_suffix('.junit.xml')
+    if report_kind == 'malformed':
+        assert junit.read_bytes() == b'<testsuites><'
+    else:
+        assert not junit.exists()
+
+
+def test_metadata_validation_error_is_recorded_after_successful_child(repository, monkeypatch):
+    monkeypatch.setenv('PYTHONDONTWRITEBYTECODE', '1')
+    (repository / 'pytest.py').write_text(
+        "from pathlib import Path\nimport sys\n"
+        "p=Path(sys.argv[sys.argv.index('--junitxml')+1])\n"
+        "p.write_text('<testsuites><testsuite><testcase/></testsuite></testsuites>',encoding='utf-8')\n",
+        encoding='utf-8')
+    original_hashes = recorder.hashes
+    calls = []
+    def fail_post_run(paths):
+        calls.append(paths)
+        if len(calls) == 3:
+            raise OSError('private metadata detail')
+        return original_hashes(paths)
+    monkeypatch.setattr(recorder, 'hashes', fail_post_run)
+    output = repository / 'artifacts/metadata_failure.log'
+    assert invoke(monkeypatch, output, kind='tests') == 1
+    result = metadata(output)
+    assert result['status'] == 'aborted' and result['child_exit_code'] == 0
+    assert result['failure_stage'] == 'input_validation'
+    assert result['temporary_data_cleaned'] is True
+    assert output.with_suffix('.junit.xml').is_file()
+    assert not (repository / 'artifacts/medagent_upgrade_20261013/latest_engineering_test_run.json').exists()
+    assert 'private metadata detail' not in output.read_text(encoding='utf-8')
+
+
+def test_setup_failure_is_labeled_and_removes_only_owned_empty_junit(repository, monkeypatch):
+    def fail_allocation(*args, **kwargs):
+        raise OSError('temporary directory unavailable')
+    monkeypatch.setattr(recorder.tempfile, 'TemporaryDirectory', fail_allocation)
+    output = repository / 'artifacts/setup_failure.log'
+    assert invoke(monkeypatch, output, kind='tests') == 1
+    result = metadata(output)
+    assert result['status'] == 'aborted' and result['failure_stage'] == 'setup'
+    assert result['child_exit_code'] is None and result['pytest_temporary_root'] is None
+    assert not output.with_suffix('.junit.xml').exists()
+
+
+def test_existing_junit_is_never_removed_by_setup_failure(repository, monkeypatch):
+    output = repository / 'artifacts/existing_junit.log'
+    junit = output.with_suffix('.junit.xml')
+    junit.write_bytes(b'')
+    assert invoke(monkeypatch, output, kind='tests') == 1
+    assert junit.exists() and junit.read_bytes() == b''
+    result = metadata(output)
+    assert result['status'] == 'aborted' and result['failure_stage'] == 'setup'
+
+
 def test_junit_counts_and_current_validation_reject_changed_code_or_counts(repository):
     directory = repository / 'artifacts/medagent_upgrade_20261013'
     directory.mkdir()
