@@ -3074,7 +3074,7 @@
       "topic": "loops",
       "kind": "primary",
       "original_local_path": "artifacts/medagent_upgrade_20261013/原始资料/04-子Agent与任务编排.txt",
-      "display_question": "ReAct(前端组件框架) 框架的原理是什么？",
+      "display_question": "ReAct(推理与行动交替) 框架的原理是什么？",
       "book": "MedAgent_AI_多Agent项目话术.md",
       "book_anchor": "full-04-q-061"
     },
@@ -3100,7 +3100,7 @@
       "topic": "loops",
       "kind": "followup",
       "original_local_path": "artifacts/medagent_upgrade_20261013/原始资料/04-子Agent与任务编排.txt",
-      "display_question": "ReAct(前端组件框架) 循环什么时候应该停止？",
+      "display_question": "ReAct(推理与行动交替) 循环什么时候应该停止？",
       "book": "MedAgent_AI_多Agent项目话术.md",
       "book_anchor": "full-04-q-063"
     },
@@ -3113,7 +3113,7 @@
       "topic": "plan",
       "kind": "primary",
       "original_local_path": "artifacts/medagent_upgrade_20261013/原始资料/04-子Agent与任务编排.txt",
-      "display_question": "Plan-and-Solve(先规划再求解) 和 ReAct(前端组件框架) 有什么区别？为什么选 ReAct(前端组件框架) 而不是 Plan-and-Execute(先规划再执行)/Multi-Agent(多智能体)？",
+      "display_question": "Plan-and-Solve(先规划再求解) 和 ReAct(推理与行动交替) 有什么区别？为什么选 ReAct(推理与行动交替) 而不是 Plan-and-Execute(先规划再执行)/Multi-Agent(多智能体)？",
       "book": "MedAgent_AI_多Agent项目话术.md",
       "book_anchor": "full-04-q-064"
     },
@@ -4036,7 +4036,7 @@
       "topic": "errors",
       "kind": "followup",
       "original_local_path": "artifacts/medagent_upgrade_20261013/原始资料/05-稳定性与异常保障.txt",
-      "display_question": "大模型失败走规则，RAG(检索增强生成) 失败走 FAQ(常见问答)，精排失败走粗排怎么理解？",
+      "display_question": "大模型失败走规则，RAG(检索增强生成) 失败走 FAQ(常见问题问答)，精排失败走粗排怎么理解？",
       "book": "MedAgent_AI_多Agent项目话术.md",
       "book_anchor": "full-05-q-029"
     },
@@ -7364,7 +7364,7 @@
       "topic": "rl",
       "kind": "followup",
       "original_local_path": "artifacts/medagent_upgrade_20261013/原始资料/10-模型训练与推理优化.txt",
-      "display_question": "关键瓶颈、前置条件、option(强化学习中的时间扩展动作) model(模型) 是什么？",
+      "display_question": "关键瓶颈、前置条件、option(时间扩展动作) model(模型) 是什么？",
       "book": "MedAgent_AI_多Agent项目话术.md",
       "book_anchor": "full-10-q-036"
     },
@@ -12246,7 +12246,7 @@
       "kind": "table_or_sequence",
       "match_score": 1.0,
       "original_local_path": "artifacts/medagent_upgrade_20261013/原始资料/多Agent高频面试题横向扩展及纵向延伸.txt",
-      "display_question": "ReAct(前端组件框架) 框架的原理是什么？",
+      "display_question": "ReAct(推理与行动交替) 框架的原理是什么？",
       "book": "MedAgent_AI_多Agent项目话术.md",
       "book_anchor": "full-cross-q-225"
     },
@@ -12300,7 +12300,7 @@
       "kind": "table_or_sequence",
       "match_score": 0.634,
       "original_local_path": "artifacts/medagent_upgrade_20261013/原始资料/多Agent高频面试题横向扩展及纵向延伸.txt",
-      "display_question": "Plan-and-Solve(先规划再求解) 和 ReAct(前端组件框架) 有什么区别？",
+      "display_question": "Plan-and-Solve(先规划再求解) 和 ReAct(推理与行动交替) 有什么区别？",
       "book": "MedAgent_AI_多Agent项目话术.md",
       "book_anchor": "full-cross-q-228"
     },
@@ -12354,7 +12354,7 @@
       "kind": "table_or_sequence",
       "match_score": 0.763,
       "original_local_path": "artifacts/medagent_upgrade_20261013/原始资料/多Agent高频面试题横向扩展及纵向延伸.txt",
-      "display_question": "为什么选 ReAct(前端组件框架) 而不是 Plan-and-Execute(先规划再执行)/Multi-Agent(多智能体)？",
+      "display_question": "为什么选 ReAct(推理与行动交替) 而不是 Plan-and-Execute(先规划再执行)/Multi-Agent(多智能体)？",
       "book": "MedAgent_AI_多Agent项目话术.md",
       "book_anchor": "full-cross-q-231"
     },
@@ -12912,7 +12912,7 @@
       "kind": "table_or_sequence",
       "match_score": 1.0,
       "original_local_path": "artifacts/medagent_upgrade_20261013/原始资料/多Agent高频面试题横向扩展及纵向延伸.txt",
-      "display_question": "大模型失败走规则，RAG(检索增强生成) 失败走 FAQ(常见问答)，精排失败走粗排",
+      "display_question": "大模型失败走规则，RAG(检索增强生成) 失败走 FAQ(常见问题问答)，精排失败走粗排",
       "book": "MedAgent_AI_多Agent项目话术.md",
       "book_anchor": "full-cross-q-262"
     },
@@ -18672,7 +18672,7 @@
       "kind": "table_or_sequence",
       "match_score": 1.0,
       "original_local_path": "artifacts/medagent_upgrade_20261013/原始资料/多Agent高频面试题横向扩展及纵向延伸.txt",
-      "display_question": "关键瓶颈、前置条件、option(强化学习中的时间扩展动作) model(模型) 是什么？",
+      "display_question": "关键瓶颈、前置条件、option(时间扩展动作) model(模型) 是什么？",
       "book": "MedAgent_AI_多Agent项目话术.md",
       "book_anchor": "full-cross-q-582"
     },

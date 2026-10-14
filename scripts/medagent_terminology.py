@@ -359,6 +359,9 @@ allergy_history=过敏史
 past_medical_history=既往病史
 current_medications=当前用药
 source_sha256=原始内容哈希
+ReferralDraftService=转诊草稿业务服务
+ReferralDraftRequest=医生确认的转诊草稿请求
+confirmed_arguments_sha256=医生确认参数摘要
 source_content_sha256=原始示例内容哈希
 adaptation=适配方式
 tob_rewrite=院内业务场景改写
@@ -819,6 +822,10 @@ _IDENTIFIER = re.compile(r'\b[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+\b')
 
 
 def translation(term):
+    # ReAct (agent reasoning) and React (UI framework) share a casefold key.
+    # Preserve exact spellings before using the case-insensitive fallback.
+    if term in TERMS:
+        return TERMS[term]
     if term.casefold() in _CASE_TERMS:
         return _CASE_TERMS[term.casefold()]
     # Compositional labels are used only when every component is known.
@@ -834,6 +841,7 @@ def _already_translated(tail):
 
 def annotate_text(text):
     """Annotate readable text, preserving paths and existing bilingual labels."""
+    text = text.replace('ReAct(前端组件框架)', 'ReAct(推理与行动交替)')
     # Extensions are parts of filenames, not technical terms to annotate per row.
     text = re.sub(r'(\.(?:md|txt|py|json|svg|png|html|pdf|yaml|yml|toml)`?)(?:[（(][^()（）\n]*[\u3400-\u9fff][^()（）\n]*[）)])', r'\1', text, flags=re.I)
     # Earlier glosses may themselves have acquired glosses: keep one annotation.

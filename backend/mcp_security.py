@@ -65,6 +65,11 @@ class PatientAuthorization(Middleware):
             if name not in claims["tools"]:
                 raise ValueError("tool outside delegation")
             arguments = context.message.arguments or {}
+            if name == "generate_referral":
+                confirmed = hashlib.sha256(json.dumps(arguments, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+                if (claims["agent"] != "ReferralDraftService"
+                        or claims.get("confirmed_arguments_sha256") != confirmed):
+                    raise ValueError("referral requires the dedicated doctor-confirmed action")
             if "patient_id" in arguments and arguments["patient_id"] != claims["patient_id"]:
                 raise ValueError("patient outside delegation")
             await require_live_task(claims)

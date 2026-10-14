@@ -38,7 +38,7 @@ def merge():
     base = BOOK.read_text(encoding="utf-8-sig").split(START)[0].rstrip()
     # Replace the old navigation-only appendix with the complete answers.
     base = base.split("## 2026-10-13 全文档适配与执行机制更新")[0].rstrip()
-    base = re.sub(r"最近核查：\d{4}-\d{2}-\d{2}", "最近核查：2026-10-13", base, count=1)
+    base = re.sub(r"最近核查：\d{4}-\d{2}-\d{2}", "最近核查：2026-10-14", base, count=1)
     # Rebuild the repeated summary too; it predates the generated appendix.
     base = re.sub(r'(?m)^全文保留 [\d,]+ 处问答与 \d+ 个图、伪代码和结构示例。[^\n]*$',
                   f"全文保留 {coverage['question_count']:,} 处问答与 {coverage['example_count']} 个图、伪代码和结构示例。"

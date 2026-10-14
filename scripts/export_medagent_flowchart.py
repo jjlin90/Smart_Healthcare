@@ -15,6 +15,7 @@ BG = '#f6f8fc'
 INK = '#15243c'
 MUTED = '#50617b'
 BLUE = '#2563eb'
+BUSINESS = '#7c3aed'
 FONT = 'C:/Windows/Fonts/msyh.ttc'
 BOLD = 'C:/Windows/Fonts/msyhbd.ttc'
 canvas = Image.new('RGB', (W*SCALE, H*SCALE), BG)
@@ -84,7 +85,8 @@ for start,end in [(316,370),(500,550),(646,775),(875,895),(1005,1020),(1110,1225
 arrow([(460,598),(390,598)],'#c34b53')
 arrow([(460,850),(390,850)],'#b77915',dashed=True)
 arrow([(460,945),(412,945),(412,915),(390,915)],'#b77915',dashed=True)
-arrow([(225,940),(225,2175),(460,2175)],'#b77915',dashed=True)
+arrow([(225,940),(225,965),(40,965),(40,2175),(460,2175)],'#b77915',dashed=True)
+arrow([(390,1600),(410,1600),(410,1630),(460,1630)],BUSINESS,dashed=True)
 arrow([(1140,1630),(1210,1630)],'#c34b53',dashed=True)
 arrow([(1140,1800),(1180,1800),(1180,1715),(1210,1715)],'#c34b53',dashed=True)
 arrow([(1140,1800),(1190,1800),(1190,1448),(1140,1448)],'#13795b',dashed=True)
@@ -112,7 +114,7 @@ node(2310,90,'发送 done，页面确认完成',fill='#eaf1ff',stroke='#a8c3f9')
 # Supporting notes show responsibilities without crowding the route.
 rect(1210,765,330,178,'#fff','#ced8e8')
 text(1375,801,'主协调器的分派对象',23,INK,True)
-for i,t in enumerate(['症状 / 分诊 / 转诊 → Symptom','药品查询 / 审核 → Drug','指南 / 报告等 → Guide']):
+for i,t in enumerate(['症状评估 / 科室建议 → Symptom','药品查询 / 审核 → Drug','指南 / 报告等 → Guide']):
     text(1375,846+i*31,t,19,MUTED)
 rect(1210,1000,330,145,'#fff','#ced8e8')
 text(1375,1034,'按依赖决定串行 / 并行',22,INK,True)
@@ -122,12 +124,14 @@ rect(60,1155,330,160,'#fff','#ced8e8')
 text(225,1193,'共享任务有效性检查',22,INK,True)
 text(225,1232,'生产必须配置 Redis 与完整任务域',17,MUTED)
 text(225,1265,'本地无 Redis 时不提供跨进程围栏',17,MUTED)
+node(1395,355,'独立转诊草稿动作',['聊天只提示，专科不创建转诊','医生确认患者、科室、原因','独立业务服务直接调用 MCP','签名绑定确认参数摘要','服务核对结果，返回独立表单','待确认草稿 ≠ 完成转诊'],x=60,w=330,fill='#f4efff',stroke='#d8c8ff',size=18)
+text(225,1785,'紫色虚线：独立业务调用',17,BUSINESS,max_width=310)
 rect(1210,1395,330,135,'#fff6e7','#eed4a4')
 text(1375,1429,'工具的实际执行目标',22,INK,True)
 text(1375,1470,'医院业务接口 / 本地数据库',21,MUTED)
 text(1375,1500,'新调用受剩余预算；写动作需批准',18,MUTED)
 node(1580,180,'失败分支',['只读依据不匹配：最多一次重路由','写入未知：核对状态，不自动重跑','普通工具故障：失败，不确认成功'],x=1210,w=330,fill='#fff0f1',stroke='#e6aeb3',size=20)
-text(1280,1838,'绿色虚线：有预算的工具循环',18,'#13795b')
+text(1280,1838,'绿色虚线：专科内有预算的工具循环',18,'#13795b')
 text(800,2449,'文字开始显示 ≠ 本轮已保存完成；最终 done 才确认对应分支完成。',23,MUTED)
 
 svg.append('</svg>')

@@ -1,6 +1,6 @@
 import json
 import asyncio
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 
@@ -102,7 +102,30 @@ async def test_read_only_coverage_failure_can_reroute_once(monkeypatch):
     assert reviewer.await_count == 1 and "reroute" in revised.route
 
 
-@pytest.mark.parametrize("writes", [[], ["generate_referral"]])
+@pytest.mark.parametrize("revised_intents", [["转诊协同"], ["药品信息查询", "转诊协同"]])
+async def test_execution_reroute_rejects_intents_outside_clinical_catalog(monkeypatch, revised_intents):
+    from backend.agents import TaskReadinessGuard
+    from backend.service_auth import request_context
+    coordinator = MedicalCoordinator()
+    caller = AsyncMock(return_value={"agent": "DrugAgent", "trace": []})
+    reviewer = AsyncMock(return_value=IntentDecision(intents=revised_intents, complex_task=True, reason="test"))
+    monkeypatch.setattr(coordinator, "_call_a2a", caller)
+    monkeypatch.setattr(IntentClassifier, "_llm_classify", reviewer)
+    readiness = Mock(side_effect=AssertionError("unsupported intents must stop before readiness/planning"))
+    monkeypatch.setattr(TaskReadinessGuard, "assess", readiness)
+    context = {"approved_actions": [], "task_id": "existing-task", "plan_version": 1}
+    with delegated_context(context):
+        with pytest.raises(EvidenceCoverageError) as failure:
+            await coordinator._execute_plan("查询阿司匹林说明书", decision("药品信息查询"),
+                                            ExecutionPlan(steps=[PlanStep(agent="DrugAgent", task="查询说明书")]), "p", {}, [])
+        assert request_context.get()["plan_version"] == 1
+    assert failure.value.missing_intents == revised_intents
+    caller.assert_awaited_once()
+    reviewer.assert_awaited_once()
+    readiness.assert_not_called()
+
+
+@pytest.mark.parametrize("writes", [[], ["save_medical_record"]])
 async def test_correction_does_not_loop_or_replay_writes(monkeypatch, writes):
     coordinator = MedicalCoordinator()
     caller = AsyncMock(return_value={"trace": []})

@@ -59,8 +59,8 @@ def refresh():
             "最新入口为 artifacts/medagent_upgrade_20261013/latest_link_audit.json，完整报告含执行起止时间、文件清单与哈希、检查器哈希、工作区状态和输入稳定性。"
             "独立 med_rag 项目及其稿件不在本轮交付与审计范围；指南工具调用不等于本仓库实现了 RAG。检查本地文件和锚点，外部 URL 只列举。旧审计均保留当时范围，不回填为本轮。"
             "使用 scripts/record_document_checks.py 的 --kind links 和 --desktop 即默认包含桌面工程对照，无需额外传入该文件。")
-    text = replace_paragraph(text, '本轮只修改文档生成与审计代码，',
-            "本轮只修改文档生成与审计代码，业务权限和功能不变。前轮 479 项全量回归及 24.11 秒是历史记录，本轮验证另行记录，不将旧数量标为当前。"
+    text = replace_paragraph(text, '文档生成与审计修复范围',
+            "文档生成与审计修复范围（2026-10-13）：该阶段只修改文档生成与审计代码。2026-10-14 已收紧临床专科职责：症状智能体保留症状辅助评估、风险提示、疾病信息和科室建议，不创建转诊草稿；医生在独立表单确认患者、科室和原因后，由 ReferralDraftService 经 MCP 执行参数绑定的草稿写入。前轮 479 项及 24.11 秒是历史记录，本轮验证另行记录。"
             "用户已主动删除备份，本轮直接覆盖原稿，不恢复或新增备份。")
     engineering_text = text
     guide = ROOT / 'docs/MedAgent_项目理解指南.md'
@@ -103,6 +103,8 @@ def refresh():
               "本仓库本轮未修改独立 med_rag 项目的正文，其他会话对该项目或共享简历的更新不属于本轮交付状态。"
               "默认文档同步排除共享简历 HTML/PDF，简历另有需求时单独交付；不能把旧简历覆盖回桌面以消除历史收据漂移。"
               "artifacts/medagent_upgrade_20261013/med_rag_面试全解.md 与桌面同名稿属于前轮生成副本，不作为独立项目原件或当前交付。"
+              "2026-10-14职责调整：九类临床辅助意图交三个专科，兼容标签“转诊协同”转为独立医生确认的转诊草稿业务入口，不增加第四个智能体。"
+              "新增独立表单/API、确认参数摘要绑定、转诊写入审计与权限/去重/未知状态回归；症状专科和聊天均不能创建转诊。"
               "业务仍为院内 ToB；没有新增患者自助功能，没有真实医院写入。")
     # Keep the revised texts until all required paragraphs have matched.
     readme_text = review_block(text, review)

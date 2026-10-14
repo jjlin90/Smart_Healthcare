@@ -31,7 +31,7 @@ from backend.task_budget import remaining_seconds
 from python_a2a.server.http import create_flask_app
 
 AGENTS = {
-    "symptom": ("SymptomAgent", "院内症状评估、辅助分诊与转诊协同"),
+    "symptom": ("SymptomAgent", "院内症状辅助评估、风险提示与科室建议；不创建转诊草稿"),
     "drug": ("DrugAgent", "药品信息、用药审核、禁忌症、相互作用与替代药查询"),
     "guide": ("GuideAgent", "临床指南、检验与报告辅助解读、随访管理及临床知识查询"),
 }
@@ -51,6 +51,8 @@ class MedicalA2AServer(A2AServer):
         task = SpecialistRequest.model_validate(payload)
         if claims["agent"] != self.agent_name or task.patient_id != claims["patient_id"]:
             raise ValueError("Delegation scope mismatch")
+        if not set(claims.get("tools", [])).issubset(AGENT_TOOLS[self.agent_name]):
+            raise ValueError("Specialist delegation contains tools outside its responsibility")
         if claims.get("grounding_sha256") and hashlib.sha256((task.original_request or "").encode()).hexdigest() != claims["grounding_sha256"]:
             raise ValueError("Original request scope mismatch")
         async with SessionLocal() as db:

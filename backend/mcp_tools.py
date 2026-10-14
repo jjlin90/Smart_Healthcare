@@ -22,6 +22,7 @@ from backend.models import AuditLog, Consultation, PatientProfile, Referral
 from backend.resilience import get_breaker
 from backend.mcp_security import DelegationVerifier, PatientAuthorization
 from backend.task_budget import remaining_seconds
+from backend.service_auth import request_context
 
 mcp = FastMCP("MedAgent Medical MCP Server", instructions="医疗工具返回仅供医生参考。", auth=DelegationVerifier(), middleware=[PatientAuthorization()], mask_error_details=True)
 
@@ -199,7 +200,15 @@ async def generate_referral(patient_id: str, department: str, reason: str) -> di
         raise ValueError("HIS 未确认转诊草稿编号或待确认状态，请核对下游结果")
     async with SessionLocal() as db:
         referral = Referral(patient_id=patient_id, department=department, reason=reason, external_id=str(result.get("referral_id", "")), status="待医生确认")
-        db.add(referral); await db.commit(); await db.refresh(referral)
+        claims = request_context.get() or {}
+        db.add(referral)
+        db.add(AuditLog(patient_id=patient_id, action="referral_draft_created", detail=json.dumps({
+            "staff_id": claims.get("staff_id"), "request_id": claims.get("request_id"),
+            "referral_id": referral.external_id, "department": department,
+            "confirmed_arguments_sha256": claims.get("confirmed_arguments_sha256"),
+            "status": "待医生确认",
+        }, ensure_ascii=False)))
+        await db.commit(); await db.refresh(referral)
         return {"referral_id": referral.external_id or str(referral.id), "status": referral.status, "department": department}
 
 

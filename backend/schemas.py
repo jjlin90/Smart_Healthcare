@@ -1,7 +1,7 @@
 from typing import Annotated, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class StaffLoginRequest(BaseModel):
@@ -12,6 +12,7 @@ class StaffLoginRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    role: Literal["doctor", "pharmacist", "medical_admin", "system_admin"] | None = None
 
 
 class ChatRequest(BaseModel):
@@ -20,7 +21,7 @@ class ChatRequest(BaseModel):
     patient_id: str = Field(min_length=1, max_length=64)
     message: str = Field(min_length=1, max_length=2000)
     conversation_id: str | None = Field(default=None, min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
-    approved_actions: list[Literal["save_patient_history", "save_medical_record", "generate_referral"]] = Field(default_factory=list, max_length=3)
+    approved_actions: list[Literal["save_patient_history", "save_medical_record"]] = Field(default_factory=list, max_length=2)
 
 
 class UserContext(BaseModel):
@@ -73,6 +74,26 @@ class RecordToolArguments(WriteToolArguments):
 class ReferralToolArguments(WriteToolArguments):
     department: str = Field(min_length=1, max_length=64)
     reason: str = Field(min_length=1, max_length=4000)
+
+
+class ReferralDraftRequest(ReferralToolArguments):
+    """Exact doctor-entered fields, separate from model-generated chat arguments."""
+    request_id: str = Field(min_length=8, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
+    confirmed: Literal[True]
+
+    @field_validator("department", "reason")
+    @classmethod
+    def nonblank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("目标科室和转诊原因不能为空")
+        return value
+
+    @field_validator("confirmed", mode="before")
+    @classmethod
+    def explicit_confirmation(cls, value):
+        if value is not True:
+            raise ValueError("须由医生明确确认本次参数")
+        return value
 
 
 def validate_write_arguments(name: str, arguments: dict) -> None:

@@ -25,10 +25,11 @@ st.set_page_config(
 
 def _init_state() -> None:
     if st.session_state.pop("reset_approvals", False):
-        for action in ("save_patient_history", "save_medical_record", "generate_referral"):
+        for action in ("save_patient_history", "save_medical_record"):
             st.session_state.pop(f"approve_{action}", None)
     defaults = {
         "token": None,
+        "staff_role": None,
         "messages": [],
         "conversation_id": None,
         "agent_trace": [],
@@ -37,6 +38,7 @@ def _init_state() -> None:
         "patient_id": None,
         "approved_actions": [],
         "request_id": None,
+        "referral_submissions": {},
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
@@ -133,6 +135,8 @@ def _logout() -> None:
     st.session_state.reset_approvals = True
     for key in ("token", "messages", "conversation_id", "agent_trace", "profile", "patients", "patient_id"):
         st.session_state[key] = None if key in {"token", "conversation_id", "profile", "patient_id"} else []
+    st.session_state.referral_submissions = {}
+    st.session_state.staff_role = None
     st.rerun()
 
 
@@ -194,6 +198,7 @@ def _render_login() -> None:
         try:
             result = _post("/api/auth/staff-login", payload)
             st.session_state.token = result["access_token"]
+            st.session_state.staff_role = result.get("role")
             st.session_state.messages = []
             st.session_state.patients = []
             st.session_state.patient_id = None
@@ -307,6 +312,68 @@ def _render_profile(profile: dict[str, Any] | None) -> None:
                 st.error(f"保存失败：{exc}")
 
 
+def _render_referral_draft() -> None:
+    """Independent doctor-entered write; never inferred from chat or advice."""
+    patient_id = st.session_state.patient_id
+    if not patient_id:
+        return
+    with st.expander("创建转诊草稿（仅医生）"):
+        st.caption("只创建待医生确认的草稿，不代表接收科室已接收患者。症状与科室建议不会自动触发此操作。")
+        if st.session_state.get("staff_role") != "doctor":
+            st.info("该操作仅对医生开放；如医生账号未显示操作表单，请重新登录刷新权限。")
+            return
+        submission = st.session_state.referral_submissions.get(patient_id)
+        if submission:
+            payload = submission["payload"]
+            st.write(f"已提交患者：{patient_id}；目标科室：{payload['department']}")
+            st.write(f"转诊原因：{payload['reason']}")
+            st.caption(f"操作请求标识：{payload['request_id']}")
+            if submission.get("result"):
+                st.success(f"草稿编号：{submission['result']['referral_id']}；仍需医生及医院流程确认。")
+                if st.button("新建另一份转诊草稿", key=f"new_referral_{patient_id}"):
+                    del st.session_state.referral_submissions[patient_id]
+                    st.rerun()
+            else:
+                st.warning("尚未确认完成。请先核对操作状态与医院结果，不要更换请求标识重复创建。")
+                if st.button("核对操作状态", key=f"referral_status_{patient_id}"):
+                    try:
+                        submission["operations"] = _get(f"/api/operations/{payload['request_id']}")
+                    except (httpx.HTTPError, RuntimeError) as exc:
+                        st.error(f"状态查询失败：{exc}")
+                rows = [row for row in submission.get("operations", []) if row.get("tool") == "generate_referral"]
+                for row in rows:
+                    st.write({"操作状态": row["status"]})
+                # Exact same request and parameters: completed reservations
+                # replay their result; missing reservations may start once.
+                retry_allowed = "operations" in submission and (not rows or all(row["status"] == "completed" for row in rows))
+                if retry_allowed and st.button("使用原参数取回结果或重试", key=f"retry_referral_{patient_id}"):
+                    try:
+                        submission["result"] = _post("/api/referral-drafts", payload)
+                        st.rerun()
+                    except (httpx.HTTPError, RuntimeError) as exc:
+                        st.error(f"尚未确认完成：{exc}")
+            return
+        with st.form(f"referral_form_{patient_id}", clear_on_submit=True):
+            st.write(f"当前患者：{patient_id}")
+            department = st.text_input("医生确认的目标科室", max_chars=64)
+            reason = st.text_area("医生确认的转诊原因", max_chars=4000)
+            confirmed = st.checkbox("我是责任医生，已核对当前患者、目标科室及转诊原因，确认创建本次草稿")
+            submitted = st.form_submit_button("确认并创建草稿")
+        if submitted:
+            if not confirmed or not department.strip() or not reason.strip():
+                st.warning("请完整填写科室和原因，并确认本次参数。")
+                return
+            payload = {"patient_id": patient_id, "department": department, "reason": reason,
+                       "confirmed": True, "request_id": uuid4().hex}
+            submission = {"payload": payload}
+            st.session_state.referral_submissions[patient_id] = submission
+            try:
+                submission["result"] = _post("/api/referral-drafts", payload)
+                st.rerun()
+            except (httpx.HTTPError, RuntimeError) as exc:
+                st.error(f"草稿尚未确认完成：{exc}")
+
+
 def _render_workspace() -> None:
     _render_sidebar()
     profile = _load_profile()
@@ -327,7 +394,7 @@ def _render_workspace() -> None:
         if st.session_state.messages and st.session_state.messages[-1].get("request_id"):
             with st.expander("反馈本轮院内任务分类"):
                 with st.form("clinical_intent_feedback"):
-                    expected = st.multiselect("本轮实际需要的工作", ["症状评估", "药品信息查询", "临床指南检索", "检验结果辅助解读", "院内分诊建议", "随访管理", "用药审核", "临床知识查询", "转诊协同", "检查报告辅助解读"])
+                    expected = st.multiselect("本轮实际需要的工作", ["症状评估", "药品信息查询", "临床指南检索", "检验结果辅助解读", "院内分诊建议", "随访管理", "用药审核", "临床知识查询", "转诊协同", "检查报告辅助解读"], format_func=lambda value: "转诊草稿辅助创建" if value == "转诊协同" else value)
                     comment = st.text_area("补充说明", max_chars=1000)
                     submitted = st.form_submit_button("提交复核反馈")
                 if submitted:
@@ -345,12 +412,13 @@ def _render_workspace() -> None:
             with st.expander("查看安全路由与工具执行记录"):
                 st.json(st.session_state.agent_trace)
         with st.expander("本次任务写操作确认"):
-            st.caption("按本次任务需要勾选。修改患者资料和创建转诊草稿仍会在服务端核对角色与患者授权。")
+            st.caption("聊天可批准病史或辅助材料保存。转诊草稿需在独立表单确认具体参数，不能通过聊天批准。")
             selections = []
-            for name, label in (("save_patient_history", "允许更新该患者病史"), ("save_medical_record", "允许另存本次辅助材料"), ("generate_referral", "允许创建待医生确认的转诊单")):
+            for name, label in (("save_patient_history", "允许更新该患者病史"), ("save_medical_record", "允许另存本次辅助材料")):
                 if st.checkbox(label, key=f"approve_{name}"):
                     selections.append(name)
             st.session_state.approved_actions = selections
+        _render_referral_draft()
         task_modes = {"自动判断": "auto", "新任务": "new", "补充原任务": "continue", "更正原任务": "modify"}
         selection = st.selectbox("本次院内任务", list(task_modes), help="更正时请完整描述新的工作目标；写动作需要重新勾选。")
         st.session_state.task_mode = task_modes[selection]

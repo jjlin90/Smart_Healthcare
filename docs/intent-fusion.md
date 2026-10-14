@@ -429,11 +429,14 @@ python scripts/verify_delivery_evidence.py --repository-documents
 | 2026-10-14 交付核验与链接转换修复 | 513 | 20 | 实际预检/CI 核验入口、共享简历交付边界、代码围栏与跨行代码的链接转换；20 项新增用例均在 test_delivery_evidence.py | artifacts/delivery_review_20261014/full_tests_loopback.log 及同名 .junit.xml |
 | 2026-10-14 记录器临时目录与中断保护 | 517 | 4 | 仓库外临时目录生命周期，以及子进程启动失败/中断时的留档与旧成功指针保护 | artifacts/recorder_followup_20261014/full_tests_verified.log 及同名 .junit.xml |
 | 2026-10-14 JUnit 与准备阶段异常保护 | 523 | 6 | 空、损坏、缺失 JUnit，结果后的元数据异常，临时目录准备失败及已有 JUnit 保护 | artifacts/junit_evidence_review_20261014/full_tests.log 及同名 .junit.xml |
+| 2026-10-14 独立转诊草稿职责拆分 | 550 | 27 | 专科与聊天仅提供临床建议；独立医生确认表单、参数摘要绑定、角色/权限、重放和未知结果保护；新增 5 项智能体、18 项权限与业务服务、4 项表单用例 | artifacts/medagent_upgrade_20261013/referral_roles_full_20261014.log 及同名 .junit.xml |
+| 2026-10-14 转诊复核修正与术语纠错 | 555 | 5 | 新增 2 项 A2A 专科越权拒绝、2 项 API 失败核对及 1 项 ReAct/React 术语区分；加强既有真实 MCP 异常断言，流程图返回路径与文档范围同步修正 | artifacts/referral_followup_20261014/full_tests_final.log 及同名 .junit.xml |
+| 2026-10-14 转诊审计与重路由拒绝回归补齐 | 558 | 3 | 新增 1 项转诊/审计事务失败回滚与未知状态阻断、2 项修正意图包含独立业务动作时的拒绝回归；加强既有审计内容及重放断言，图例区分专科循环与独立调用 | artifacts/referral_review_round79_20261014/full_tests.log 及同名 .junit.xml |
 
-因此，399 到 523 的净增为 94 + 20 + 4 + 6 = 124 项。已逐项比对后三阶段 JUnit：分别新增 20、4、6 项且没有删除用例。对应实现与用例见[任务契约](../tests/test_task_contracts.py)、[执行预算](../tests/test_task_budget.py)、[任务版本围栏](../tests/test_task_fence_requirements.py)、[交付核验](../tests/test_delivery_evidence.py)和[记录器保护](../tests/test_record_document_checks.py)。表中的 artifacts 路径是本机保留的历史证据，受 Git 忽略、不随克隆分发；后续验证需核对实际文件哈希及运行记录，不能把表中数字当作重新执行的结果。
+399 到 523 的净增为 94 + 20 + 4 + 6 = 124 项；转诊职责拆分和后续复核补齐后，523 + 27 + 5 + 3 = 558 项。已逐项比对 493→513→517→523 三次增量的 JUnit：分别新增 20、4、6 项且没有删除用例；523→550 新增 27 项且没有删除用例。本次另将旧转诊批准参数的测试改为当前聊天支持的临床记录写动作，该参数化用例替换不增加测试数量。对应实现与用例见[任务契约](../tests/test_task_contracts.py)、[执行预算](../tests/test_task_budget.py)、[任务版本围栏](../tests/test_task_fence_requirements.py)、[交付核验](../tests/test_delivery_evidence.py)和[记录器保护](../tests/test_record_document_checks.py)。表中的 artifacts 路径是本机保留的历史证据，受 Git 忽略、不随克隆分发；后续验证需核对实际文件哈希及运行记录，不能把表中数字当作重新执行的结果。
 
 517 项成功记录对应 full_tests_verified.log。同目录的 full_tests.log 是此前失败尝试：共执行 517 项，515 项通过、2 项失败，退出码为 1；该失败记录原样保留，不计入表中的完整测试成功记录。
 
 预检条目数与上述测试用例数分别统计。当前脚本全部检查通过时，快速模式 `python scripts/preflight_git.py --quick` 为 **19 项快速预检**，跳过 pytest 与 pip check；完整模式 `python scripts/preflight_git.py` 额外执行这两项，为 **21 项完整预检**。其中 pytest 通过只计一个预检条目，内部执行的测试用例数另报。
 
-19 项中的文档核验条目始终只计一项。未提供本机记录时，该条目只核验仓库问答、示例和链接，快速预检仍为 19 项，桌面交付未核验；本机默认交付记录存在或显式指定 `--delivery-pointer` 时，该条目还需核验本机交付。需要核验的记录失效或显式指定的入口缺失，会阻止通过。因此，19 项快速预检通过本身不能证明桌面交付一致，须查看该条目的实际范围及本机交付报告。19/21 描述对应版本的检查口径，是否通过及实际数量以该次日志为准。本次说明修订没有重新执行完整测试或完整预检。
+19 项中的文档核验条目始终只计一项。未提供本机记录时，该条目只核验仓库问答、示例和链接，快速预检仍为 19 项，桌面交付未核验；本机默认交付记录存在或显式指定 `--delivery-pointer` 时，该条目还需核验本机交付。需要核验的记录失效或显式指定的入口缺失，会阻止通过。因此，19 项快速预检通过本身不能证明桌面交付一致，须查看该条目的实际范围及本机交付报告。19/21 描述对应版本的检查口径，是否通过及实际数量以该次日志为准。前次仅补写阶段说明时未重跑完整测试；转诊与术语修复曾运行 555 项完整测试；后续审计与重路由拒绝回归补齐后，最终成功记录为表中的 558 项，完整预检是否通过仍以其独立日志为准。

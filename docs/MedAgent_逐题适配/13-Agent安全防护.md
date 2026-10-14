@@ -70,7 +70,7 @@ Prompt Injection(提示词注入) 是攻击者把恶意指令混进模型能读�
 
 原文位置：仓库根目录下的本地原件 `artifacts/medagent_upgrade_20261013/原始资料/13-Agent安全防护.txt` 第 47 行。当前同名 .md 是适配稿；本地原件不随克隆分发。
 
-**项目口述：** 病史更新、辅助材料保存和转诊草稿都需要院内角色、患者授权及本轮动作批准。工具层按员工＋请求标识＋工具建立唯一 operation_id(写操作标识)，同时核对参数摘要；同键同参数完成结果可重放，冲突拒绝，pending(待处理)/unknown(未知) 阻止重发。转诊只创建待医生确认的草稿，超时不自动重试。
+**项目口述：** 病史更新和辅助材料保存仍由聊天 approved_actions(本轮批准的写动作) 批准动作范围。转诊草稿移到独立 POST(提交请求) /api(应用程序接口)/referral(院内转诊)-drafts：医生填写患者、科室和原因并 confirmed=true(真) 后，业务服务签发仅含 generate_referral(生成院内转诊单) 的限时委托，绑定 confirmed_arguments_sha256(医生确认参数摘要)；MCP(模型上下文协议) 再核对服务身份、最终参数摘要、医生角色和患者授权。工具层按员工＋请求标识＋工具建立唯一 operation_id(写操作标识)；同键同参数完成结果可重放，冲突拒绝，pending(待处理)/unknown(未知) 阻止重发。聊天不能批准或创建转诊草稿，也不声称完成完整转诊协同。
 
 **针对本题的设计展开（原文原理，作为方案解释）：**
 
@@ -82,9 +82,9 @@ Prompt Injection(提示词注入) 是攻击者把恶意指令混进模型能读�
 
 5. 审计与撤销：记录来源、授权、执行结果和可撤销句柄；日志本身不得保存明文密钥和敏感正文。
 
-**在 MedAgent(医疗智能体项目) 中怎么补全：** 批准动作范围不等于对模型最终每个参数都完成确认；参数级审批仍需预览和有期限的规范参数摘要绑定。独立档案表单已实现 expected_revision(预期状态修订号) 条件更新、409 冲突拒绝与修改字段名审计，不能套用 MCP(模型上下文协议) 的操作状态表。外部 HIS(医院信息系统) 的一致性仍需对账、补偿契约和人工核对。
+**在 MedAgent(医疗智能体项目) 中怎么补全：** 参数级确认目前只覆盖独立转诊草稿动作；聊天病史和辅助材料保存仍是动作级确认，不能说所有写入都已逐参数审批。独立档案表单已有 expected_revision(预期状态修订号) 条件更新及409冲突拒绝。转诊结果未知先查看操作状态并核对医院，不更换请求标识盲目重发；外部 HIS(医院信息系统) 的一致性仍需医院契约和人工核对。
 
-**代码依据：** [backend/mcp_security.py](../../backend/mcp_security.py)、[backend/schemas.py](../../backend/schemas.py)、[backend/mcp_tools.py](../../backend/mcp_tools.py)
+**代码依据：** [backend/referral_service.py](../../backend/referral_service.py)、[backend/mcp_security.py](../../backend/mcp_security.py)、[backend/main.py](../../backend/main.py)、[backend/schemas.py](../../backend/schemas.py)
 
 ## q-005
 
@@ -92,11 +92,11 @@ Prompt Injection(提示词注入) 是攻击者把恶意指令混进模型能读�
 
 原文位置：仓库根目录下的本地原件 `artifacts/medagent_upgrade_20261013/原始资料/13-Agent安全防护.txt` 第 61 行。当前同名 .md 是适配稿；本地原件不随克隆分发。
 
-**项目口述：** 病史更新、辅助材料保存和转诊草稿都需要院内角色、患者授权及本轮动作批准。工具层按员工＋请求标识＋工具建立唯一 operation_id(写操作标识)，同时核对参数摘要；同键同参数完成结果可重放，冲突拒绝，pending(待处理)/unknown(未知) 阻止重发。转诊只创建待医生确认的草稿，超时不自动重试。
+**项目口述：** 病史更新和辅助材料保存仍由聊天 approved_actions(本轮批准的写动作) 批准动作范围。转诊草稿移到独立 POST(提交请求) /api(应用程序接口)/referral(院内转诊)-drafts：医生填写患者、科室和原因并 confirmed=true(真) 后，业务服务签发仅含 generate_referral(生成院内转诊单) 的限时委托，绑定 confirmed_arguments_sha256(医生确认参数摘要)；MCP(模型上下文协议) 再核对服务身份、最终参数摘要、医生角色和患者授权。工具层按员工＋请求标识＋工具建立唯一 operation_id(写操作标识)；同键同参数完成结果可重放，冲突拒绝，pending(待处理)/unknown(未知) 阻止重发。聊天不能批准或创建转诊草稿，也不声称完成完整转诊协同。
 
-**在 MedAgent(医疗智能体项目) 中怎么补全：** 批准动作范围不等于对模型最终每个参数都完成确认；参数级审批仍需预览和有期限的规范参数摘要绑定。独立档案表单已实现 expected_revision(预期状态修订号) 条件更新、409 冲突拒绝与修改字段名审计，不能套用 MCP(模型上下文协议) 的操作状态表。外部 HIS(医院信息系统) 的一致性仍需对账、补偿契约和人工核对。
+**在 MedAgent(医疗智能体项目) 中怎么补全：** 参数级确认目前只覆盖独立转诊草稿动作；聊天病史和辅助材料保存仍是动作级确认，不能说所有写入都已逐参数审批。独立档案表单已有 expected_revision(预期状态修订号) 条件更新及409冲突拒绝。转诊结果未知先查看操作状态并核对医院，不更换请求标识盲目重发；外部 HIS(医院信息系统) 的一致性仍需医院契约和人工核对。
 
-**代码依据：** [backend/mcp_security.py](../../backend/mcp_security.py)、[backend/schemas.py](../../backend/schemas.py)、[backend/mcp_tools.py](../../backend/mcp_tools.py)
+**代码依据：** [backend/referral_service.py](../../backend/referral_service.py)、[backend/mcp_security.py](../../backend/mcp_security.py)、[backend/main.py](../../backend/main.py)、[backend/schemas.py](../../backend/schemas.py)
 
 ## q-006
 
@@ -104,15 +104,15 @@ Prompt Injection(提示词注入) 是攻击者把恶意指令混进模型能读�
 
 原文位置：仓库根目录下的本地原件 `artifacts/medagent_upgrade_20261013/原始资料/13-Agent安全防护.txt` 第 65 行。当前同名 .md 是适配稿；本地原件不随克隆分发。
 
-**项目口述：** 病史更新、辅助材料保存和转诊草稿都需要院内角色、患者授权及本轮动作批准。工具层按员工＋请求标识＋工具建立唯一 operation_id(写操作标识)，同时核对参数摘要；同键同参数完成结果可重放，冲突拒绝，pending(待处理)/unknown(未知) 阻止重发。转诊只创建待医生确认的草稿，超时不自动重试。
+**项目口述：** 病史更新和辅助材料保存仍由聊天 approved_actions(本轮批准的写动作) 批准动作范围。转诊草稿移到独立 POST(提交请求) /api(应用程序接口)/referral(院内转诊)-drafts：医生填写患者、科室和原因并 confirmed=true(真) 后，业务服务签发仅含 generate_referral(生成院内转诊单) 的限时委托，绑定 confirmed_arguments_sha256(医生确认参数摘要)；MCP(模型上下文协议) 再核对服务身份、最终参数摘要、医生角色和患者授权。工具层按员工＋请求标识＋工具建立唯一 operation_id(写操作标识)；同键同参数完成结果可重放，冲突拒绝，pending(待处理)/unknown(未知) 阻止重发。聊天不能批准或创建转诊草稿，也不声称完成完整转诊协同。
 
 **针对本题的设计展开（原文原理，作为方案解释）：**
 
 区别在观察角度：Prompt Injection(提示词注入) 关注不可信指令进入模型的技术路径；社会工程关注操纵信任和决策的策略。一次攻击可以同时属于两者。更有用的分析是 source(来源)→sink(执行落点)：谁能影响内容，内容是否能接触敏感数据，最终能否触发外发或写操作。[OpenAI(人工智能服务提供商)：将 Prompt Injection(提示词注入) 视作社会工程问题](https://openai.com/index/designing-agents-to-resist-prompt-injection/)
 
-**在 MedAgent(医疗智能体项目) 中怎么补全：** 批准动作范围不等于对模型最终每个参数都完成确认；参数级审批仍需预览和有期限的规范参数摘要绑定。独立档案表单已实现 expected_revision(预期状态修订号) 条件更新、409 冲突拒绝与修改字段名审计，不能套用 MCP(模型上下文协议) 的操作状态表。外部 HIS(医院信息系统) 的一致性仍需对账、补偿契约和人工核对。
+**在 MedAgent(医疗智能体项目) 中怎么补全：** 参数级确认目前只覆盖独立转诊草稿动作；聊天病史和辅助材料保存仍是动作级确认，不能说所有写入都已逐参数审批。独立档案表单已有 expected_revision(预期状态修订号) 条件更新及409冲突拒绝。转诊结果未知先查看操作状态并核对医院，不更换请求标识盲目重发；外部 HIS(医院信息系统) 的一致性仍需医院契约和人工核对。
 
-**代码依据：** [backend/mcp_security.py](../../backend/mcp_security.py)、[backend/schemas.py](../../backend/schemas.py)、[backend/mcp_tools.py](../../backend/mcp_tools.py)
+**代码依据：** [backend/referral_service.py](../../backend/referral_service.py)、[backend/mcp_security.py](../../backend/mcp_security.py)、[backend/main.py](../../backend/main.py)、[backend/schemas.py](../../backend/schemas.py)
 
 ## q-007
 

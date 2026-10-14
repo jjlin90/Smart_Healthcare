@@ -60,6 +60,18 @@ def test_bilingual_annotations_keep_code_links_and_existing_glosses():
     assert annotate_markdown(result) == result
 
 
+def test_react_reasoning_gloss_is_distinct_from_react_ui_and_keeps_code():
+    from scripts.medagent_terminology import annotate_markdown
+    source = ('ReAct 与 React；`ReAct`。ReAct(前端组件框架)。\n'
+              '```text\nReAct(前端组件框架) React\n```\n')
+    result = annotate_markdown(source)
+    assert 'ReAct(推理与行动交替) 与 React(前端组件框架)' in result
+    assert '`ReAct`(推理与行动交替)' in result
+    assert '。ReAct(推理与行动交替)。' in result
+    assert '```text\nReAct(前端组件框架) React\n```' in result
+    assert annotate_markdown(result) == result
+
+
 def test_original_capture_rejects_replacement_and_does_not_touch_existing_file(tmp_path, monkeypatch):
     import pytest
     from scripts import adapt_medagent_interviews as adapter

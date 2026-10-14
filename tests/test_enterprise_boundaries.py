@@ -1,6 +1,8 @@
 """Security and failure regressions using isolated records and protocol boundaries."""
 
 import asyncio
+import hashlib
+import json
 import socket
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
@@ -48,9 +50,14 @@ async def records(monkeypatch):
         await engine.dispose()
 
 
-def token_for(tools, approved=(), patient="patient", audience="medagent-mcp", request_id="request-123"):
-    with delegated_context({"staff_id": "staff", "patient_id": patient, "request_id": request_id, "approved_actions": list(approved)}):
-        return issue_delegation(audience, "SymptomAgent", tools)
+def token_for(tools, approved=(), patient="patient", audience="medagent-mcp", request_id="request-123", arguments=None):
+    agent = "ReferralDraftService" if tools == ["generate_referral"] else "SymptomAgent"
+    context = {"staff_id": "staff", "patient_id": patient, "request_id": request_id, "approved_actions": list(approved)}
+    if agent == "ReferralDraftService":
+        args = arguments if arguments is not None else {"patient_id": patient, "department": "心内科", "reason": "专科评估"}
+        context["confirmed_arguments_sha256"] = hashlib.sha256(json.dumps(args, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+    with delegated_context(context):
+        return issue_delegation(audience, agent, tools)
 
 
 @pytest.fixture
@@ -313,6 +320,172 @@ async def test_unknown_write_result_is_not_executed_again(records, monkeypatch):
         assert (await db.scalar(select(ToolExecution))).status == "unknown"
 
 
+@pytest.mark.parametrize("case,expected", [
+    ("doctor", 201), ("pharmacist", 403), ("medical_admin", 403), ("system_admin", 403),
+    ("revoked", 403), ("disabled", 401), ("anonymous", 401),
+    ("unconfirmed", 422), ("numeric_confirmation", 422), ("blank_reason", 422),
+    ("blank_department", 422), ("extra_parameter", 422), ("wrong_patient", 403),
+])
+async def test_independent_referral_api_requires_doctor_and_exact_confirmation(records, profile_api, monkeypatch, case, expected):
+    action = AsyncMock(return_value={"referral_id": "ref-1", "status": "待医生确认", "department": "心内科"})
+    monkeypatch.setattr("backend.main.create_referral_draft", action)
+    payload = {"patient_id": "patient", "request_id": "referral-request-123", "department": "心内科", "reason": "专科评估", "confirmed": True}
+    async with records() as db:
+        user = await db.scalar(select(User))
+        if case in {"pharmacist", "medical_admin", "system_admin"}:
+            user.role = case
+        if case == "disabled":
+            user.active = 0
+        if case == "revoked":
+            await db.execute(delete(PatientAccess))
+        await db.commit()
+    if case == "anonymous":
+        profile_api.headers.pop("Authorization")
+    if case == "unconfirmed":
+        payload["confirmed"] = False
+    if case == "numeric_confirmation":
+        payload["confirmed"] = 1
+    if case == "blank_reason":
+        payload["reason"] = " "
+    if case == "blank_department":
+        payload["department"] = " "
+    if case == "extra_parameter":
+        payload["target_agent"] = "SymptomAgent"
+    if case == "wrong_patient":
+        payload["patient_id"] = "another-patient"
+    response = await profile_api.post("/api/referral-drafts", json=payload)
+    assert response.status_code == expected
+    if expected == 201:
+        assert action.await_args.args[0].model_dump() == payload
+        assert response.json()["referral_id"] == "ref-1"
+    else:
+        action.assert_not_awaited()
+
+
+@pytest.mark.parametrize("changed", ["agent", "department", "reason"])
+async def test_referral_tool_rejects_specialist_or_changed_confirmed_arguments(records, monkeypatch, changed):
+    args = {"patient_id": "patient", "department": "心内科", "reason": "专科评估"}
+    token = token_for(["generate_referral"], ["generate_referral"], arguments=args)
+    if changed == "agent":
+        with delegated_context({"staff_id": "staff", "patient_id": "patient", "request_id": "specialist-referral-123",
+                                "approved_actions": ["generate_referral"],
+                                "confirmed_arguments_sha256": hashlib.sha256(json.dumps(args, sort_keys=True, ensure_ascii=False).encode()).hexdigest()}):
+            token = issue_delegation("medagent-mcp", "SymptomAgent", ["generate_referral"])
+    else:
+        args[changed] = "changed after confirmation"
+    await token_context(monkeypatch, token)
+    next_call = AsyncMock()
+    with pytest.raises(ToolError, match="工具授权失败"):
+        await mcp_security.PatientAuthorization().on_call_tool(SimpleNamespace(message=SimpleNamespace(name="generate_referral", arguments=args)), next_call)
+    next_call.assert_not_awaited()
+    async with records() as db:
+        assert await db.scalar(select(ToolExecution)) is None
+
+
+@pytest.mark.parametrize("unknown", [False, True])
+async def test_referral_business_service_uses_scoped_mcp_and_preserves_write_reservation(records, monkeypatch, unknown):
+    from backend import referral_service, mcp_tools
+    from backend.schemas import ReferralDraftRequest
+    from backend.models import Referral, AuditLog
+    monkeypatch.setattr(mcp_tools, "SessionLocal", records)
+    monkeypatch.setattr(referral_service, "conversation_memory", ConversationMemory(use_redis=False))
+    hospital = AsyncMock(side_effect=TimeoutError("unknown write") if unknown else None,
+                         return_value={"referral_id": "hospital-ref-1", "status": "draft"})
+    monkeypatch.setattr(mcp_tools, "_hospital_post", hospital)
+    tokens = []
+    @asynccontextmanager
+    async def client(url, auth, timeout):
+        claims = verify_delegation(auth, "medagent-mcp")
+        tokens.append(claims)
+        assert claims["agent"] == "ReferralDraftService" and claims["tools"] == ["generate_referral"]
+        assert all(claims.get(key) for key in ("task_id", "conversation_key", "step_id", "deadline_at"))
+        await token_context(monkeypatch, auth)
+        async with Client(mcp_tools.mcp) as connection:
+            yield connection
+    monkeypatch.setattr(referral_service, "Client", client)
+    request = ReferralDraftRequest(patient_id="patient", request_id="business-referral-123", department="心内科", reason="专科评估", confirmed=True)
+    user = UserContext(user_id="staff", username="doctor", role="doctor")
+    if unknown:
+        for _ in range(2):
+            with pytest.raises(RuntimeError, match="核对操作状态与医院结果") as failure:
+                await referral_service.create_referral_draft(request, user)
+            assert isinstance(failure.value.__cause__, ToolError)
+    else:
+        first = await referral_service.create_referral_draft(request, user)
+        second = await referral_service.create_referral_draft(request, user)
+        assert first == second and first["referral_id"] == "hospital-ref-1"
+        changed = request.model_copy(update={"department": "呼吸科"})
+        with pytest.raises(RuntimeError, match="核对操作状态与医院结果") as failure:
+            await referral_service.create_referral_draft(changed, user)
+        assert isinstance(failure.value.__cause__, ToolError)
+        assert "参数冲突" in str(failure.value.__cause__)
+    assert hospital.await_count == 1
+    async with records() as db:
+        assert len((await db.scalars(select(Referral))).all()) == (0 if unknown else 1)
+        assert (await db.scalar(select(ToolExecution))).status == ("unknown" if unknown else "completed")
+        audits = (await db.scalars(select(AuditLog).where(AuditLog.action == "referral_draft_created"))).all()
+        assert len(audits) == (0 if unknown else 1)
+        if not unknown:
+            assert audits[0].patient_id == "patient"
+            assert json.loads(audits[0].detail) == {
+                "staff_id": "staff", "request_id": request.request_id,
+                "referral_id": "hospital-ref-1", "department": request.department,
+                "confirmed_arguments_sha256": tokens[0]["confirmed_arguments_sha256"],
+                "status": "待医生确认",
+            }
+    for claims in tokens:
+        checkpoint = await referral_service.conversation_memory.get_checkpoint("patient", claims["conversation_key"])
+        assert checkpoint["phase"] == "closed"
+
+
+async def test_referral_commit_failure_rolls_back_draft_and_audit_without_replaying_hospital(records, monkeypatch):
+    from backend import mcp_tools
+    from backend.models import Referral, AuditLog
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from sqlalchemy.exc import SQLAlchemyError
+    monkeypatch.setattr(mcp_tools, "SessionLocal", records)
+    hospital = AsyncMock(return_value={"referral_id": "hospital-ref-rollback", "status": "draft"})
+    monkeypatch.setattr(mcp_tools, "_hospital_post", hospital)
+    original_commit = AsyncSession.commit
+    failed_transactions = []
+    async def fail_referral_commit(db):
+        if any(isinstance(row, AuditLog) and row.action == "referral_draft_created" for row in db.new):
+            # Flush both rows before failing: rollback must undo real writes.
+            assert any(isinstance(row, Referral) for row in db.new)
+            await db.flush()
+            failed_transactions.append(True)
+            raise SQLAlchemyError("injected referral commit failure")
+        await original_commit(db)
+    monkeypatch.setattr(AsyncSession, "commit", fail_referral_commit)
+    arguments = {"patient_id": "patient", "department": "心内科", "reason": "专科评估"}
+    await token_context(monkeypatch, token_for(["generate_referral"], ["generate_referral"],
+                                               request_id="referral-rollback-123", arguments=arguments))
+    async with Client(mcp_tools.mcp) as client:
+        with pytest.raises(ToolError):
+            await client.call_tool("generate_referral", arguments)
+        with pytest.raises(ToolError, match="结果待核对"):
+            await client.call_tool("generate_referral", arguments)
+    assert failed_transactions == [True]
+    hospital.assert_awaited_once()
+    async with records() as db:
+        assert await db.scalar(select(Referral)) is None
+        assert await db.scalar(select(AuditLog).where(AuditLog.action == "referral_draft_created")) is None
+        assert (await db.scalar(select(ToolExecution))).status == "unknown"
+
+
+@pytest.mark.parametrize("failure", [TimeoutError("lost hospital response"), RuntimeError("private upstream payload")])
+async def test_referral_api_failure_requires_reconciliation(profile_api, monkeypatch, failure):
+    action = AsyncMock(side_effect=failure)
+    monkeypatch.setattr("backend.main.create_referral_draft", action)
+    payload = {"patient_id": "patient", "request_id": "referral-failed-123", "department": "心内科", "reason": "专科评估", "confirmed": True}
+    response = await profile_api.post("/api/referral-drafts", json=payload)
+    assert response.status_code == 502
+    assert "核对操作状态与医院结果" in response.json()["detail"]
+    assert "勿直接新建或重复提交" in response.json()["detail"]
+    assert str(failure) not in response.text
+    action.assert_awaited_once()
+
+
 async def test_turn_lock_and_atomic_question_answer_memory():
     memory = ConversationMemory(use_redis=False)
     async with memory.turn("patient", "staff/conversation"):
@@ -332,7 +505,7 @@ async def test_turn_lock_and_atomic_question_answer_memory():
     ("save_medical_record", {"record_data": {}}, {"record_data": {"response": "临床辅助记录"}}),
 ])
 async def test_invalid_write_does_not_reserve_and_can_be_corrected(records, monkeypatch, name, bad, good):
-    await token_context(monkeypatch, token_for([name], [name]))
+    await token_context(monkeypatch, token_for([name], [name], arguments={"patient_id": "patient", **bad}))
     context = SimpleNamespace(message=SimpleNamespace(name=name, arguments={"patient_id": "patient", **bad}))
     call = AsyncMock(return_value=ToolResult(content="saved"))
     middleware = mcp_security.PatientAuthorization()
@@ -342,6 +515,7 @@ async def test_invalid_write_does_not_reserve_and_can_be_corrected(records, monk
     async with records() as db:
         assert await db.scalar(select(ToolExecution)) is None
     context.message.arguments = {"patient_id": "patient", **good}
+    await token_context(monkeypatch, token_for([name], [name], arguments=context.message.arguments))
     await middleware.on_call_tool(context, call)
     assert call.await_count == 1
     async with records() as db:

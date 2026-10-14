@@ -25,7 +25,8 @@ from backend.database import SessionLocal, get_db, init_db, engine
 from backend.memory import conversation_memory
 from backend.models import AuditLog, Consultation, PatientAccess, PatientProfile, User, ToolExecution
 from backend.observability import HTTP_LATENCY, HTTP_REQUESTS
-from backend.schemas import ChatRequest, ClinicalFeedback, ProfileUpdate, StaffLoginRequest, TokenResponse, UserContext
+from backend.schemas import ChatRequest, ClinicalFeedback, ProfileUpdate, ReferralDraftRequest, StaffLoginRequest, TokenResponse, UserContext
+from backend.referral_service import create_referral_draft
 from backend.access import active_staff, patient_ids, require_patient, require_write_role
 from backend.service_auth import delegated_context, request_context
 from backend.rate_limit import login_limiter
@@ -229,7 +230,7 @@ async def staff_login(request: StaffLoginRequest, http_request: Request, db: Asy
         user_id=user.user_id,
         role=user.role,
     )
-    return TokenResponse(access_token=create_token(context))
+    return TokenResponse(access_token=create_token(context), role=context.role)
 
 
 def parse_list(raw: str) -> list[str]:
@@ -514,6 +515,19 @@ async def chat_stream(
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@app.post("/api/referral-drafts", status_code=201)
+async def referral_draft(request: ReferralDraftRequest, user: UserContext = Depends(get_current_user),
+                         db: AsyncSession = Depends(get_db)) -> dict:
+    current_user = await active_staff(db, user.user_id)
+    await require_profile(db, current_user, request.patient_id)
+    require_write_role(current_user, "generate_referral")
+    try:
+        return await create_referral_draft(request, current_user)
+    except Exception as exc:
+        _log_stream_failure("referral_draft", request.request_id, exc)
+        raise HTTPException(status_code=502, detail="转诊草稿尚未确认完成，请使用原请求标识核对操作状态与医院结果，勿直接新建或重复提交。") from exc
 
 
 @app.get("/api/operations/{request_id}")

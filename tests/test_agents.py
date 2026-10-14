@@ -57,8 +57,64 @@ def test_a2a_agent_card_exposes_only_specialist_allowlist():
         "get_disease_info",
         "load_patient_history",
         "save_patient_history",
-        "generate_referral",
     }
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tools", [["generate_referral"], ["load_patient_history", "generate_referral"]])
+async def test_a2a_specialist_rejects_referral_scope_before_execution(monkeypatch, tools):
+    from unittest.mock import AsyncMock
+    server = MedicalA2AServer("SymptomAgent", "症状专科", "http://127.0.0.1:8011")
+    execution = AsyncMock()
+    monkeypatch.setattr(server.runtime, "run", execution)
+    with pytest.raises(ValueError, match="outside its responsibility"):
+        await server.execute({"task": "创建转诊草稿", "patient_id": "p"},
+                             {"agent": "SymptomAgent", "patient_id": "p", "tools": tools})
+    execution.assert_not_awaited()
+
+
+def test_chat_cannot_approve_referral_and_planner_cannot_route_it_to_specialists():
+    from backend.schemas import ChatRequest
+    with pytest.raises(ValueError):
+        ChatRequest(patient_id="p", message="创建转诊草稿", approved_actions=["generate_referral"])
+    with pytest.raises(ValueError, match="业务写动作"):
+        Planner._required_agents(IntentDecision(intents=["转诊协同"], complex_task=True, reason="test"))
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("streaming", [False, True])
+@pytest.mark.parametrize("clinical", [False, True])
+async def test_referral_chat_separates_guidance_from_clinical_specialist(monkeypatch, streaming, clinical):
+    from unittest.mock import AsyncMock
+    from backend.agents import SafetyGuard
+    from backend.safety import SafetyDecision
+    monkeypatch.setattr(SafetyGuard, "assess", AsyncMock(return_value=SafetyDecision(risk_level="no_signal", source="rule")))
+    monkeypatch.setattr(DomainGuard, "assess", AsyncMock(return_value=ScopeDecision(scope="medical", reason="test", source="rule")))
+    monkeypatch.setattr(IntentClassifier, "classify", AsyncMock(return_value=IntentDecision(intents=(["症状评估"] if clinical else []) + ["转诊协同"], complex_task=True, reason="test")))
+    coordinator = MedicalCoordinator()
+    call = AsyncMock(return_value={"agent": "SymptomAgent", "answer": "症状辅助评估",
+                                  "trace": [{"tool": "analyze_symptoms", "status": "completed"}],
+                                  "observations": [{"tool": "analyze_symptoms", "content": {"assessment": "example"}, "truncated": False}]})
+    monkeypatch.setattr(coordinator, "_call_a2a", call)
+    async def synthesize(self, *args):
+        yield "症状辅助评估"
+    monkeypatch.setattr(Planner, "synthesize_stream", synthesize)
+    message = "持续发热3天，请评估症状并创建转诊草稿" if clinical else "创建转诊草稿"
+    if streaming:
+        events = [item async for item in coordinator.stream_native(message, "p", {}, [])]
+        if not clinical:
+            assert next(data for event, data in events if event == "done")["workflow_status"] == "awaiting_doctor_confirmation"
+        assert any(event == "card" for event, _ in events)
+        assert "尚未创建" in ''.join(data['text'] for event, data in events if event == 'delta')
+    else:
+        result = await coordinator.run(message, "p", {}, [])
+        assert result.agent == ("SymptomAgent" if clinical else "ReferralDraftService")
+        assert "尚未创建" in result.answer
+    if clinical:
+        call.assert_awaited_once()
+        assert call.await_args.args[0] == "SymptomAgent"
+    else:
+        call.assert_not_awaited()
 
 
 def test_deidentification_removes_direct_identifiers():
