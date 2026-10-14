@@ -255,7 +255,7 @@ README 安装主流程、本地启动和 GitHub 上传前检查均显式安装 r
 | 仓库记录器快速预检 | 2026-10-11 使用 scripts/record_document_checks.py，保存可复现入口及输入哈希 | artifacts/evidence_validation_review_20261010/post_commit_review/quick_recorder_20261011.log |
 | 仓库记录器仓库与桌面链接检查 | 2026-10-11 使用同一仓库脚本，文档哈希与检查器源码哈希分别记录 | artifacts/evidence_validation_review_20261010/post_commit_review/document_links_recorder_20261011.json |
 
-**可复现的记录入口。** 仓库提供 [record_document_checks.py](../scripts/record_document_checks.py)，使用标准库执行快速预检、本地文档链接检查或 desktop-snapshot 桌面字节采集，并保存元数据。快速模式实际调用 preflight_git.py --quick；links 模式默认检查仓库 Markdown，可显式指定 --desktop 追加两份桌面主文档及其项目子目录。链接模式的 input_sha256 只包含被检文档，检查器源码另存 checker_source_sha256；快速模式的 input_sha256 对应仓库候选工作区文件。脚本记录运行前后 HEAD 及输入哈希；输入变化、检查失败或输出文件已存在时返回非零，不覆盖旧证据。输出必须是被忽略的 artifacts/ 内的新文件；父目录需先创建。元数据属于工作区运行快照，不证明检查时工作区等于 HEAD，也不改变 preflight_git.py、提交钩子及 CI 的默认输出。
+**可复现的记录入口。** 仓库提供 [record_document_checks.py](../scripts/record_document_checks.py)，使用标准库执行快速预检、本地文档链接检查、代码回归或 desktop-snapshot(桌面字节采集)，并保存元数据。快速模式实际调用 preflight_git.py --quick；links(链接检查) 模式默认检查仓库 Markdown(轻量文档标记格式)，显式指定 --desktop(桌面目录) 会追加话术、理解指南、工程对照三份主文档及项目子目录。链接模式的 input_sha256(输入哈希清单) 只包含被检文档，检查器源码另存 checker_source_sha256(检查器代码哈希)；快速模式的输入哈希对应仓库候选工作区文件。脚本记录运行前后 HEAD(当前提交指针) 及输入哈希；输入变化、检查失败或输出文件已存在时返回非零，不覆盖旧证据。输出必须是被忽略的 artifacts/ 内的新文件；父目录需先创建。元数据属于工作区运行快照，不证明检查时工作区等于当前提交，也不改变预检、提交钩子及 CI(持续集成) 的默认输出。
 
 ```powershell
 # 首次运行使用新文件名；再次执行时改用其他名称。
@@ -265,7 +265,7 @@ python scripts/record_document_checks.py --kind links --desktop "$env:USERPROFIL
 
 初次记录器修订未执行完整 pytest；该阶段的快速预检和链接报告只证明各自记录的检查范围。2026-10-11 后续补齐自动回归后重新执行完整预检，最近一次完整验证的数量和日期见 README；原始日志按阶段保留。
 
-**记录器自动回归。** [tests/test_record_document_checks.py](../tests/test_record_document_checks.py) 最初包含 13 项测试，后续补充 7 项桌面采集回归，当前共 20 项；使用临时 Git 仓库及真实子进程，覆盖成功元数据、子进程非零退出、文档/候选集合/检查器源码/HEAD 在执行中变化、已有输出/仓库外输出/未忽略输出/缺失父目录、断链与锚点错误、文档及检查器哈希分开计数、桌面文档范围和必需交付路径。preflight_git.py 的必需路径清单包含记录器及测试文件，防止漏交付；新增桌面采集测试覆盖当前目标读取、保留既有桌面内容、基线重复/范围错误/文件缺失、采集期间变化、已有目录保护及 CLI 必需输入。完整预检和 CI 的 pytest 自动收集这些测试，quick 不执行 pytest。
+**记录器自动回归。** [tests/test_record_document_checks.py](../tests/test_record_document_checks.py) 最初包含 13 项测试，2026-10-11 补充 7 项桌面采集回归后当时共 20 项；后续又补充代码回归记录及默认桌面范围检查，当前数量由测试收集确定。使用临时 Git 仓库及真实子进程，覆盖成功元数据、子进程非零退出、文档/候选集合/检查器源码/HEAD 在执行中变化、已有输出/仓库外输出/未忽略输出/缺失父目录、断链与锚点错误、文档及检查器哈希分开计数、桌面文档范围和必需交付路径。preflight_git.py 的必需路径清单包含记录器及测试文件，防止漏交付；桌面采集测试覆盖当前目标读取、保留既有桌面内容、基线重复/范围错误/文件缺失、采集期间变化、已有目录保护及 CLI(命令行接口) 必需输入。完整预检和 CI(持续集成) 的 pytest(测试框架) 自动收集这些测试，quick(快速检查) 不执行测试。
 
 前次报告中的 6 个隔离检查是记录器的手工验证（成功、旧输出保护、子进程失败、输入变化、断链、未忽略输出拒绝）；这些检查当时没有纳入 pytest。它们与历史 anchor_drift.json 的 6 个 Docker/CI 安装锚点场景分别记录，不将后者计为记录器回归。
 
@@ -318,13 +318,13 @@ python scripts/record_document_checks.py --kind desktop-snapshot --receipt artif
 
 当前 PDF 渲染可按 desktop_manifest.json 中后缀为 .pdf 的 source 定位输入，使用 Poppler 执行 pdftoppm -r 100 -png；生成的 current_pdf-1.png、current_pdf-2.png 和 pdf_render.json 记录该输入哈希、命令和检查时间，当前两页逐页进行视觉检查。本机需要安装 Poppler 才能复现渲染；渲染图不进入 Git，不计入自动化测试。
 
-提交核对历史：evidence_summary.json 中的 e1304e2 对应改写前提交的核对时刻；evidence_summary_after_commit_d97d3a5.json 对应改写前 HEAD 为 d97d3a5 时的核对快照。2026-10-11 隐私历史改写后，旧 SHA 通常无法在当前克隆解析，文件名及 head/head_after 字段仍是原核对时刻的标识，不代表当前可解析提交。脱敏的完整旧新 SHA 对应表随仓库保存在 [git-history-rewrite-map.json](git-history-rewrite-map.json)：e1304e2 对应 7dc37d2，d97d3a5 对应 772ff62；映射只解释身份对应，不证明两个提交的全部历史字节相同。原始报告按各自时间保留，不批量改写它们的 HEAD 或重命名旧文件，否则会改变历史证据。旧原始提交只能在仓库外的私有 bundle 恢复副本中核对，不能把旧历史重新合并或推送到公开仓库。后者读取已记录的测试结果并检查当时桌面目标，不表示重新执行全量测试，也不证明日志来自该提交。核对桌面后续版本时执行下方使用新证据目录的命令，它会输出本次核对时的 HEAD 和结果；提交及推送状态始终以核对当时的 git status、Git 引用和推送记录为准。
+提交核对历史：evidence_summary.json 中的 e1304e2 对应改写前提交的核对时刻；evidence_summary_after_commit_d97d3a5.json 对应改写前 HEAD 为 d97d3a5 时的核对快照。2026-10-11 隐私历史改写后，旧 SHA 通常无法在当前克隆解析，文件名及 head/head_after 字段仍是原核对时刻的标识，不代表当前可解析提交。脱敏的完整旧新 SHA 对应表随仓库保存在 [git-history-rewrite-map.json](git-history-rewrite-map.json)：e1304e2 对应 7dc37d2，d97d3a5 对应 772ff62；映射只解释身份对应，不证明两个提交的全部历史字节相同。原始报告按各自时间保留，不批量改写它们的 HEAD 或重命名旧文件，否则会改变历史证据。旧原始提交只能在仓库外的私有 bundle 恢复副本中核对，不能把旧历史重新合并或推送到公开仓库。后者读取已记录的测试结果并检查当时桌面目标，不表示重新执行全量测试，也不证明日志来自该提交。下方旧证据目录命令仅用于历史格式；桌面目标变化后应失败，不能作为当前交付命令。当前交付入口见本节后续 2026-10-13 说明。
 
 **证据汇总工具。** 仓库提供 scripts/verify_delivery_evidence.py；它从完整/快速预检日志读取通过数量，校验唯一的 pytest/pip check 成功记录及两种预检的静态检查结果一致，从链接报告与桌面收据读取文件数，并核对桌面目标的当前字节。desktop_manifest.json 为必需输入：每个声明的同步源文件须存在于本轮证据目录内，先比较源/目标字节，再校验清单/收据哈希，正文不同时明确报告字节不一致，避免该分支被前置哈希检查遮住。两份桌面主文档还直接与当前仓库正文比较，仅将文档链接按桌面映射转换；即使改写正文并同步改写收据和投影文件，也不能绕过正文校验。
 
 三种核对范围分别记录：latest_desktop_receipt.json 核对全部 11 个目标的当前哈希；desktop_capture_repro_20261011/desktop_manifest.json 用于核对其中 4 个采集源/目标（两份主文档及简历 HTML/PDF），汇总输出 desktop_manifest_targets_matched；其中两份主文档再与仓库正文逐字节比对，输出 repository_desktop_documents_matched。其余 7 个目标仅做收据哈希核对，不声称全部 11 个目标都完成仓库正文比对。
 
-两份仓库正文比对仅对应 PRIMARY_DOCUMENTS 指定的项目理解指南和项目话术；检查时它们可以保持原有内容。README.md 及本文件通过仓库 Markdown 链接预检，属于另一个检查范围。2026-10-11 前述文档修订涉及 README.md 与本文件，未改动桌面主文档；桌面比对通过表示这两份主文档仍一致，不作为本次文档修订已同步到桌面的证明。验证结果分别报告仓库文档检查和桌面目标核对。
+历史格式的两份仓库正文比对仅对应 PRIMARY_DOCUMENTS(主文档名单) 指定的项目理解指南和项目话术。README.md 及本文件通过仓库 Markdown(轻量文档标记格式) 链接预检，属于另一个检查范围。2026-10-11 当时的文档修订涉及 README.md 与本文件，未改动桌面主文档；当时桌面比对通过表示那时两份主文档一致，不作为后来修订已同步到桌面的证明。桌面继续更新后，历史收据和投影会失效，旧核验应报告失败；不改写它们来掩盖目标变化。
 
 tests/test_delivery_evidence.py 中的回归覆盖动态计数、异常/重复日志、完整/快速静态检查不一致、缺失清单/源文件、仓库或桌面正文变化、缺失/重复主文档映射及输出保护，并补齐清单为空/目标缺失/源路径越界/哈希错误、收据数量/重复目标/哈希错误、锚点结果/配置有效性/场景完整性、链接问题/无效数量、零通过测试及 quick 重复通过记录的拒绝回归。测试只替换本工具的 verification_head 函数，不修改共享的 subprocess 模块。完整预检通过 pytest 执行这些测试，CI 使用同一完整预检入口；quick 只执行静态检查，不运行 pytest。可单独执行 `python -m pytest tests/test_delivery_evidence.py -q`。
 
@@ -334,7 +334,15 @@ tests/test_delivery_evidence.py 中的回归覆盖动态计数、异常/重复�
 python scripts/verify_delivery_evidence.py --evidence-dir artifacts/evidence_validation_review_20261010/post_commit_review/desktop_capture_repro_20261011
 ```
 
-上述默认命令只打印核对结果，可重复执行。需要保存时添加 --output 并指定尚不存在的新文件；输出采用排他创建，已有文件会报告失败并保持原字节，避免覆盖历史汇总。工具随 Git 分发，本机日志、收据及桌面目标仍属本地证据；仅有汇总 JSON 不能独立重现，需提供对应日志/报告，或在克隆环境重新执行预检。
+上述命令保留为 2026-10-11 的历史格式示例，当前桌面字节更新后不保证成功。2026-10-13 当前 MedAgent(医疗智能体项目) 交付使用以下命令，它只读取现有交付记录并重算核验，不采集备份或修改桌面：
+
+```powershell
+python scripts/verify_delivery_evidence.py --delivery-pointer artifacts/medagent_upgrade_20261013/latest_document_delivery.json
+```
+
+参数说明：`--delivery-pointer`（当前交付记录入口）、`--evidence-dir`（历史证据目录）、`--output`（新核验报告路径）。当前模式会重算文档哈希、本地链接、原件行号、示例内容、桌面收据及正文映射，并核对话术、指南、工程对照与 README 宣称的回归数量是否符合当前成功的代码回归记录。桌面写入与核验共用仓库脚本的链接转换函数，代码围栏及行内代码保留原样。原件缺失、正文改动、回归记录不匹配或文档虚报数量均返回非零；新增拒绝回归随完整预检和 CI(持续集成) 执行。
+
+命令默认只打印核验结果，可以重复执行。需要保存时添加 --output 并指定尚不存在的新文件；排他创建避免覆盖历史汇总。工具和测试随 Git(版本控制系统) 分发，本机报告与桌面目标仍是本地输入。交付报告中的 generation_script_sha256(本地生成脚本哈希) 只描述本机生成器，正式核验结果另存仓库核验脚本路径及哈希，不把未跟踪脚本当成可分发的核验依据。
 
 **隐私清理后续核验（2026-10-11）。** 前次将备份查询失败归因于查询者使用沙箱 LOCALAPPDATA 的解释有误。实际是 Codex 应用将逻辑 AppData 路径重定向到了应用容器，宿主 PowerShell 查询原逻辑路径无法找到它。现已复制全部 22 个私有备份文件到仓库外的 `D:/CodexPrivacyBackups/Smart_Healthcare-20261011-114023`，逐文件核对哈希、用 Windows 文件句柄确认实际物理位置，并从该副本重新恢复核验全部 26 个原提交；原容器副本和旧核验报告保留。当前命令及私有迁移报告范围见[历史清理说明](history-cleanup.md#2026-10-11-姓名与提交邮箱清理)。旧报告继续保留原 SHA，不修改其历史字段。新增 7 项 SHA 映射回归后，项目总测试由 370 增至 377；映射校验合并在原有交付检查中，完整/快速检查仍为 20/18 项。映射内容指纹、新 SHA 可达性和必需交付路径随仓库检查，不依赖本机 commit-map；私有 bundle 的实际恢复属于独立本机核验，不计为公开 pytest。
 

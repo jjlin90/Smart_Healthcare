@@ -35,6 +35,42 @@ def metadata(path):
     return json.loads(body.split('\n[RUN] ')[1]) if path.suffix == '.log' else json.loads(body)
 
 
+def test_junit_counts_and_current_validation_reject_changed_code_or_counts(repository):
+    directory = repository / 'artifacts/medagent_upgrade_20261013'
+    directory.mkdir()
+    report = directory / 'run.log'
+    report.write_text('recorded run', encoding='utf-8')
+    xml = directory / 'run.xml'
+    xml.write_text('<testsuites><testsuite><testcase/><testcase/><testcase><skipped/></testcase></testsuite></testsuites>', encoding='utf-8')
+    counts = recorder.test_counts(xml)
+    assert counts == {'total': 3, 'passed': 2, 'failed': 0, 'errors': 0, 'skipped': 1}
+    pointer = directory / 'latest_engineering_test_run.json'
+    code = repository / 'scripts/preflight_git.py'
+    data = {'kind': 'tests', 'exit_code': 0, 'inputs_unchanged': True, 'test_counts': counts,
+            'report': str(report), 'report_sha256': recorder.hashes([report])[str(report)],
+            'junit_report': str(xml), 'junit_sha256': recorder.hashes([xml])[str(xml)],
+            'input_sha256': recorder.hashes(recorder.candidates()),
+            'code_sha256': recorder.hashes([code])}
+    pointer.write_text(json.dumps(data), encoding='utf-8')
+    validation = recorder.latest_test_validation()
+    assert validation['validation_scope'] == 'code_and_dependencies'
+    assert validation['recorded_inputs_match_current'] is True
+    readme = repository / 'README.md'
+    before = readme.read_bytes()
+    readme.write_text('# Regenerated document\n', encoding='utf-8')
+    validation = recorder.latest_test_validation()
+    assert validation['test_counts'] == counts
+    assert validation['recorded_inputs_match_current'] is False
+    readme.write_bytes(before)
+    data['test_counts'] = {**counts, 'passed': 480}
+    pointer.write_text(json.dumps(data), encoding='utf-8')
+    assert recorder.latest_test_validation() is None
+    data['test_counts'] = counts
+    pointer.write_text(json.dumps(data), encoding='utf-8')
+    code.write_text('# changed code', encoding='utf-8')
+    assert recorder.latest_test_validation() is None
+
+
 @pytest.mark.parametrize('status', [0, 7])
 def test_quick_records_real_child_status_and_input_hashes(repository, monkeypatch, status):
     tool = repository / 'scripts/preflight_git.py'
@@ -46,6 +82,8 @@ def test_quick_records_real_child_status_and_input_hashes(repository, monkeypatc
     assert result['command'][-2:] == [str(tool), '--quick']
     assert result['started_at_utc'] <= result['finished_at_utc']
     assert result['head'] == result['head_after']
+    assert result['worktree_dirty'] is True
+    assert result['worktree_status_sha256']
     assert len(result['input_sha256']) == 3
     assert all(hashlib.sha256(Path(p).read_bytes()).hexdigest() == h
                for p, h in result['input_sha256'].items())
@@ -107,18 +145,41 @@ def test_links_records_specific_issues_and_separates_source_hashes(repository, m
 def test_links_success_metadata_and_desktop_scope(repository, monkeypatch):
     desktop = repository / 'artifacts/desktop'
     (desktop / 'MedAgent_AI_多Agent项目').mkdir(parents=True)
-    for name in ('MedAgent_项目理解指南.md', 'MedAgent_AI_多Agent项目话术.md'):
+    for name in ('MedAgent_项目理解指南.md', 'MedAgent_AI_多Agent项目话术.md',
+                 'MedAgent_文档对照与工程改进_2026-10-13.md'):
         (desktop / name).write_text('# Desktop\n', encoding='utf-8')
     (desktop / 'MedAgent_AI_多Agent项目/03-Agent.md').write_text('# Agent\n', encoding='utf-8')
+    extra = desktop / '工程对照.md'
+    extra.write_text('# 工程对照\n', encoding='utf-8')
     output = repository / 'artifacts/links.json'
     monkeypatch.setattr(sys, 'argv', ['record_document_checks.py', '--kind', 'links',
-                                    '--desktop', str(desktop), '--output', str(output)])
+                                    '--desktop', str(desktop), '--extra-document', str(extra),
+                                    '--extra-document', str(extra), '--output', str(output)])
     assert recorder.main() == 0
     result = metadata(output)
-    assert result['files'] == len(result['input_sha256']) == 4
+    assert result['files'] == len(result['input_sha256']) == 6
+    assert len(result['document_files']) == 6
+    assert str(extra.resolve()) in result['input_sha256']
+    assert result['document_files'] == [{'path': p, 'sha256': h}
+                                       for p, h in result['input_sha256'].items()]
+    assert result['run_id'] and result['head'] == result['head_after']
+    assert '--extra-document' in result['command']
     assert result['issues'] == [] and result['inputs_unchanged'] is True
     assert result['generated_at_utc'] == result['finished_at_utc']
     assert result['recorder_command'][-2:] == ['--output', str(output)]
+
+
+def test_desktop_scope_includes_engineering_by_default_and_rejects_missing_file(repository):
+    desktop = repository / 'artifacts/desktop'
+    (desktop / 'MedAgent_AI_多Agent项目').mkdir(parents=True)
+    for name in ('MedAgent_项目理解指南.md', 'MedAgent_AI_多Agent项目话术.md'):
+        (desktop / name).write_text('# Desktop\n', encoding='utf-8')
+    with pytest.raises(ValueError, match='required desktop document is missing'):
+        recorder.documents(desktop)
+    engineering = desktop / 'MedAgent_文档对照与工程改进_2026-10-13.md'
+    engineering.write_text('# 工程\n', encoding='utf-8')
+    assert engineering.resolve() in recorder.documents(desktop)
+    assert recorder.documents(desktop, [engineering]) == recorder.documents(desktop)
 
 
 def test_preflight_requires_recorder_and_its_regressions():

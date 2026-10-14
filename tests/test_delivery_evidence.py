@@ -1,6 +1,7 @@
 import hashlib
 import json
 from pathlib import Path
+import re
 
 import pytest
 
@@ -89,6 +90,112 @@ def evidence(tmp_path, monkeypatch):
 
 def write_json(directory, name, data):
     (directory / name).write_text(json.dumps(data, ensure_ascii=False), encoding='utf-8')
+
+
+def test_shared_mapping_preserves_code_and_uses_desktop_targets(tmp_path, monkeypatch):
+    root = tmp_path / 'repo'
+    source = root / 'docs/book.md'
+    source.parent.mkdir(parents=True)
+    chapter = root / 'docs/library/chapter.md'
+    chapter.parent.mkdir()
+    chapter.write_text('# Chapter', encoding='utf-8')
+    backend = root / 'backend/tool.py'
+    backend.parent.mkdir()
+    backend.write_text('# Tool', encoding='utf-8')
+    target = tmp_path / 'desktop/book.md'
+    mapped = target.parent / '题库/chapter name.md'
+    content = ('[题库](library/chapter.md#q-001)\n[代码](../backend/tool.py)\n'
+               '[链接](https://example.invalid/)\n`[原样](library/chapter.md)`\n'
+               '```text\n[原样](library/chapter.md)\n```\n')
+    result = verifier.rebase_markdown(source, target, content, {chapter.resolve(): mapped}, root)
+    assert '[题库](<题库/chapter name.md#q-001>)' in result
+    assert f'[代码]({backend.as_posix()})' in result
+    assert '[链接](https://example.invalid/)' in result
+    assert '`[原样](library/chapter.md)`' in result
+    assert '```text\n[原样](library/chapter.md)\n```' in result
+    monkeypatch.setattr(verifier, 'ROOT', root)
+    source.write_bytes(content.replace('\n', '\r\n').encode('utf-8'))
+    projected = verifier.project_desktop_document(source, target, {chapter.resolve(): mapped})
+    assert projected == result.replace('\n', '\r\n').encode('utf-8')
+
+
+@pytest.fixture
+def current_delivery(tmp_path, monkeypatch):
+    root = tmp_path / 'repo'
+    library = root / 'docs/MedAgent_逐题适配'
+    library.mkdir(parents=True)
+    directory = root / 'artifacts/current'
+    directory.mkdir(parents=True)
+    source = directory / 'original.txt'
+    original = '# Q1｜怎么调度？\n```json\n{}\n```\n'
+    source.write_text(original, encoding='utf-8')
+    original_path = source.relative_to(root).as_posix()
+    block = next(re.finditer(r'^```[^\n]*\n(.*?)^```\s*$', original, re.M | re.S))
+    coverage = {'question_count': 1, 'example_count': 1,
+                'source_files': [{'original_local_path': original_path, 'sha256': verifier.sha(source)}],
+                'questions': [{'original_local_path': original_path, 'line': 1, 'question': '怎么调度？', 'book_anchor': 'full-q'}],
+                'examples': [{'original_local_path': original_path, 'line': 2, 'book_anchor': 'full-example',
+                              'language': 'json', 'source_sha256': hashlib.sha256(block[0].encode()).hexdigest(),
+                              'source_content_sha256': hashlib.sha256(b'{}').hexdigest(),
+                              'adapted_sha256': hashlib.sha256(b'{}').hexdigest(), 'adaptation': 'unchanged'}],
+                'example_adaptation_counts': {'unchanged': 1, 'tob_rewrite': 0}}
+    write_json(library, 'coverage.json', coverage)
+    book = root / 'docs/MedAgent_AI_多Agent项目话术.md'
+    book.write_text('# Book\n本轮代码与依赖回归 5 项通过。\n### full-q\n怎么调度？\n'
+                    '#### full-example\n```json\n{}\n```\n', encoding='utf-8', newline='\n')
+    target = tmp_path / 'desktop/MedAgent_AI_多Agent项目话术.md'
+    target.parent.mkdir()
+    target.write_bytes(book.read_bytes())
+    receipt = {'entries': [{'source': str(book), 'target': str(target),
+                           'source_sha256': verifier.sha(book), 'target_sha256': verifier.sha(target)}]}
+    write_json(directory, 'desktop_sync_receipt.json', receipt)
+    report = {'validation_scope': 'current_documents_and_original_references',
+              'current_document_sha256': {str(book): verifier.sha(book), str(target): verifier.sha(target)},
+              'document_links_checked': 2, 'coverage_sha256': verifier.sha(library/'coverage.json'),
+              'book_sha256': verifier.sha(book), 'question_count': 1, 'example_count': 1,
+              'example_adaptations_verified': coverage['example_adaptation_counts'], 'desktop_hashes_verified': 1}
+    write_json(directory, 'report.json', report)
+    write_json(directory, 'pointer.json', {'report': str(directory/'report.json'), 'report_sha256': verifier.sha(directory/'report.json')})
+    monkeypatch.setattr(verifier, 'ROOT', root)
+    monkeypatch.setattr(verifier, 'verification_head', lambda: 'fixture-head')
+    monkeypatch.setattr(verifier, 'latest_test_validation', lambda: {'test_counts': {'passed': 5}, 'run_id': 'fixture-run'})
+    return directory, book, target, report, receipt
+
+
+def test_current_delivery_verifies_claims_and_can_repeat_without_writing(current_delivery):
+    directory, book, target, _, _ = current_delivery
+    before = (book.read_bytes(), target.read_bytes())
+    result = verifier.verify_current_delivery(directory/'pointer.json')
+    assert result['pytest_passed'] == 5 and result['questions_verified'] == result['examples_verified'] == 1
+    assert result['document_files_checked'] == 2 and result['desktop_targets_matched'] == 1
+    assert result['verifier_path'] == 'scripts/verify_delivery_evidence.py'
+    assert verifier.verify_current_delivery(directory/'pointer.json')['test_run_id'] == 'fixture-run'
+    assert before == (book.read_bytes(), target.read_bytes())
+
+
+@pytest.mark.parametrize('change', ['report', 'document', 'missing_regression', 'forged_claim'])
+def test_current_delivery_rejects_stale_or_forged_claims(current_delivery, monkeypatch, change):
+    directory, book, target, report, receipt = current_delivery
+    if change == 'report':
+        (directory/'report.json').write_text('{}', encoding='utf-8')
+    elif change == 'document':
+        book.write_text('changed', encoding='utf-8')
+    elif change == 'missing_regression':
+        monkeypatch.setattr(verifier, 'latest_test_validation', lambda: None)
+    else:
+        book.write_text(book.read_text(encoding='utf-8').replace('5 项通过', '999 项通过'), encoding='utf-8', newline='\n')
+        target.write_bytes(book.read_bytes())
+        report['book_sha256'] = verifier.sha(book)
+        report['current_document_sha256'] = {str(book): verifier.sha(book), str(target): verifier.sha(target)}
+        receipt['entries'][0].update(source_sha256=verifier.sha(book), target_sha256=verifier.sha(target))
+        write_json(directory, 'desktop_sync_receipt.json', receipt)
+        write_json(directory, 'report.json', report)
+        write_json(directory, 'pointer.json', {'report': str(directory/'report.json'), 'report_sha256': verifier.sha(directory/'report.json')})
+    reason = {'report': 'report hash differs', 'document': 'current document hash differs',
+              'missing_regression': 'no current successful code regression',
+              'forged_claim': 'current document test claim differs'}[change]
+    with pytest.raises(ValueError, match=reason):
+        verifier.verify_current_delivery(directory/'pointer.json')
 
 
 def test_summary_checks_source_target_and_repository_content(evidence):

@@ -12,6 +12,8 @@ import subprocess
 import sys
 from urllib.parse import unquote
 import uuid
+import time
+import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -32,17 +34,56 @@ def hashes(paths: list[Path]) -> dict[str, str]:
             for path in paths if path.is_file()}
 
 
-def documents(desktop: Path | None) -> list[Path]:
+def test_counts(path: Path) -> dict[str, int]:
+    root = ET.parse(path).getroot()
+    cases = root.findall('.//testcase')
+    counts = {'total': len(cases), 'failed': 0, 'errors': 0, 'skipped': 0}
+    for case in cases:
+        for name, tag in [('failed', 'failure'), ('errors', 'error'), ('skipped', 'skipped')]:
+            counts[name] += int(case.find(tag) is not None)
+    counts['passed'] = counts['total'] - sum(counts[name] for name in ('failed', 'errors', 'skipped'))
+    return counts
+
+
+def latest_test_validation() -> dict | None:
+    """Validate the code regression; regenerated documents need separate checks."""
+    pointer = ROOT / 'artifacts/medagent_upgrade_20261013/latest_engineering_test_run.json'
+    if not pointer.is_file():
+        return None
+    try:
+        data = json.loads(pointer.read_text(encoding='utf-8'))
+        report = Path(data['report'])
+        xml = Path(data['junit_report'])
+        if (data['kind'] != 'tests' or data['exit_code'] != 0 or not data['inputs_unchanged']
+                or data['test_counts']['total'] < 1
+                or data['report_sha256'] != hashes([report]).get(str(report.resolve()))
+                or data['junit_sha256'] != hashes([xml]).get(str(xml.resolve()))
+                or data['test_counts'] != test_counts(xml)
+                or data['code_sha256'] != hashes([p for p in candidates()
+                    if p.suffix == '.py' or p.name in ('requirements.txt', 'requirements-dev.txt', 'constraints.txt', 'pyproject.toml')])):
+            return None
+        return {**data, 'validation_scope': 'code_and_dependencies',
+                'recorded_inputs_match_current': data.get('input_sha256') == hashes(candidates())}
+    except (ValueError, KeyError, OSError, TypeError, ET.ParseError):
+        return None
+
+
+def documents(desktop: Path | None, extra_documents: list[Path] | None = None) -> list[Path]:
     paths = [p for p in candidates() if p.suffix.lower() == '.md' and p.is_file()]
     if desktop is not None:
         paths += [desktop / 'MedAgent_项目理解指南.md',
-                  desktop / 'MedAgent_AI_多Agent项目话术.md']
+                  desktop / 'MedAgent_AI_多Agent项目话术.md',
+                  desktop / 'MedAgent_文档对照与工程改进_2026-10-13.md']
         directory = desktop / 'MedAgent_AI_多Agent项目'
         if not directory.is_dir():
             raise ValueError('desktop document directory is missing')
         paths += sorted(directory.glob('*.md'))
         if any(not p.is_file() for p in paths):
             raise ValueError('required desktop document is missing')
+    for path in extra_documents or []:
+        if not path.is_file() or path.suffix.lower() != '.md':
+            raise ValueError('extra document must be an existing Markdown file')
+        paths.append(path)
     return sorted(set(p.resolve() for p in paths))
 
 
@@ -85,7 +126,8 @@ def check_links(paths: list[Path]) -> dict:
     return {'files': len(paths), 'issues': issues, 'external_urls': sorted(urls)}
 
 
-def record(kind: str, output: Path, desktop: Path | None = None) -> int:
+def record(kind: str, output: Path, desktop: Path | None = None,
+           extra_documents: list[Path] | None = None) -> int:
     output = output.resolve()
     if not output.is_relative_to(ROOT):
         raise ValueError('output must be inside the repository ignored artifacts directory')
@@ -95,18 +137,32 @@ def record(kind: str, output: Path, desktop: Path | None = None) -> int:
     # Reserve the filename before executing; existing evidence is never overwritten.
     with output.open('x', encoding='utf-8', newline='\n') as stream:
         started = datetime.now(timezone.utc).isoformat()
+        timer = time.monotonic()
         head = git('rev-parse', 'HEAD')
-        paths = candidates() if kind == 'quick' else documents(desktop)
+        worktree_status = git('status', '--porcelain')
+        paths = candidates() if kind in ('quick', 'tests') else documents(desktop, extra_documents)
         before = hashes(paths)
         sources = [Path(__file__).resolve(), ROOT / 'scripts/preflight_git.py']
         source_before = hashes(sources)
         command = [sys.executable, str(ROOT / 'scripts/preflight_git.py'), '--quick']
-        if kind == 'quick':
+        junit, counts = None, None
+        if kind == 'tests':
+            junit = output.with_suffix('.junit.xml')
+            with junit.open('x', encoding='utf-8'):
+                pass  # Reserve this unique path; never overwrite old evidence.
+            command = [sys.executable, '-m', 'pytest', '-p', 'pytest_asyncio.plugin', '-p', 'anyio.pytest_plugin',
+                       '-p', 'no:cacheprovider', '--basetemp', str(output.parent / (output.stem + '_tmp')),
+                       '--junitxml', str(junit), '-q']
+        if kind in ('quick', 'tests'):
             result = subprocess.run(command, cwd=ROOT, stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT, encoding='utf-8',
-                                    env={**os.environ, 'PYTHONIOENCODING': 'utf-8'})
+                                    env={**os.environ, 'PYTHONIOENCODING': 'utf-8',
+                                         **({'PYTEST_DISABLE_PLUGIN_AUTOLOAD': '1'} if kind == 'tests' else {})})
             code, text = result.returncode, result.stdout
             report = None
+            if kind == 'tests':
+                counts = test_counts(junit)
+                code = code or int(counts['total'] < 1 or bool(counts['failed'] or counts['errors']))
         else:
             report = check_links(paths)
             code, text = int(bool(report['issues'])), ''
@@ -114,7 +170,9 @@ def record(kind: str, output: Path, desktop: Path | None = None) -> int:
                        '--output', str(output)]
             if desktop is not None:
                 command += ['--desktop', str(desktop.resolve())]
-        after_paths = candidates() if kind == 'quick' else documents(desktop)
+            for path in extra_documents or []:
+                command += ['--extra-document', str(path.resolve())]
+        after_paths = candidates() if kind in ('quick', 'tests') else documents(desktop, extra_documents)
         head_after = git('rev-parse', 'HEAD')
         stable = (before == hashes(after_paths) and head == head_after
                   and source_before == hashes(sources))
@@ -122,14 +180,31 @@ def record(kind: str, output: Path, desktop: Path | None = None) -> int:
         metadata = {'run_id': str(uuid.uuid4()), 'kind': kind, 'started_at_utc': started,
                     'finished_at_utc': datetime.now(timezone.utc).isoformat(),
                     'head': head, 'head_after': head_after, 'cwd': str(ROOT),
+                    'worktree_dirty': bool(worktree_status),
+                    'worktree_status_sha256': hashlib.sha256(worktree_status.encode()).hexdigest(),
+                    'snapshot_basis': 'input_sha256 identifies checked working-tree bytes; HEAD alone does not describe uncommitted contents.',
                     'command': command, 'recorder_command': [sys.executable, *sys.argv], 'exit_code': code, 'inputs_unchanged': stable,
                     'input_sha256': before, 'checker_source_sha256': source_before}
+        metadata['elapsed_seconds'] = round(time.monotonic() - timer, 3)
+        if kind == 'tests':
+            metadata.update(test_counts=counts, junit_report=str(junit), junit_sha256=hashes([junit])[str(junit.resolve())])
         if report is None:
             stream.write(text + '\n[RUN] ' + json.dumps(metadata, ensure_ascii=False) + '\n')
         else:
             report.update(metadata)
             report['generated_at_utc'] = metadata['finished_at_utc']
+            report['document_files'] = [{'path': path, 'sha256': digest}
+                                        for path, digest in before.items()]
+            report['extra_documents'] = [str(path.resolve()) for path in extra_documents or []]
             stream.write(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
+    if kind == 'tests' and code == 0:
+        pointer = ROOT / 'artifacts/medagent_upgrade_20261013/latest_engineering_test_run.json'
+        pointer.parent.mkdir(parents=True, exist_ok=True)
+        pointer.write_text(json.dumps({**metadata, 'validation_scope': 'code_and_dependencies', 'report': str(output),
+            'report_sha256': hashes([output])[str(output)],
+            'code_sha256': {path: digest for path, digest in before.items()
+                if Path(path).suffix == '.py' or Path(path).name in ('requirements.txt', 'requirements-dev.txt', 'constraints.txt', 'pyproject.toml')}
+            }, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     print(json.dumps({'output': str(output), 'exit_code': code, 'run_id': metadata['run_id'],
                       'inputs_unchanged': stable}, ensure_ascii=False))
     return code
@@ -213,14 +288,18 @@ def record_desktop_snapshot(output: Path, receipt_path: Path, manifest_path: Pat
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--kind', choices=('quick', 'links', 'desktop-snapshot'), required=True)
+    parser.add_argument('--kind', choices=('quick', 'links', 'tests', 'desktop-snapshot'), required=True)
     parser.add_argument('--output', type=Path, required=True, help='new file, or new directory for desktop-snapshot, under ignored artifacts/')
     parser.add_argument('--desktop', type=Path, help='optional desktop directory for links mode')
+    parser.add_argument('--extra-document', type=Path, action='append', default=[],
+                        help='additional Markdown file explicitly included in links mode; repeatable')
     parser.add_argument('--receipt', type=Path, help='existing target receipt for desktop-snapshot')
     parser.add_argument('--manifest', type=Path, help='existing declared subset for desktop-snapshot')
     args = parser.parse_args()
     if args.desktop is not None and args.kind != 'links':
         parser.error('--desktop requires --kind links')
+    if args.extra_document and args.kind != 'links':
+        parser.error('--extra-document requires --kind links')
     if args.kind == 'desktop-snapshot' and (args.receipt is None or args.manifest is None):
         parser.error('desktop-snapshot requires --receipt and --manifest')
     if args.kind != 'desktop-snapshot' and (args.receipt is not None or args.manifest is not None):
@@ -228,7 +307,7 @@ def main() -> int:
     try:
         if args.kind == 'desktop-snapshot':
             return record_desktop_snapshot(args.output, args.receipt, args.manifest)
-        return record(args.kind, args.output, args.desktop)
+        return record(args.kind, args.output, args.desktop, args.extra_document)
     except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as exc:
         print(f'Recording failed: {exc}', file=sys.stderr)
         return 1

@@ -1,7 +1,12 @@
 from pathlib import Path
 from html import escape
 import math
+import sys
 from PIL import Image, ImageDraw, ImageFont
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from scripts.medagent_terminology import annotate_text
 
 OUT = Path(__file__).resolve().parents[1] / "artifacts" / "medagent_upgrade_20261013"
 OUT.mkdir(parents=True, exist_ok=True)
@@ -20,7 +25,13 @@ svg = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBo
 def font(size, bold=False):
     return ImageFont.truetype(BOLD if bold else FONT, round(size*SCALE))
 
-def text(x, y, value, size=24, color=INK, bold=False, anchor='middle'):
+def text(x, y, value, size=24, color=INK, bold=False, anchor='middle', max_width=None):
+    value = annotate_text(value)
+    if max_width is None:
+        max_width = 1480 if y < 180 or y > 2400 else (310 if x in (225, 1375) else 650)
+    # SVG and PNG share the measured font size; glosses must stay inside boxes.
+    while draw.textlength(value, font=font(size, bold)) > max_width * SCALE and size > 11:
+        size -= 0.5
     draw.text((x*SCALE,y*SCALE), value, font=font(size,bold), fill=color,
               anchor='mm' if anchor=='middle' else 'lm')
     svg.append(f'<text x="{x}" y="{y}" text-anchor="{anchor}" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="{size}" font-weight="{700 if bold else 400}" fill="{color}">{escape(value)}</text>')
@@ -87,13 +98,13 @@ node(775,100,'安全与业务范围检查',['SafetyGuard：风险检查；Domain
 node(785,155,'提前返回',['安全提示 / 范围拒识','或追问缺失信息'],x=60,w=330,fill='#fff7e8',stroke='#e4c48c',size=23)
 node(895,110,'意图识别与信息澄清',['IntentClassifier 识别任务类型','TaskReadinessGuard 检查典型缺失信息'],size=21)
 node(1020,90,'确定执行计划',['最多三步；校验专科覆盖与前序依赖'],size=23)
-text(829,1140,'A2A：任务、受限委托与剩余预算',21,BLUE,False,'start')
+text(440,1140,'A2A：任务、受限委托与剩余预算',21,BLUE,False,'start',max_width=730)
 node(1225,120,'目标专科接收任务',['SymptomAgent / DrugAgent / GuideAgent','核验签名与原文摘要、重读档案、接收前序依据'],size=21)
 node(1395,105,'Function Calling',['模型提出参数；代码检查关键槽位及来源'])
 node(1580,105,'MCP 工具服务',['核验权限、预算与写状态；Redis 核对活跃版本'],size=21)
-text(829,1542,'LangChain + MCPAdapter + MCP 客户端',20,'#13795b',False,'start')
+text(440,1542,'LangChain + MCPAdapter + MCP 客户端',20,'#13795b',False,'start',max_width=730)
 node(1745,110,'专科处理工具结果',['脱敏 Observation、调用状态与参数来源'])
-text(829,1884,'A2A：协调器核对任务 / 版本 / 步骤',20,BLUE,False,'start')
+text(440,1884,'A2A：协调器核对任务 / 版本 / 步骤',20,BLUE,False,'start',max_width=730)
 node(1915,115,'核对目标依据并汇总',['每项意图检查工具覆盖；汇总真实 Observation'])
 node(2110,130,'API 持久化',['咨询、证据与来源审计、会话及任务版本','提前返回按对应分支规则保存'])
 node(2310,90,'发送 done，页面确认完成',fill='#eaf1ff',stroke='#a8c3f9')

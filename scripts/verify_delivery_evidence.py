@@ -5,12 +5,16 @@ import argparse
 from datetime import datetime, timezone
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import subprocess
 import sys
+from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from scripts.record_document_checks import latest_test_validation, check_links
 EVIDENCE_FILES = (
     'preflight.log', 'quick.log', 'anchor_drift.json',
     'document_links.json', 'latest_desktop_receipt.json', 'desktop_manifest.json',
@@ -61,19 +65,44 @@ def parse_preflight_logs(full: str, quick: str) -> dict[str, int]:
     }
 
 
-def project_desktop_document(source: Path) -> bytes:
-    """Apply the documented desktop link mapping to repository text."""
+def rebase_markdown(source: Path, target: Path, content: str,
+                    mapping: dict[Path, Path], root: Path) -> str:
+    """Shared by desktop writing and verification; fenced/inline code stays literal."""
     def map_link(match: re.Match) -> str:
-        dest = match[2].strip().strip('<>')
-        if dest.startswith(('http:', 'https:', 'mailto:', '#')):
+        label, raw = match.groups()
+        raw = raw.strip('<>')
+        if raw.startswith('#') or (not re.match(r'^[A-Za-z]:[/\\]', raw) and
+                re.match(r'^[A-Za-z][A-Za-z0-9+.-]*:', raw)) or raw.startswith('//'):
             return match[0]
-        file, sep, anchor = dest.partition('#')
-        if file in PRIMARY_DOCUMENTS:
+        if re.match(r'^[A-Za-z]:[/\\]', raw):
             return match[0]
-        mapped = (source.parent / file).resolve().as_posix()
-        return match[1] + '<' + mapped + (sep + anchor if sep else '') + '>)'
-    text = re.sub(r'(\[[^\]\n]+\]\()([^\)\n]+)\)', map_link, source.read_text(encoding='utf-8'))
-    return text.encode('utf-8')
+        dest, marker, anchor = unquote(raw).partition('#')
+        original = (source.parent / dest).resolve()
+        mapped = mapping.get(original)
+        if mapped is not None:
+            destination = Path(os.path.relpath(mapped, target.parent)).as_posix()
+        elif original.is_file() and original.is_relative_to(root):
+            destination = original.as_posix()
+        else:
+            return match[0]
+        destination += marker + anchor
+        if ' ' in destination:
+            destination = '<' + destination + '>'
+        return f'[{label}]({destination})'
+    blocks = re.split(r'(^```[^\n]*\n.*?^```[ \t]*\r?$)', content, flags=re.M | re.S)
+    def prose(block):
+        pieces = re.split(r'(`+[^\n]*?`+)', block)
+        return ''.join(piece if piece.startswith('`') else re.sub(
+            r'\[([^\]\n]+)\]\((<[^>\n]+>|[^)\s]+)\)', map_link, piece) for piece in pieces)
+    return ''.join(block if block.startswith('```') else prose(block) for block in blocks)
+
+
+def project_desktop_document(source: Path, target: Path | None = None,
+                             mapping: dict[Path, Path] | None = None) -> bytes:
+    target = target or Path.home() / 'Desktop' / source.name
+    if mapping is None:
+        mapping = {(ROOT / 'docs' / name).resolve(): target.parent / name for name in PRIMARY_DOCUMENTS}
+    return rebase_markdown(source, target, source.read_bytes().decode('utf-8-sig'), mapping, ROOT).encode('utf-8')
 
 
 def verify_desktop_documents(evidence_dir: Path, receipt_entries: list[dict]) -> dict[str, str]:
@@ -94,11 +123,17 @@ def verify_desktop_documents(evidence_dir: Path, receipt_entries: list[dict]) ->
         digest = hashlib.sha256(projected).hexdigest()
         require(digest == item['after_sha256'] == receipt[target]['sha256'], 'manifest: source/receipt hash differs')
     repository_hashes = {}
+    mapping = {}
+    for target in receipt:
+        for directory in (ROOT / 'docs', ROOT / 'docs/MedAgent_逐题适配'):
+            source = directory / target.name
+            if source.is_file():
+                mapping[source.resolve()] = target
     for name in PRIMARY_DOCUMENTS:
         targets = [target for target in seen if target.name == name]
         require(len(targets) == 1, 'manifest: missing primary document or ambiguous mapping')
         repository_source = ROOT / 'docs' / name
-        require(targets[0].read_bytes() == project_desktop_document(repository_source), 'desktop: content differs from current repository after link mapping')
+        require(targets[0].read_bytes() == project_desktop_document(repository_source, targets[0], mapping), 'desktop: content differs from current repository after link mapping')
         repository_hashes['docs/' + name] = hashlib.sha256(repository_source.read_bytes()).hexdigest()
     return repository_hashes
 
@@ -140,19 +175,105 @@ def summarize(evidence_dir: Path) -> dict:
     }
 
 
+def sha(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def verify_current_delivery(pointer_path: Path) -> dict:
+    """Recheck current MedAgent outputs without copying or rewriting any target."""
+    pointer = json.loads(pointer_path.read_text(encoding='utf-8-sig'))
+    report_path = Path(pointer['report'])
+    require(sha(report_path) == pointer['report_sha256'], 'delivery: report hash differs')
+    report = json.loads(report_path.read_text(encoding='utf-8-sig'))
+    require(report['validation_scope'] == 'current_documents_and_original_references', 'delivery: invalid scope')
+    documents = {Path(p): digest for p, digest in report['current_document_sha256'].items()}
+    require(bool(documents), 'delivery: empty document scope')
+    for path, digest in documents.items():
+        require(sha(path) == digest, 'delivery: current document hash differs')
+    links = check_links(list(documents))
+    require(links['issues'] == [], 'delivery: current local links failed')
+    require(links['files'] == report['document_links_checked'], 'delivery: link count differs')
+    library = ROOT / 'docs/MedAgent_逐题适配'
+    coverage_path = library / 'coverage.json'
+    require(sha(coverage_path) == report['coverage_sha256'], 'delivery: coverage hash differs')
+    coverage = json.loads(coverage_path.read_text(encoding='utf-8-sig'))
+    book_path = ROOT / 'docs/MedAgent_AI_多Agent项目话术.md'
+    require(sha(book_path) == report['book_sha256'], 'delivery: book hash differs')
+    book = book_path.read_text(encoding='utf-8-sig')
+    require(len(coverage['questions']) == report['question_count'] == coverage['question_count'], 'delivery: question count differs')
+    require(len(coverage['examples']) == report['example_count'] == coverage['example_count'], 'delivery: example count differs')
+    originals = {}
+    for source in coverage['source_files']:
+        path = ROOT / source['original_local_path']
+        require(sha(path) == source['sha256'], 'delivery: original source hash differs')
+        originals[source['original_local_path']] = path.read_text(encoding='utf-8-sig')
+    for row in coverage['questions']:
+        original_line = originals[row['original_local_path']].splitlines()[row['line']-1]
+        require(row['question'] in original_line, 'delivery: question source differs')
+        require(book.count('### ' + row['book_anchor'] + '\n') == 1, 'delivery: question anchor missing or duplicated')
+        require(row.get('display_question', row['question']) in book, 'delivery: displayed question missing')
+        if 'source_start_column' in row:
+            require(original_line[row['source_start_column']-1:row['source_end_column']] == row['question'], 'delivery: question character span differs')
+    adaptations = {'unchanged': 0, 'tob_rewrite': 0}
+    for row in coverage['examples']:
+        original = originals[row['original_local_path']]
+        blocks = list(re.finditer(r'^```[^\n]*\n(.*?)^```\s*$', original, re.M | re.S))
+        block = next((b for b in blocks if original[:b.start()].count('\n')+1 == row['line']), None)
+        require(block is not None and hashlib.sha256(block[0].encode()).hexdigest() == row['source_sha256'], 'delivery: original example differs')
+        content = block[1].rstrip()
+        require(hashlib.sha256(content.encode()).hexdigest() == row['source_content_sha256'], 'delivery: source content hash differs')
+        heading = '#### ' + row['book_anchor'] + '\n'
+        require(book.count(heading) == 1, 'delivery: example anchor missing or duplicated')
+        body = book.split(heading, 1)[1].split('```'+row['language']+'\n', 1)[1].split('\n```', 1)[0]
+        require(hashlib.sha256(body.encode()).hexdigest() == row['adapted_sha256'], 'delivery: adapted example differs')
+        kind = 'unchanged' if body == content else 'tob_rewrite'
+        require(row['adaptation'] == kind, 'delivery: example adaptation differs')
+        adaptations[kind] += 1
+    require(adaptations == coverage['example_adaptation_counts'] == report['example_adaptations_verified'], 'delivery: adaptation counts differ')
+    receipt_path = pointer_path.parent / 'desktop_sync_receipt.json'
+    receipt = json.loads(receipt_path.read_text(encoding='utf-8-sig'))
+    entries = receipt['entries']
+    require(len(entries) == report['desktop_hashes_verified'] and len({r['target'] for r in entries}) == len(entries), 'delivery: inconsistent receipt targets')
+    require(all(Path(row['target']).name != 'med_rag_面试全解.md' for row in entries), 'delivery: independent RAG target included')
+    mapping = {Path(row['source']).resolve(): Path(row['target']) for row in entries}
+    for row in entries:
+        source, target = Path(row['source']), Path(row['target'])
+        require(sha(source) == row['source_sha256'] and sha(target) == row['target_sha256'], 'delivery: sync hash differs')
+        expected = project_desktop_document(source, target, mapping) if source.suffix.lower() == '.md' else source.read_bytes()
+        require(target.read_bytes() == expected, 'delivery: desktop content differs after shared mapping')
+    validation = latest_test_validation()
+    require(validation is not None, 'delivery: no current successful code regression')
+    passed = validation['test_counts']['passed']
+    claims = re.findall(r'(?:本轮|最新)代码与依赖回归\s+(\d+)\s+项通过', book)
+    for path in documents:
+        if path.name in ('README.md', 'MedAgent_项目理解指南.md', 'MedAgent_文档对照与工程改进_2026-10-13.md') and path.is_relative_to(ROOT):
+            claims += re.findall(r'(?:本轮|最新)代码与依赖回归\s+(\d+)\s+项通过', path.read_text(encoding='utf-8-sig'))
+    require(bool(claims) and all(int(n) == passed for n in claims), 'delivery: current document test claim differs')
+    return {'verified_at_utc': datetime.now(timezone.utc).isoformat(), 'head': verification_head(),
+            'pytest_passed': passed, 'document_files_checked': len(documents), 'document_issues': 0,
+            'questions_verified': len(coverage['questions']), 'examples_verified': len(coverage['examples']),
+            'example_adaptations': adaptations, 'desktop_targets_matched': len(entries),
+            'verifier_path': 'scripts/verify_delivery_evidence.py', 'verifier_sha256': sha(Path(__file__)),
+            'delivery_report_sha256': sha(report_path), 'test_run_id': validation['run_id'],
+            'scope': 'Current code regression, document claims, source references, examples, links and desktop content; no writes or backups.'}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--evidence-dir', required=True, type=Path)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--evidence-dir', type=Path, help='historical full/quick evidence format; target drift is an error')
+    mode.add_argument('--delivery-pointer', type=Path, help='current MedAgent document delivery pointer')
     parser.add_argument('--output', type=Path, help='Create a new JSON summary; existing files are never overwritten')
     args = parser.parse_args()
     try:
-        result = summarize(args.evidence_dir.resolve())
+        result = (verify_current_delivery(args.delivery_pointer.resolve()) if args.delivery_pointer
+                  else summarize(args.evidence_dir.resolve()))
         rendered = json.dumps(result, ensure_ascii=False, indent=2)
         if args.output:
             with args.output.open('x', encoding='utf-8', newline='\n') as output:
                 output.write(rendered + '\n')
         print(rendered)
-    except (OSError, ValueError, KeyError, TypeError, subprocess.SubprocessError) as exc:
+    except (OSError, ValueError, KeyError, TypeError, IndexError, subprocess.SubprocessError) as exc:
         print(f'Evidence verification failed: {exc}', file=sys.stderr)
         return 1
     return 0

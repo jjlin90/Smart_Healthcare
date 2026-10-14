@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="2500" viewBox="0 0 1600 2500">
 <rect width="1600" height="2500" fill="#f6f8fc"/>
-<text x="800" y="72" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="48" font-weight="700" fill="#15243c">MedAgent 项目主流程</text>
-<text x="800" y="132" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="24" font-weight="400" fill="#50617b">工作台 → API → 主协调器 → 专科智能体 → MCP 工具 → 保存并确认</text>
+<text x="800" y="72" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="48" font-weight="700" fill="#15243c">MedAgent(医疗智能体项目) 项目主流程</text>
+<text x="800" y="132" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="24" font-weight="400" fill="#50617b">工作台 → API(应用程序接口) → 主协调器 → 专科智能体 → MCP(模型上下文协议) 工具 → 保存并确认</text>
 <rect x="430" y="700" width="740" height="430" rx="26" fill="#eaf1ff" stroke="#b8cdf9" stroke-width="2"/>
 <text x="470" y="733" text-anchor="start" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="24" font-weight="700" fill="#2563eb">主协调器：检查、路由、规划</text>
 <rect x="430" y="1155" width="740" height="365" rx="26" fill="#e9f7f2" stroke="#b6ddcf" stroke-width="2"/>
@@ -49,11 +49,11 @@
 <text x="800.0" y="251.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">医生使用工作台</text>
 <text x="800.0" y="290.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="25" font-weight="400" fill="#50617b">登录、选择已授权患者、提交问题</text>
 <rect x="460" y="370" width="680" height="130" rx="18" fill="#fff" stroke="#ced8e8" stroke-width="2"/>
-<text x="800.0" y="402.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">API 接收请求</text>
+<text x="800.0" y="402.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">API(应用程序接口) 接收请求</text>
 <text x="800.0" y="441.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="25" font-weight="400" fill="#50617b">患者 / 会话 / 请求标识；任务模式与版本</text>
 <text x="800.0" y="474.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="25" font-weight="400" fill="#50617b">本轮批准动作；绝对期限与新任务隔离</text>
 <rect x="460" y="550" width="680" height="96" rx="18" fill="#fff" stroke="#ced8e8" stroke-width="2"/>
-<text x="800.0" y="581.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">API 检查权限</text>
+<text x="800.0" y="581.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">API(应用程序接口) 检查权限</text>
 <text x="800.0" y="620.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="25" font-weight="400" fill="#50617b">员工身份、当前角色、患者授权</text>
 <rect x="60" y="551" width="330" height="94" rx="18" fill="#fff0f1" stroke="#e6aeb3" stroke-width="2"/>
 <text x="225.0" y="581.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">拒绝请求</text>
@@ -61,56 +61,56 @@
 <text x="829" y="675" text-anchor="start" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="400" fill="#2563eb">权限通过</text>
 <rect x="460" y="775" width="680" height="100" rx="18" fill="#fff" stroke="#ced8e8" stroke-width="2"/>
 <text x="800.0" y="808.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">安全与业务范围检查</text>
-<text x="800.0" y="847.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="21" font-weight="400" fill="#50617b">SafetyGuard：风险检查；DomainGuard：范围检查</text>
+<text x="800.0" y="847.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18.5" font-weight="400" fill="#50617b">SafetyGuard(安全守卫)：风险检查；DomainGuard(业务范围守卫)：范围检查</text>
 <rect x="60" y="785" width="330" height="155" rx="18" fill="#fff7e8" stroke="#e4c48c" stroke-width="2"/>
 <text x="225.0" y="829.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">提前返回</text>
 <text x="225.0" y="868.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="23" font-weight="400" fill="#50617b">安全提示 / 范围拒识</text>
 <text x="225.0" y="901.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="23" font-weight="400" fill="#50617b">或追问缺失信息</text>
 <rect x="460" y="895" width="680" height="110" rx="18" fill="#fff" stroke="#ced8e8" stroke-width="2"/>
 <text x="800.0" y="917.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">意图识别与信息澄清</text>
-<text x="800.0" y="956.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="21" font-weight="400" fill="#50617b">IntentClassifier 识别任务类型</text>
-<text x="800.0" y="989.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="21" font-weight="400" fill="#50617b">TaskReadinessGuard 检查典型缺失信息</text>
+<text x="800.0" y="956.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="21" font-weight="400" fill="#50617b">IntentClassifier(意图分类器) 识别任务类型</text>
+<text x="800.0" y="989.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="21" font-weight="400" fill="#50617b">TaskReadinessGuard(任务参数澄清守卫) 检查典型缺失信息</text>
 <rect x="460" y="1020" width="680" height="90" rx="18" fill="#fff" stroke="#ced8e8" stroke-width="2"/>
 <text x="800.0" y="1048.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">确定执行计划</text>
 <text x="800.0" y="1087.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="23" font-weight="400" fill="#50617b">最多三步；校验专科覆盖与前序依赖</text>
-<text x="829" y="1140" text-anchor="start" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="21" font-weight="400" fill="#2563eb">A2A：任务、受限委托与剩余预算</text>
+<text x="440" y="1140" text-anchor="start" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="21" font-weight="400" fill="#2563eb">A2A(智能体间通信协议)：任务、受限委托与剩余预算</text>
 <rect x="460" y="1225" width="680" height="120" rx="18" fill="#fff" stroke="#ced8e8" stroke-width="2"/>
 <text x="800.0" y="1252.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">目标专科接收任务</text>
-<text x="800.0" y="1291.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="21" font-weight="400" fill="#50617b">SymptomAgent / DrugAgent / GuideAgent</text>
+<text x="800.0" y="1291.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17.0" font-weight="400" fill="#50617b">SymptomAgent(症状智能体) / DrugAgent(药品智能体) / GuideAgent(指南智能体)</text>
 <text x="800.0" y="1324.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="21" font-weight="400" fill="#50617b">核验签名与原文摘要、重读档案、接收前序依据</text>
 <rect x="460" y="1395" width="680" height="105" rx="18" fill="#fff" stroke="#ced8e8" stroke-width="2"/>
-<text x="800.0" y="1431.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">Function Calling</text>
+<text x="800.0" y="1431.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">Function Calling(函数调用)</text>
 <text x="800.0" y="1470.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="25" font-weight="400" fill="#50617b">模型提出参数；代码检查关键槽位及来源</text>
 <rect x="460" y="1580" width="680" height="105" rx="18" fill="#fff" stroke="#ced8e8" stroke-width="2"/>
-<text x="800.0" y="1616.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">MCP 工具服务</text>
-<text x="800.0" y="1655.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="21" font-weight="400" fill="#50617b">核验权限、预算与写状态；Redis 核对活跃版本</text>
-<text x="829" y="1542" text-anchor="start" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="20" font-weight="400" fill="#13795b">LangChain + MCPAdapter + MCP 客户端</text>
+<text x="800.0" y="1616.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">MCP(模型上下文协议) 工具服务</text>
+<text x="800.0" y="1655.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="21" font-weight="400" fill="#50617b">核验权限、预算与写状态；Redis(内存键值数据库) 核对活跃版本</text>
+<text x="440" y="1542" text-anchor="start" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="16.0" font-weight="400" fill="#13795b">LangChain(大模型应用开发框架) + MCPAdapter(MCP工具适配器) + MCP(模型上下文协议) 客户端</text>
 <rect x="460" y="1745" width="680" height="110" rx="18" fill="#fff" stroke="#ced8e8" stroke-width="2"/>
 <text x="800.0" y="1783.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">专科处理工具结果</text>
-<text x="800.0" y="1822.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="25" font-weight="400" fill="#50617b">脱敏 Observation、调用状态与参数来源</text>
-<text x="829" y="1884" text-anchor="start" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="20" font-weight="400" fill="#2563eb">A2A：协调器核对任务 / 版本 / 步骤</text>
+<text x="800.0" y="1822.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="25" font-weight="400" fill="#50617b">脱敏 Observation(工具观察结果)、调用状态与参数来源</text>
+<text x="440" y="1884" text-anchor="start" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="20" font-weight="400" fill="#2563eb">A2A(智能体间通信协议)：协调器核对任务 / 版本 / 步骤</text>
 <rect x="460" y="1915" width="680" height="115" rx="18" fill="#fff" stroke="#ced8e8" stroke-width="2"/>
 <text x="800.0" y="1956.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">核对目标依据并汇总</text>
-<text x="800.0" y="1995.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="25" font-weight="400" fill="#50617b">每项意图检查工具覆盖；汇总真实 Observation</text>
+<text x="800.0" y="1995.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="23.0" font-weight="400" fill="#50617b">每项意图检查工具覆盖；汇总真实 Observation(工具观察结果)</text>
 <rect x="460" y="2110" width="680" height="130" rx="18" fill="#fff" stroke="#ced8e8" stroke-width="2"/>
-<text x="800.0" y="2142.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">API 持久化</text>
+<text x="800.0" y="2142.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">API(应用程序接口) 持久化</text>
 <text x="800.0" y="2181.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="25" font-weight="400" fill="#50617b">咨询、证据与来源审计、会话及任务版本</text>
 <text x="800.0" y="2214.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="25" font-weight="400" fill="#50617b">提前返回按对应分支规则保存</text>
 <rect x="460" y="2310" width="680" height="90" rx="18" fill="#eaf1ff" stroke="#a8c3f9" stroke-width="2"/>
-<text x="800.0" y="2355.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">发送 done，页面确认完成</text>
+<text x="800.0" y="2355.0" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="29" font-weight="700" fill="#15243c">发送 done(完成事件)，页面确认完成</text>
 <rect x="1210" y="765" width="330" height="178" rx="18" fill="#fff" stroke="#ced8e8" stroke-width="2"/>
 <text x="1375" y="801" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="23" font-weight="700" fill="#15243c">主协调器的分派对象</text>
-<text x="1375" y="846" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" font-weight="400" fill="#50617b">症状 / 分诊 / 转诊 → Symptom</text>
-<text x="1375" y="877" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" font-weight="400" fill="#50617b">药品查询 / 审核 → Drug</text>
-<text x="1375" y="908" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" font-weight="400" fill="#50617b">指南 / 报告等 → Guide</text>
+<text x="1375" y="846" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18.0" font-weight="400" fill="#50617b">症状 / 分诊 / 转诊 → Symptom(症状)</text>
+<text x="1375" y="877" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" font-weight="400" fill="#50617b">药品查询 / 审核 → Drug(药品)</text>
+<text x="1375" y="908" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="19" font-weight="400" fill="#50617b">指南 / 报告等 → Guide(指南)</text>
 <rect x="1210" y="1000" width="330" height="145" rx="18" fill="#fff" stroke="#ced8e8" stroke-width="2"/>
 <text x="1375" y="1034" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" fill="#15243c">按依赖决定串行 / 并行</text>
 <text x="1375" y="1071" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" fill="#50617b">有依赖先完成前序并传递依据</text>
 <text x="1375" y="1103" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" fill="#50617b">独立只读并行；批准写动作串行</text>
 <rect x="60" y="1155" width="330" height="160" rx="18" fill="#fff" stroke="#ced8e8" stroke-width="2"/>
 <text x="225" y="1193" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" fill="#15243c">共享任务有效性检查</text>
-<text x="225" y="1232" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="400" fill="#50617b">生产必须配置 Redis 与完整任务域</text>
-<text x="225" y="1265" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="17" font-weight="400" fill="#50617b">本地无 Redis 时不提供跨进程围栏</text>
+<text x="225" y="1232" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13.5" font-weight="400" fill="#50617b">生产必须配置 Redis(内存键值数据库) 与完整任务域</text>
+<text x="225" y="1265" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="13.5" font-weight="400" fill="#50617b">本地无 Redis(内存键值数据库) 时不提供跨进程围栏</text>
 <rect x="1210" y="1395" width="330" height="135" rx="18" fill="#fff6e7" stroke="#eed4a4" stroke-width="2"/>
 <text x="1375" y="1429" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="22" font-weight="700" fill="#15243c">工具的实际执行目标</text>
 <text x="1375" y="1470" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="21" font-weight="400" fill="#50617b">医院业务接口 / 本地数据库</text>
@@ -121,5 +121,5 @@
 <text x="1375.0" y="1692.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="20" font-weight="400" fill="#50617b">写入未知：核对状态，不自动重跑</text>
 <text x="1375.0" y="1725.5" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="20" font-weight="400" fill="#50617b">普通工具故障：失败，不确认成功</text>
 <text x="1280" y="1838" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="18" font-weight="400" fill="#13795b">绿色虚线：有预算的工具循环</text>
-<text x="800" y="2449" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="23" font-weight="400" fill="#50617b">文字开始显示 ≠ 本轮已保存完成；最终 done 才确认对应分支完成。</text>
+<text x="800" y="2449" text-anchor="middle" dominant-baseline="central" font-family="Microsoft YaHei, Noto Sans CJK SC, sans-serif" font-size="23" font-weight="400" fill="#50617b">文字开始显示 ≠ 本轮已保存完成；最终 done(完成事件) 才确认对应分支完成。</text>
 </svg>

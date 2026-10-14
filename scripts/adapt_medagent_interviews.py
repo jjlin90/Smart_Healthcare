@@ -10,9 +10,12 @@ import hashlib
 import json
 import re
 import os
+import sys
 from difflib import SequenceMatcher
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from scripts.medagent_terminology import annotate_markdown, annotate_text
 DEST = ROOT / "docs" / "MedAgent_逐题适配"
 PRESERVED = ROOT / "artifacts" / "medagent_upgrade_20261013" / "原始资料"
 
@@ -201,6 +204,7 @@ def explanation(block: list[str]) -> str:
         if re.match(r"^[\s{}\[\]]*(?:def |class |async |return |import |from )", line): continue
         line = re.sub(r"\[\[.*?\]\]", "对应主题", line)
         line = line.replace("我们项目", "这类设计").replace("我们", "设计团队").replace("我会", "设计上可以").replace("你们", "实施团队")
+        line = line.replace("跨专科按顺序执行", "跨专科按依赖关系执行，独立只读步骤可并行，包含批准写动作的计划串行")
         line = re.sub(r"\*\*", "", line)
         kept.append(line)
         if sum(map(len, kept)) >= 600: break
@@ -238,6 +242,7 @@ def source_examples(path: Path) -> list[dict]:
     rows = []
     for n, match in enumerate(re.finditer(r"^```([^\n]*)\n(.*?)^```\s*$", text, re.M | re.S), 1):
         language, content = match[1].strip(), match[2].rstrip()
+        original_content = content
         for old, new in replacements.items():
             content = content.replace(old, new)
         if not language:
@@ -248,44 +253,114 @@ def source_examples(path: Path) -> list[dict]:
                 language = "text"
         prefix = text[:match.start()]
         headings = re.findall(r"(?m)^#{1,6}\s+(.+)$", prefix)
+        nonempty = [line for line in prefix.splitlines() if line.strip()]
         rows.append({"anchor": f"example-{n:03d}", "line": prefix.count("\n") + 1,
                      "language": language, "content": content,
+                     "lead": explanation([nonempty[-1]]) if nonempty else "",
                      "title": headings[-1] if headings else "章节概览",
                      "source_sha256": hashlib.sha256(match[0].encode()).hexdigest(),
+                     "source_content_sha256": hashlib.sha256(original_content.encode()).hexdigest(),
+                     "adaptation": "unchanged" if content == original_content else "tob_rewrite",
                      "adapted_sha256": hashlib.sha256(content.encode()).hexdigest()})
     return rows
+
+
+def original_reference(path: Path) -> str:
+    return (Path("artifacts/medagent_upgrade_20261013/原始资料") / (path.stem + ".txt")).as_posix()
+
+
+def preserve_original(path: Path) -> None:
+    """Keep the captured original immutable, including when it is the input."""
+    target = PRESERVED / (path.stem + '.txt')
+    if target.resolve() == path.resolve():
+        return
+    data = path.read_bytes()
+    if target.exists():
+        if target.read_bytes() != data:
+            raise ValueError(f'已有原件与输入不同，拒绝覆写：{path.name}')
+        return
+    target.parent.mkdir(parents=True, exist_ok=True)
+    with target.open('xb') as stream:
+        stream.write(data)
+
+
+def question_source_position(raw: str, question: str, table_column: int | None) -> dict:
+    """Separate table cell numbers from character spans in template text lines."""
+    offset = 0
+    if table_column is not None:
+        separators = [index for index, char in enumerate(raw) if char == '|']
+        offset = separators[table_column - 1] + 1
+    start = raw.index(question, offset)
+    return {'column': table_column, 'source_position_kind': 'table_cell' if table_column else 'text_line',
+            'source_start_column': start + 1, 'source_end_column': start + len(question)}
 
 
 def append_examples(body: list[str], path: Path, questions: list[dict]) -> list[dict]:
     rows = source_examples(path)
     if not rows:
         return []
+    lines = path.read_text(encoding="utf-8-sig").splitlines()
+    boundaries, in_code = [], False
+    for line_number, line in enumerate(lines, 1):
+        if line.strip().startswith('```'):
+            in_code = not in_code
+            continue
+        heading = re.match(r'^(#{1,6})\s+(.+)', line) if not in_code else None
+        if heading and (len(heading[1]) <= 2 or re.search(r'课堂伪代码|面试串讲|追问模板', heading[2])):
+            boundaries.append((line_number, heading[2]))
     for row in rows:
         previous = [q for q in questions if q["line"] < row["line"]]
-        row["question_anchor"] = previous[-1]["anchor"] if previous else None
-    # Link the explanatory lead-in to its retained blocks, so headings such as
-    # "典型处理链" no longer appear to have lost their accompanying example.
+        # A thematic section after a question is not part of that question.
+        intervening = [title for line, title in boundaries
+                       if previous and previous[-1]['line'] < line < row['line']]
+        row["question_anchor"] = previous[-1]["anchor"] if previous and not intervening else None
+        row["original_local_path"] = original_reference(path)
+        row["association"] = ("chapter_appendix" if intervening else
+                              "question" if previous else "chapter_overview")
+        if intervening:
+            row['section_title'] = intervening[-1]
+    def render(row):
+        text = [f"### {row['anchor']}", "", f"**{row['title']}**", "",
+                f"原文位置：仓库根目录下的本地原件 `{original_reference(path)}` 第 {row['line']} 行。"
+                "该路径指保留的 .txt 原件，当前同名 .md 是适配稿；本地原件不随克隆分发。", "",
+                "用途：ToB 原理示例 / 扩展设计，不表示代码已落地。", ""]
+        if row["question_anchor"]:
+            text += [f"[返回对应问答](#{row['question_anchor']})", ""]
+        elif row['association'] == 'chapter_overview':
+            text += ["归属：章节概览，位于本章首题之前；无对应问答，不计为漏关联。", ""]
+        else:
+            text += [f"归属：章节附录「{row['section_title']}」；不强行关联前一题。", ""]
+        return "\n".join(text + [f"```{row['language']}", row["content"], "```", ""])
+    # Place a block immediately after its source lead-in where that prose was
+    # retained; otherwise keep it beside the relevant answer rather than only
+    # in a chapter-end gallery. Every block still has exactly one stable anchor.
     for question in reversed(questions):
         associated = [row for row in rows if row["question_anchor"] == question["anchor"]]
         heading = f"## {question['anchor']}"
         if associated and heading in body:
             start = body.index(heading) + 1
             end = next((i for i in range(start, len(body)) if body[i].startswith("## q-")), len(body))
+            for row in associated:
+                lead = row["lead"]
+                location = next((i for i in range(start, end)
+                                 if lead and lead in body[i] and "```" not in body[i]), None)
+                if location is not None:
+                    body[location] = body[location].replace(lead, lead + "\n\n" + render(row), 1)
+                    row["placement"] = "after_source_lead"
+                else:
+                    body[end:end] = [render(row), ""]
+                    end += 2
+                    row["placement"] = "beside_question"
             body[end:end] = ["**本题图与结构示例：** " + "、".join(
                 f"[{row['anchor']}](#{row['anchor']})" for row in associated), ""]
-    body += ["## 原文图与结构示例（ToB适配）", "",
-             "以下逐块保留原文的图、伪代码、JSON 和文本结构，通用交易示例改为院内患者记录与转诊协同。"
-             "这些是面试原理或扩展方案示例，可能包含尚未实现的角色、参数级审批、语义验收、持久恢复和队列；"
-             "不能作为当前项目已实现的接口或代码。当前实现以各题项目口述、代码依据及主流程图为准。", ""]
-    for row in rows:
-        previous = [q for q in questions if q["line"] < row["line"]]
-        question = previous[-1] if previous else None
-        row["question_anchor"] = question["anchor"] if question else None
-        body += [f"### {row['anchor']}", "", f"**{row['title']}**", "",
-                 f"来源：{path.with_suffix('.md').name} 第 {row['line']} 行。用途：ToB 原理示例 / 扩展设计；不表示代码已落地。", ""]
-        if question:
-            body += [f"[返回对应问答](#{question['anchor']})", ""]
-        body += [f"```{row['language']}", row["content"], "```", ""]
+    for association, title in [('chapter_overview', '章节概览'), ('chapter_appendix', '章节附录')]:
+        unassociated = [row for row in rows if row['association'] == association]
+        if unassociated:
+            body += [f"## {title}示例（无对应问答）", "",
+                     "以下示例按原文独立章节保留，属于 ToB 原理或扩展设计，不表示当前产品功能。", ""]
+            for row in unassociated:
+                row["placement"] = association
+                body += [render(row), ""]
     return [{**row, "source": path.with_suffix('.md').name, "output": path.with_suffix('.md').name}
             for row in rows]
 
@@ -327,9 +402,11 @@ SPECIAL = {
 def build(source: Path):
     paths = sorted(source.glob("*.md")) or sorted(source.glob("*.txt"))
     if len(paths) != 14: raise ValueError(f"预期读取14份原文，实际{len(paths)}份；先核对来源")
+    for path in paths:
+        preserve_original(path)
     DEST.mkdir(parents=True, exist_ok=True)
     manifest, lookup, examples = [], [], []
-    index = ["# MedAgent：全部文档逐题适配", "", "核查日期：2026-10-13。用途：准备院内 ToB 多 Agent 项目的面试与连续追问。原始资料保留；本目录是逐题适配稿。", "",
+    index = ["# MedAgent：全部文档逐题适配", "", "核查日期：2026-10-13。用途：准备院内 ToB 多 Agent 项目的面试与连续追问。原件是仓库根目录下 artifacts/medagent_upgrade_20261013/原始资料/*.txt 的 14 份本地文件，不随克隆分发；桌面同名 .md 及本目录均为适配稿。", "",
              "每题先读项目口述，再看设计展开与实现边界。设计展开来自原文的原理；只有项目口述和代码依据描述当前实现。未部署的功能按扩展方案回答。个人经历、任职、客户和采购成果由本人填写。", "",
              "范围固定：院内医生、药师、医务及系统管理人员；不新增患者登录、挂号、预约、缴费、退费、自动诊疗。", "", "## 章节与覆盖数", ""]
     index[6:6] = ["原始资料编号为 00—08、10—13，加一份横向题表，共 14 份。来源本身没有 09 号文件，编号跳过不是遗漏。", ""]
@@ -338,16 +415,14 @@ def build(source: Path):
         source_name = path.with_suffix(".md").name
         chapter = path.name[:2]
         entries = parse_questions(path)
-        snapshot = PRESERVED / (path.stem + ".txt")
-        snapshot.parent.mkdir(parents=True, exist_ok=True)
-        snapshot.write_bytes(path.read_bytes())
         body = [f"# {path.stem}：MedAgent 逐题口述", "", "核查日期：2026-10-13。所有答案以院内 ToB 边界为前提。一般理论与未落地的扩展方案明确分开。", ""]
         for n, entry in enumerate(entries, 1):
             key = card_key(chapter, entry["primary"], entry["question"])
             current, design, refs = CARDS[key]
             anchor = f"q-{n:03d}"
             body += [f'## {anchor}', "", f"### {'追问' if entry['followup'] else '主问题'}｜{entry['question']}", "",
-                     f"原文位置：{source_name} 第 {entry['line']} 行（原件保存在同步前备份）。", "",
+                     f"原文位置：仓库根目录下的本地原件 `{original_reference(path)}` 第 {entry['line']} 行。"
+                     "当前同名 .md 是适配稿；本地原件不随克隆分发。", "",
                      "**项目口述：** " + (SPECIAL.get((chapter,entry["primary"]), current) if not entry["followup"] else current), ""]
             if entry["explanation"]:
                 body += ["**针对本题的设计展开（原文原理，作为方案解释）：**", "", entry["explanation"], ""]
@@ -358,12 +433,11 @@ def build(source: Path):
             manifest.append(row)
             lookup.append((normalize(entry["question"]), row))
         examples.extend(append_examples(body, path, [q for q in manifest if q['source'] == source_name]))
-        (DEST/source_name).write_text("\n".join(body)+"\n", encoding="utf-8", newline="\n")
+        (DEST/source_name).write_text(annotate_markdown("\n".join(body).rstrip()+"\n"), encoding="utf-8", newline="\n")
         index.append(f"- [{path.stem}](<{source_name}>)：{len(entries)} 道主问题与追问。")
     table_path = next(path for path in paths if not re.match(r"\d\d-", path.name))
     table_name = table_path.with_suffix(".md").name
     lines = table_path.read_text(encoding="utf-8-sig").splitlines()
-    (PRESERVED / (table_path.stem + ".txt")).write_bytes(table_path.read_bytes())
     body = ["# 横向题表与连续追问：MedAgent 对照", "", "每个表格单元和连问都保留来源，链接到本目录的项目适配答案。表中概念短语也按问题处理，避免漏掉不带问号的追问。", ""]
     heading = ""
     table_questions = []
@@ -377,7 +451,7 @@ def build(source: Path):
                 if not any("？" in cell or "?" in cell for cell in cells): continue
                 for col, cell in enumerate(cells): table_questions.append((i+1, cell, col, heading, cells[0]))
         elif fenced and (line.startswith("→ ") or "？" in line or line == "你介绍一下你的 Multi-Agent 项目。") and len(line) < 150:
-            table_questions.append((i+1, line.lstrip("→ "), 0, heading, line.lstrip("→ ")))
+            table_questions.append((i+1, line.lstrip("→ "), None, heading, line.lstrip("→ ")))
     for n, (line, question, col, section, parent_question) in enumerate(table_questions, 1):
         norm = normalize(parent_question)
         matches = sorted(lookup, key=lambda item: SequenceMatcher(None, norm, item[0]).ratio(), reverse=True)
@@ -398,21 +472,33 @@ def build(source: Path):
         if "场景" in parent_question and "Agent" in parent_question: key = "plan"
         if "上下文太长" in parent_question: key = "compression"
         current, design, refs = CARDS[key]
-        body += [f'## q-{n:03d}', "", f"### {question}", "", f"来源：{section}，原题表第 {line} 行、第 {col+1} 列。", "",
+        position = question_source_position(lines[line - 1], question, col + 1 if col is not None else None)
+        locator = (f"第 {line} 行、第 {position['column']} 个表格单元" if col is not None else
+                   f"第 {line} 行（连问模板文本行，字符 {position['source_start_column']}—{position['source_end_column']}）")
+        body += [f'## q-{n:03d}', "", f"### {question}", "", f"来源：{section}；仓库根目录下的本地原件 `{original_reference(table_path)}` {locator}。当前同名 .md 是适配稿。", "",
                  "**项目口述：** " + current, "", "**方案补全：** " + design, "",
                  f"**对应详解：** [{matched['question']}](<{matched['output']}#{matched['anchor']}>)。", ""]
-        manifest.append({"source":table_name,"line":line,"column":col+1,"question":question,"output":table_name,
+        manifest.append({"source":table_name,"line":line,**position,"question":question,"output":table_name,
                          "anchor":f"q-{n:03d}","topic":key,"kind":"table_or_sequence","match_score":round(score,3)})
     examples.extend(append_examples(body, table_path, [q for q in manifest if q['source'] == table_name]))
-    (DEST/table_name).write_text("\n".join(body)+"\n", encoding="utf-8", newline="\n")
+    (DEST/table_name).write_text(annotate_markdown("\n".join(body).rstrip()+"\n"), encoding="utf-8", newline="\n")
     index += [f"- [{table_path.stem}]({table_name})：{len(table_questions)} 个题表单元与连问。", "",
               "## 使用建议", "", "以03章的意图、槽位和任务切换为主线，接04章执行编排，再练05/06章故障与状态，最后按07/08/13章解释工具、依据和安全。00章用于架构辨析；10/11/12章按训练理论、开发方法或院内扩展设计作答。所有章节均已纳入覆盖清单。", "",
               "[覆盖清单](coverage.json)逐项记录来源文件、行号、题目和适配稿位置；文件哈希用于确认同步的是这次读取的版本。"]
     index += ["", "全部答案也已直接合入[单一话术正文](../MedAgent_AI_多Agent项目话术.md#全文档逐题正文)，分册保留用于对照。"]
-    (DEST/"README.md").write_text("\n".join(index)+"\n", encoding="utf-8", newline="\n")
-    result = {"date":"2026-10-13", "source_files": [{"name":p.with_suffix('.md').name,"sha256":hashlib.sha256(p.read_bytes()).hexdigest()} for p in paths],
+    index += ["", "英文术语、工具名及参数名在正文后附中文译注；代码围栏内保持标识符与语法原样，译注放在示例之后。覆盖清单的 source 是原资料名称及适配稿映射键，original_local_path 才是本机原件路径；question 为原文，display_question 为带译注的显示题目。"]
+    (DEST/"README.md").write_text(annotate_markdown("\n".join(index)+"\n"), encoding="utf-8", newline="\n")
+    for row in manifest:
+        row["original_local_path"] = original_reference(Path(row["source"]))
+        row['display_question'] = annotate_text(row['question'])
+    result = {"date":"2026-10-13", "source_files": [{"name":p.with_suffix('.md').name,"sha256":hashlib.sha256(p.read_bytes()).hexdigest(),
+                "original_local_path": original_reference(p), "distributed_with_git": False} for p in paths],
               "question_count":len(manifest),"questions":manifest,
-              "example_count":len(examples), "examples":examples}
+              "example_count":len(examples), "examples":examples,
+              "example_adaptation_counts": {kind: sum(row['adaptation'] == kind for row in examples)
+                  for kind in ('unchanged', 'tob_rewrite')},
+              "example_comparison_basis": "UTF-8/LF 内容比较，去除内容末尾空白；source_sha256 含原围栏，source_content_sha256 与 adapted_sha256 仅含内容，分别保存。",
+              "source_meaning": "source 为原资料名/适配稿映射键；original_local_path 为本机保留原件；question 保留原文，display_question 仅添加中文译注。"}
     (DEST/"coverage.json").write_text(json.dumps(result, ensure_ascii=False, indent=2)+"\n", encoding="utf-8", newline="\n")
     print(json.dumps({"files":len(paths),"questions":len(manifest),"output":str(DEST)}, ensure_ascii=False))
 
