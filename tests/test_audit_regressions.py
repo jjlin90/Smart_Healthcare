@@ -135,6 +135,62 @@ def test_preflight_scans_untracked_importers(tmp_path, monkeypatch, suffix):
     assert any("未跟踪 Python 文件" in error for error in report.errors)
 
 
+@pytest.mark.parametrize("suffix", [".PY", ".Py", ".pY", ".py"])
+def test_preflight_rejects_noncanonical_test_suffix(tmp_path, monkeypatch, suffix):
+    from scripts import preflight_git as scanner
+
+    monkeypatch.setattr(scanner, "ROOT", tmp_path)
+    tests = tmp_path / "tests/nested"
+    tests.mkdir(parents=True)
+    source = tests / ("test_hidden" + suffix)
+    source.write_text("def test_hidden():\n    assert False\n", encoding="utf-8")
+    report = scanner.Report()
+    scanner.check_python_syntax(report, [source])
+    assert bool(report.errors) is (suffix != ".py")
+    if report.errors:
+        assert "小写 .py 后缀" in report.errors[0]
+        assert source.relative_to(tmp_path).as_posix() in report.errors[0]
+    # Source files outside the configured test directory still receive static checks.
+    ordinary = tmp_path / ("worker" + suffix)
+    ordinary.write_text("value = 1\n", encoding="utf-8")
+    source_report = scanner.Report()
+    scanner.check_python_syntax(source_report, [ordinary])
+    assert not source_report.errors
+
+
+@pytest.mark.parametrize("suffix", [".PY", ".Py", ".pY", ".py"])
+def test_real_pytest_never_silently_skips_noncanonical_test_suffix(tmp_path, suffix):
+    import os
+    from pathlib import Path
+    import shutil
+    import subprocess
+    import sys
+
+    root = Path(__file__).resolve().parents[1]
+    tests = tmp_path / "tests"
+    tests.mkdir()
+    shutil.copyfile(root / "tests/conftest.py", tests / "conftest.py")
+    (tmp_path / "pytest.ini").write_text("[pytest]\ntestpaths = tests\n", encoding="utf-8")
+    (tests / "test_control.py").write_text("def test_control():\n    assert True\n", encoding="utf-8")
+    (tests / ("test_hidden" + suffix)).write_text(
+        'def test_hidden():\n    assert False, "COLLECTION_SENTINEL"\n', encoding="utf-8"
+    )
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-q"], cwd=tmp_path,
+        env={**os.environ, "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1", "PYTHONIOENCODING": "utf-8", "PYTHONPATH": str(root)},
+        capture_output=True, text=True, encoding="utf-8", timeout=30,
+    )
+    output = result.stdout + result.stderr
+    if suffix == ".py":
+        assert result.returncode == 1, output
+        assert "COLLECTION_SENTINEL" in output
+        assert "1 failed, 1 passed" in output
+    else:
+        assert result.returncode != 0, output
+        assert "小写 .py 后缀" in output
+        assert "1 passed" not in output
+
+
 async def test_signed_token_without_expiration_is_rejected(monkeypatch):
     monkeypatch.setattr(get_settings(), "secret_key", "test-key")
     token = jwt.encode({"username": "staff", "user_id": "u", "role": "doctor"}, "test-key", algorithm="HS256")

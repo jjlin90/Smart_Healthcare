@@ -14,6 +14,14 @@ from pathlib import Path
 from backend.service_auth import delegated_context
 
 
+def pytest_collect_file(file_path, parent):
+    """Reject Python files that pytest's case-sensitive collector would skip."""
+    if file_path.suffix.lower() == ".py" and file_path.suffix != ".py":
+        raise pytest.UsageError(
+            f"{file_path.name}: 测试目录中的 Python 文件必须使用小写 .py 后缀，避免 pytest 漏收集"
+        )
+
+
 @pytest.fixture
 def clinical_delegation():
     with delegated_context({"staff_id": "test_staff", "patient_id": "authorized_patient", "request_id": "test-request-0001", "approved_actions": []}):
