@@ -14,7 +14,7 @@ from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from scripts.record_document_checks import latest_test_validation, check_links
+from scripts.record_document_checks import latest_test_validation, check_links, is_code_dependency
 from scripts.merge_medagent_interviews import question_sections, reading_summary
 EVIDENCE_FILES = (
     'preflight.log', 'quick.log', 'anchor_drift.json',
@@ -23,6 +23,9 @@ EVIDENCE_FILES = (
 PRIMARY_DOCUMENTS = ('MedAgent_项目理解指南.md', 'MedAgent_AI_多Agent项目话术.md')
 DESKTOP_DOCUMENTS = ('MedAgent_AI_多Agent项目话术.md', 'MedAgent_项目理解指南.md',
                      'MedAgent_文档对照与工程改进_2026-10-13.md')
+REGRESSION_DOCUMENTS = ('README.md', 'docs/MedAgent_项目理解指南.md',
+                        'docs/MedAgent_文档对照与工程改进_2026-10-13.md')
+REGRESSION_CLAIM = r'(?:本轮|最新|仓库记录的)代码与依赖回归\s+([1-9][0-9]*)\s+项通过'
 
 
 def question_book_path() -> Path:
@@ -98,6 +101,40 @@ def verify_document_scope_claims(coverage: dict, desktop_count: int) -> None:
                 tuple(int(n.replace(',', '')) for n in claims[0]) ==
                 (coverage['question_count'], coverage['example_count'], expected[2]),
                 'delivery: document coverage claim differs')
+
+
+def repository_code_hashes(root: Path) -> dict[str, str]:
+    names = subprocess.check_output(
+        ['git', 'ls-files', '--cached', '--others', '--exclude-standard', '-z'], cwd=root).decode('utf-8')
+    return {Path(name).as_posix(): sha(root/name) for name in sorted(set(names.split('\0')))
+            if name and is_code_dependency(Path(name)) and (root/name).is_file()}
+
+
+def verified_code_regression(coverage: dict, root: Path) -> dict:
+    """Check a portable recorded count and relative code hashes, not a local run."""
+    record = coverage.get('code_regression')
+    require(isinstance(record, dict) and record.get('scope') == 'code_and_dependencies'
+            and type(record.get('passed')) is int and record['passed'] > 0
+            and isinstance(record.get('code_sha256'), dict),
+            'delivery: missing or invalid repository code regression record')
+    require(record['code_sha256'] == repository_code_hashes(root),
+            'delivery: repository code regression fingerprint differs')
+    return record
+
+
+def verify_document_test_claims(paths: list[Path], passed: int) -> None:
+    """Require one current claim per primary document and verify every other claim."""
+    documents = {path.resolve(): path.read_text(encoding='utf-8-sig') for path in paths}
+    for relative in REGRESSION_DOCUMENTS:
+        path = (ROOT/relative).resolve()
+        require(path in documents and len(re.findall(REGRESSION_CLAIM, documents[path])) == 1,
+                'delivery: required current document test claim missing or duplicated')
+    for text in documents.values():
+        claims = re.findall(REGRESSION_CLAIM, text)
+        # Reject malformed/empty claims, rather than letting a numeric regex skip them.
+        markers = re.findall(r'^(?:本轮|最新|仓库记录的)代码与依赖回归', text, re.M)
+        require(len(claims) >= len(markers) and all(int(n) == passed for n in claims),
+                'delivery: current document test claim differs')
 
 
 def read_log(path: Path) -> str:
@@ -194,7 +231,7 @@ def rebase_markdown(source: Path, target: Path, content: str,
     return ''.join(output)
 
 
-def verify_repository_documents() -> dict:
+def verify_repository_documents(executed_tests: int | None = None) -> dict:
     """Portable gate for tracked book/coverage, without private desktop inputs."""
     library = ROOT / 'docs/MedAgent_逐题适配'
     require((ROOT / 'docs/MedAgent_AI_多Agent项目话术.md').is_file(),
@@ -228,10 +265,16 @@ def verify_repository_documents() -> dict:
     require(not links['issues'], 'repository delivery: local links failed')
     verify_document_scope_claims(coverage, sum(source.suffix.lower() == '.md'
         for source, _ in default_desktop_pairs(ROOT, Path('desktop'))))
+    regression = verified_code_regression(coverage, ROOT)
+    verify_document_test_claims(paths, regression['passed'])
+    if executed_tests is not None:
+        require(type(executed_tests) is int and executed_tests == regression['passed'],
+                'delivery: executed pytest count differs from repository record')
     return {'document_files_checked': len(paths), 'document_link_count_basis': 'recomputed_current_repository',
+            'recorded_pytest_passed': regression['passed'], 'executed_pytest_passed': executed_tests,
             'questions_verified': len(coverage['questions']),
             'examples_verified': len(coverage['examples']), 'example_adaptations': adaptations,
-            'scope': 'Repository question anchors, example content hashes and local links only; '
+            'scope': 'Repository question anchors, example hashes, local links, required test claims and recorded code fingerprints; '
                      'private originals, test records, desktop files and resumes are not verified.'}
 
 
@@ -410,11 +453,9 @@ def verify_current_delivery(pointer_path: Path) -> dict:
     validation = latest_test_validation()
     require(validation is not None, 'delivery: no current successful code regression')
     passed = validation['test_counts']['passed']
-    claims = []
-    for path in documents:
-        text = book if path.resolve() == book_path.resolve() else path.read_text(encoding='utf-8-sig')
-        claims += re.findall(r'(?:本轮|最新)代码与依赖回归\s+(\d+)\s+项通过', text)
-    require(bool(claims) and all(int(n) == passed for n in claims), 'delivery: current document test claim differs')
+    require(verified_code_regression(coverage, ROOT)['passed'] == passed,
+            'delivery: repository and local regression counts differ')
+    verify_document_test_claims(documents, passed)
     return {'verified_at_utc': datetime.now(timezone.utc).isoformat(), 'head': verification_head(),
             'pytest_passed': passed, 'document_files_checked': len(documents), 'document_issues': 0,
             'document_link_count_basis': 'recomputed_current_documents',
@@ -434,10 +475,13 @@ def main() -> int:
     mode.add_argument('--evidence-dir', type=Path, help='legacy bundle requiring: ' + ', '.join(EVIDENCE_FILES) + '; complete files do not guarantee success: current target hashes and repository projections must still match; the link count is historical; use --delivery-pointer for current documents')
     mode.add_argument('--delivery-pointer', type=Path, help='current MedAgent document delivery pointer')
     mode.add_argument('--repository-documents', action='store_true', help='portable book/coverage/link gate; no private desktop evidence')
+    parser.add_argument('--executed-tests', type=int, help='with --repository-documents, compare this actual pytest passed count')
     parser.add_argument('--output', type=Path, help='Create a new JSON summary; existing files are never overwritten')
     args = parser.parse_args()
+    if args.executed_tests is not None and not args.repository_documents:
+        parser.error('--executed-tests requires --repository-documents')
     try:
-        result = (verify_repository_documents() if args.repository_documents else
+        result = (verify_repository_documents(args.executed_tests) if args.repository_documents else
                   verify_current_delivery(args.delivery_pointer.resolve()) if args.delivery_pointer
                   else summarize(args.evidence_dir.resolve()))
         rendered = json.dumps(result, ensure_ascii=False, indent=2)

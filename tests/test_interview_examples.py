@@ -134,6 +134,17 @@ def test_refresh_handles_translated_paragraphs_and_rejects_missing_or_duplicate_
     assert '本轮记录' not in review_block(marked, '最新记录')
 
 
+def test_regression_evidence_never_invents_a_historical_count_without_validation():
+    from scripts.annotate_medagent_documents import regression_evidence
+    missing = regression_evidence(None)
+    assert '479' not in missing and '项通过' not in missing
+    preserved = regression_evidence(None,{'passed':9})
+    assert '仓库记录的代码与依赖回归 9 项通过' in preserved
+    assert '不表示本机刚执行' in preserved
+    local = regression_evidence({'test_counts':{'passed':10},'elapsed_seconds':1.2,'run_id':'new-run'})
+    assert '本轮代码与依赖回归 10 项通过' in local and 'new-run' in local
+
+
 @pytest.mark.parametrize('extra_chapter', [None, '02-新增.md', '02-新增.MD', '专题/02-新增.MD'])
 def test_refresh_corrects_legacy_delivery_scope_and_remains_idempotent(tmp_path, monkeypatch, extra_chapter, case_sensitive_markdown_globs):
     import json

@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT))
 from scripts.medagent_terminology import annotate_markdown, annotate_text
 from scripts.preflight_git import _markdown_headings, _markdown_without_fences
 from scripts.record_document_checks import latest_test_validation
-from scripts.verify_delivery_evidence import default_desktop_pairs, repository_markdown_paths
+from scripts.verify_delivery_evidence import default_desktop_pairs, repository_markdown_paths, verified_code_regression
 
 
 def replace_paragraph(text, prefix, replacement):
@@ -30,6 +30,17 @@ def review_block(text, body):
             raise ValueError('文档校正记录标记不完整')
         return re.sub(re.escape(start) + '.*?' + re.escape(end), lambda _: block, text, flags=re.S)
     return text.rstrip() + '\n\n' + block + '\n'
+
+
+def regression_evidence(validation, preserved=None):
+    if validation:
+        return (f"本轮代码与依赖回归 {validation['test_counts']['passed']} 项通过；"
+                f"记录器采集耗时 {validation['elapsed_seconds']} 秒，包含元数据采集、子进程启动、测试执行与临时目录清理；"
+                f"pytest 自报的测试耗时见原始日志，两者不等同，也不作接口性能指标。执行标识 `{validation['run_id']}`。")
+    if preserved:
+        return (f"仓库记录的代码与依赖回归 {preserved['passed']} 项通过；"
+                "该记录的代码与依赖指纹仍匹配，本机没有可复核的完整测试原始记录；本句不表示本机刚执行过测试。")
+    return "本轮代码回归尚无与当前代码匹配的成功记录；须重新运行测试后再生成成功声明。"
 
 
 def refresh():
@@ -109,10 +120,16 @@ def refresh():
     text = (replace_paragraph(text, '英文译注刷新入口：', annotation_note)
             if '英文译注刷新入口：' in text else text.rstrip()+'\n\n'+annotation_note+'\n')
     validation = latest_test_validation()
-    evidence = (f"本轮代码与依赖回归 {validation['test_counts']['passed']} 项通过；"
-                f"记录器采集耗时 {validation['elapsed_seconds']} 秒，包含元数据采集、子进程启动、测试执行与临时目录清理；"
-                f"pytest 自报的测试耗时见原始日志，两者不等同，也不作接口性能指标。执行标识 `{validation['run_id']}`。"
-                if validation else "本轮代码回归尚无与当前代码匹配的成功记录；历史 479 项不得标为当前。")
+    if validation:
+        coverage['code_regression'] = {'scope':'code_and_dependencies',
+            'passed':validation['test_counts']['passed'],
+            'code_sha256':{Path(path).relative_to(ROOT).as_posix():digest
+                           for path,digest in validation['code_sha256'].items()}}
+    try:
+        preserved = verified_code_regression(coverage, ROOT) if not validation else None
+    except (ValueError, OSError, subprocess.SubprocessError):
+        preserved = None
+    evidence = regression_evidence(validation, preserved)
     review = ("2026-10-13：在话术、14 份题库、理解指南、工程对照和流程图补充中文译注；"
               "术语、工具名、参数名逐项说明，代码与路径不改写。文件格式集中说明：.md 是 Markdown 文档，.txt 是纯文本原件，.json 是结构化数据文件，.svg 是矢量图，.png 是位图。"
               "已去除文件后缀的重复译注。17 个独立段落示例从上一题分离为章节附录，问答和示例总量不变。"
@@ -121,6 +138,7 @@ def refresh():
               "静态检查和代码指纹识别 .PY，不代表 pytest 会执行这类文件。tests/ 内的 Python 文件（含辅助模块）须使用小写 .py 后缀；预检对 tests、Tests、TESTS 使用同一规则，真实 pytest 收集也会拒绝后缀大小写错误，改名后再运行。"
               "测试目录应使用配置中的 tests 拼写；目录名大小写的实际发现结果取决于文件系统，本次运行环境为 Windows，不能作为 Linux 实机验证。"
               "该记录的 validation_scope 为 code_and_dependencies，code_sha256 核对代码与依赖；input_sha256 保留测试启动时的整工作区快照，后续文档再生成可使它与当前不同。recorded_input_differences 列出变化，不能把代码回归有效解释为所有文档哈希仍匹配。"
+              "覆盖清单另保存可随仓库分发的回归数及相对代码/依赖指纹；仓库入口和本机交付均检查三份说明稿的必填成功句，完整预检还用实际 pytest 数量复核。仓库记录不替代本机日志或远端 CI 结果。"
               f"该计数核验代码与依赖；生成后的当前文档另行核验 {coverage['question_count']:,} 处引用、{coverage['example_count']} 个示例内容和 {repository_docs + desktop_docs} 份本地链接，不能用代码回归代替文档核验。"
               "当前文档独立核验入口为 artifacts/medagent_upgrade_20261013/latest_document_delivery.json，所指报告逐项保存当前文档哈希与覆盖清单哈希。"
               "当前核验使用随仓库分发的 scripts/verify_delivery_evidence.py，传入 --delivery-pointer 和上述入口；该命令重算文档、原件、示例与桌面正文，并核对文档宣称的测试数。"
@@ -168,6 +186,7 @@ def refresh():
         text = ''.join(part if part.startswith('```') else re.sub(
             r'\[([^\]\n]+)\]\((<[^>\n]+>|[^)\s]+)\)', link, part) for part in parts)
         path.write_text(text, encoding='utf-8', newline='\n')
+    (library/'coverage.json').write_text(json.dumps(coverage,ensure_ascii=False,indent=2)+'\n',encoding='utf-8',newline='\n')
     print(json.dumps({'annotated_documents': len(targets), 'example_associations': count}, ensure_ascii=False))
 
 

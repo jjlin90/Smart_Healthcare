@@ -14,7 +14,8 @@ REAL_DEFAULT_DESKTOP_PAIRS = verifier.default_desktop_pairs
 
 def scope_claims(repository, desktop, questions=1, examples=1):
     return (f'当前链接审计为仓库 {repository} 份及桌面 {desktop} 份，共 {repository+desktop} 份。\n'
-            f'生成后的当前文档另行核验 {questions} 处引用、{examples} 个示例内容和 {repository+desktop} 份本地链接。\n')
+            f'生成后的当前文档另行核验 {questions} 处引用、{examples} 个示例内容和 {repository+desktop} 份本地链接。\n'
+            '本轮代码与依赖回归 5 项通过。\n')
 
 
 @pytest.mark.parametrize('formatted,accepted', [
@@ -185,6 +186,7 @@ def current_delivery(tmp_path, monkeypatch):
     original_path = source.relative_to(root).as_posix()
     block = next(re.finditer(r'^```[^\n]*\n(.*?)^```\s*$', original, re.M | re.S))
     coverage = {'question_count': 1, 'example_count': 1,
+                'code_regression': {'scope':'code_and_dependencies','passed':5,'code_sha256':{}},
                 'source_files': [{'original_local_path': original_path, 'sha256': verifier.sha(source)}],
                 'questions': [{'original_local_path': original_path, 'line': 1, 'question': '怎么调度？', 'book_anchor': 'full-q'}],
                 'examples': [{'original_local_path': original_path, 'line': 2, 'book_anchor': 'full-example',
@@ -224,6 +226,7 @@ def current_delivery(tmp_path, monkeypatch):
     write_json(directory, 'report.json', report)
     write_json(directory, 'pointer.json', {'report': str(directory/'report.json'), 'report_sha256': verifier.sha(directory/'report.json')})
     monkeypatch.setattr(verifier, 'ROOT', root)
+    monkeypatch.setattr(verifier, 'REGRESSION_DOCUMENTS', ('README.md',))
     monkeypatch.setattr(verifier, 'verification_head', lambda: 'fixture-head')
     monkeypatch.setattr(verifier, 'latest_test_validation', lambda: {'test_counts': {'passed': 5}, 'run_id': 'fixture-run'})
     # Keep evidence-parser unit cases minimal; integration cases restore the real plan.
@@ -673,3 +676,106 @@ def test_preflight_executes_delivery_gates_and_blocks_stale_evidence(tmp_path, m
 def test_ci_executes_portable_delivery_verifier():
     workflow = Path(__file__).resolve().parents[1] / '.github/workflows/verify.yml'
     assert 'python scripts/verify_delivery_evidence.py --repository-documents' in workflow.read_text(encoding='utf-8')
+
+
+@pytest.fixture
+def regression_repository(tmp_path, monkeypatch):
+    subprocess.run(['git','init','-q',str(tmp_path)],check=True)
+    code = tmp_path/'worker.py'
+    code.write_text('value = 1\n',encoding='utf-8')
+    paths = [tmp_path/name for name in verifier.REGRESSION_DOCUMENTS]
+    for path in paths:
+        path.parent.mkdir(parents=True,exist_ok=True)
+        path.write_text('本轮代码与依赖回归 5 项通过。\n',encoding='utf-8')
+    monkeypatch.setattr(verifier,'ROOT',tmp_path)
+    coverage = {'code_regression':{'scope':'code_and_dependencies','passed':5,
+                                  'code_sha256':{'worker.py':verifier.sha(code)}}}
+    return coverage, paths, code
+
+
+@pytest.mark.parametrize('change', ['wrong_one','all_wrong','empty','removed','duplicate',
+                                   'leading_zero','negative','missing_success','missing_document'])
+def test_required_regression_claims_fail_closed_without_local_evidence(regression_repository, change):
+    coverage, paths, _ = regression_repository
+    assert verifier.verified_code_regression(coverage,verifier.ROOT)['passed'] == 5
+    verifier.verify_document_test_claims(paths,5)
+    original = {p:p.read_text(encoding='utf-8') for p in paths}
+    # Every required document is independently protected, even if other claims remain valid.
+    for target in paths:
+        for path,text in original.items():
+            path.write_text(text,encoding='utf-8')
+        chosen = paths if change == 'all_wrong' else [target]
+        for path in chosen:
+            text = original[path]
+            if change in ('wrong_one','all_wrong'):
+                text = text.replace(' 5 ',' 999 ')
+            elif change == 'empty':
+                text = text.replace(' 5 ','  ')
+            elif change == 'removed':
+                text = '# 其他内容\n'
+            elif change == 'duplicate':
+                text += text
+            elif change == 'leading_zero':
+                text = text.replace(' 5 ',' 05 ')
+            elif change == 'negative':
+                text = text.replace(' 5 ',' -5 ')
+            elif change == 'missing_success':
+                text = text.replace('项通过','项待验证')
+            if change == 'missing_document':
+                path.unlink()
+            else:
+                path.write_text(text,encoding='utf-8')
+        with pytest.raises((ValueError,OSError)):
+            verifier.verify_document_test_claims([p for p in paths if p.exists()],5)
+
+
+@pytest.mark.parametrize('change', ['missing','boolean','zero','scope','absolute_key','changed','added','removed'])
+def test_portable_regression_record_tracks_code_not_private_files(regression_repository, change):
+    coverage, _, code = regression_repository
+    assert verifier.verified_code_regression(coverage,verifier.ROOT)['passed'] == 5
+    if change == 'missing':
+        coverage.clear()
+    elif change == 'boolean':
+        coverage['code_regression']['passed'] = True
+    elif change == 'zero':
+        coverage['code_regression']['passed'] = 0
+    elif change == 'scope':
+        coverage['code_regression']['scope'] = 'all_documents'
+    elif change == 'absolute_key':
+        coverage['code_regression']['code_sha256'] = {str(code):verifier.sha(code)}
+    elif change == 'changed':
+        code.write_text('value = 2\n',encoding='utf-8')
+    elif change == 'added':
+        (code.parent/'extra.PY').write_text('value = 2\n',encoding='utf-8')
+    else:
+        code.unlink()
+    with pytest.raises(ValueError,match='regression'):
+        verifier.verified_code_regression(coverage,verifier.ROOT)
+
+
+@pytest.mark.parametrize('executed', [4,5,6])
+def test_portable_gate_compares_executed_pytest_count(current_delivery, executed):
+    if executed == 5:
+        assert verifier.verify_repository_documents(executed)['executed_pytest_passed'] == 5
+    else:
+        with pytest.raises(ValueError,match='executed pytest count differs'):
+            verifier.verify_repository_documents(executed)
+
+
+@pytest.mark.parametrize('state', ['matched','mismatched','missing_summary'])
+def test_full_preflight_checks_actual_test_count_before_reporting_success(monkeypatch, state):
+    calls = []
+    def run(command):
+        calls.append(command)
+        if 'pytest' in command:
+            return SimpleNamespace(returncode=0,stdout='5 passed in 0.01s' if state != 'missing_summary' else 'unrecognized',stderr='')
+        if '--executed-tests' in command:
+            assert command[-1] == '5'
+            return SimpleNamespace(returncode=int(state == 'mismatched'),stdout='',stderr='count differs')
+        return SimpleNamespace(returncode=0,stdout='No broken requirements found.',stderr='')
+    monkeypatch.setattr(preflight_git,'run',run)
+    report = preflight_git.Report()
+    preflight_git._run_quality_commands(report,'isolated-unused-test-path')
+    assert bool(report.errors) is (state != 'matched')
+    assert any('--executed-tests' in call for call in calls) is (state != 'missing_summary')
+    assert any(line.startswith('pytest 通过') for line in report.passed) is (state == 'matched')

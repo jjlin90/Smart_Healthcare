@@ -778,6 +778,16 @@ def _run_quality_commands(report: Report, basetemp: str) -> None:
         result = run(command)
         if result.returncode == 0:
             detail = result.stdout.strip().splitlines()
+            if label == 'pytest':
+                count = re.search(r'^(\d+) passed(?:,.*?)? in [\d.]+s', detail[-1] if detail else '')
+                if count is None:
+                    report.error('pytest 成功输出缺少可核验的通过数')
+                    continue
+                claims = run([sys.executable, 'scripts/verify_delivery_evidence.py',
+                              '--repository-documents', '--executed-tests', count[1]])
+                if claims.returncode:
+                    report.error('pytest 实际通过数与文档回归记录核验失败：' + (claims.stderr or claims.stdout).strip()[-600:])
+                    continue
             report.ok(f"{label} 通过" + (f"：{detail[-1]}" if detail else ""))
         else:
             output = (result.stdout + "\n" + result.stderr).strip()

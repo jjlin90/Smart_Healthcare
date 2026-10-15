@@ -171,7 +171,7 @@ def test_preflight_rejects_noncanonical_test_suffix(tmp_path, monkeypatch, suffi
     pytest.param("conftest", ".PY", id="conftest-uppercase"),
     pytest.param("conftest", ".py", id="conftest-lowercase"),
 ])
-def test_real_pytest_never_silently_skips_noncanonical_test_suffix(tmp_path, monkeypatch, basename, suffix):
+def test_real_pytest_enforces_python_file_suffix_policy(tmp_path, monkeypatch, basename, suffix):
     import os
     from pathlib import Path
     import shutil
@@ -195,6 +195,8 @@ def test_real_pytest_never_silently_skips_noncanonical_test_suffix(tmp_path, mon
     report = scanner.Report()
     scanner.check_python_syntax(report, [source])
     assert bool(report.errors) is (suffix != ".py")
+    if suffix != ".py":
+        assert f"{source.relative_to(tmp_path).as_posix()}: 测试目录中的 Python 文件必须使用小写 .py 后缀" in report.errors[0]
     result = subprocess.run(
         [sys.executable, "-m", "pytest", "-p", "no:cacheprovider", "-q"], cwd=tmp_path,
         env={**os.environ, "PYTEST_DISABLE_PLUGIN_AUTOLOAD": "1", "PYTHONIOENCODING": "utf-8", "PYTHONPATH": str(root)},
@@ -211,8 +213,8 @@ def test_real_pytest_never_silently_skips_noncanonical_test_suffix(tmp_path, mon
         assert "COLLECTION_SENTINEL" not in output
     else:
         assert result.returncode != 0, output
-        assert "小写 .py 后缀" in output
-        assert source.name in output
+        assert "pytest.UsageError:" in output
+        assert f"{source.name}: 测试目录中的 Python 文件必须使用小写 .py 后缀" in output
         assert "1 passed" not in output
 
 

@@ -60,6 +60,11 @@ def hashes(paths: list[Path]) -> dict[str, str]:
             for path in paths if path.is_file()}
 
 
+def is_code_dependency(path: Path) -> bool:
+    return path.suffix.lower() == '.py' or path.name in (
+        'requirements.txt', 'requirements-dev.txt', 'constraints.txt', 'pyproject.toml')
+
+
 def expect_regression_failure(check) -> str:
     """Detect assertion failures, including pytest.raises' Failed outcome.
 
@@ -97,7 +102,7 @@ def latest_test_validation() -> dict | None:
         paths = candidates()
         current_inputs = hashes(paths)
         current_code = {str(p.resolve()): current_inputs[str(p.resolve())] for p in paths
-                        if (p.suffix.lower() == '.py' or p.name in ('requirements.txt', 'requirements-dev.txt', 'constraints.txt', 'pyproject.toml'))
+                        if is_code_dependency(p)
                         and str(p.resolve()) in current_inputs}
         if (data['kind'] != 'tests' or data['exit_code'] != 0 or not data['inputs_unchanged']
                 or data['test_counts']['total'] < 1
@@ -331,7 +336,7 @@ def record(kind: str, output: Path, desktop: Path | None = None,
         pointer.write_text(json.dumps({**metadata, 'validation_scope': 'code_and_dependencies', 'report': str(output),
             'report_sha256': hashes([output])[str(output)],
             'code_sha256': {path: digest for path, digest in before.items()
-                if Path(path).suffix.lower() == '.py' or Path(path).name in ('requirements.txt', 'requirements-dev.txt', 'constraints.txt', 'pyproject.toml')}
+                if is_code_dependency(Path(path))}
             }, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     print(json.dumps({'output': str(output), 'exit_code': code, 'run_id': metadata['run_id'],
                       'inputs_unchanged': stable}, ensure_ascii=False))
