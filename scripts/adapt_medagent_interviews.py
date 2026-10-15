@@ -400,9 +400,25 @@ SPECIAL = {
 }
 
 
-def build(source: Path):
-    paths = sorted(source.glob("*.md")) or sorted(source.glob("*.txt"))
+def source_paths(source: Path) -> list[Path]:
+    """Discover either Markdown or text originals with portable suffix handling."""
+    files = sorted(path for path in source.iterdir() if path.is_file())
+    paths = [path for path in files if path.suffix.lower() == '.md'] or [
+        path for path in files if path.suffix.lower() == '.txt']
     if len(paths) != 14: raise ValueError(f"预期读取14份原文，实际{len(paths)}份；先核对来源")
+    return paths
+
+
+def default_source() -> Path:
+    try:
+        source_paths(PRESERVED)
+        return PRESERVED
+    except (FileNotFoundError, NotADirectoryError, ValueError):
+        return Path(os.environ.get("USERPROFILE", str(Path.home()))) / "Desktop" / "MedAgent_AI_多Agent项目"
+
+
+def build(source: Path):
+    paths = source_paths(source)
     for path in paths:
         preserve_original(path)
     DEST.mkdir(parents=True, exist_ok=True)
@@ -506,6 +522,5 @@ def build(source: Path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    preserved = PRESERVED
-    parser.add_argument("--source", type=Path, default=preserved if len(list(preserved.glob('*.txt'))) == 14 else Path(os.environ.get("USERPROFILE", str(Path.home()))) / "Desktop" / "MedAgent_AI_多Agent项目")
+    parser.add_argument("--source", type=Path, default=default_source())
     build(parser.parse_args().source)

@@ -80,7 +80,7 @@ def refresh():
             "话术中的原文行号指向仓库根目录下 artifacts/medagent_upgrade_20261013/原始资料/*.txt 的本地原件；同名桌面 .md 为适配稿，原件不随克隆分发。"
             f"{count['question']} 个示例归属问答，{count['chapter_overview']} 个章首概览，{count['chapter_appendix']} 个章节附录。"
             f"完整链接审计范围为{link_scope}。独立 RAG 稿不纳入本轮。先查看 artifacts/medagent_upgrade_20261013/latest_link_audit.json，"
-            "再打开 report 所指完整报告获取起止时间、清单和哈希。输入哈希识别工作区字节，HEAD 不代表未提交改动。")
+            "再打开 report 所指完整报告获取起止时间、清单和哈希。链接报告哈希对应其检查时的文档；代码测试的 input_sha256 是测试启动时的整工作区快照，生成文档后可不同。代码有效性核对 code_sha256，具体变化查看 recorded_input_differences；当前文档另看交付报告。HEAD 不代表未提交改动。")
     guide_text = text
     readme = ROOT / 'README.md'
     text = readme.read_text(encoding='utf-8')
@@ -102,8 +102,9 @@ def refresh():
         '覆盖清单的 source 是适配映射键，original_local_path 才是本机原件路径。'
         '链接审计检查本地文件及锚点；Git 索引可分发检查另由预检执行，external_urls 仅列举外部网址。'
         '审计的 worktree_dirty 表示记录生成时的未提交改动，输入哈希识别实际检查内容。'
-        '统计门禁核对约定统计段落的数值及完整性，接受纯数字或标准三位分组的千分位格式；任意历史叙述仍需人工核对。'
-        '当前 --delivery-pointer 会现场重算完整文档范围的链接；旧 --evidence-dir 的链接份数来自历史报告，不等于当前完整链接扫描。')
+        '统计门禁核对约定统计段落的数值及完整性，接受无前导零的整数或标准三位分组的千分位格式；任意历史叙述仍需人工核对。'
+        '当前 --delivery-pointer 会现场重算完整文档范围的链接；旧 --evidence-dir 的链接份数来自历史报告，不等于当前完整链接扫描。'
+        '旧入口须提供 preflight.log、quick.log、anchor_drift.json、document_links.json、latest_desktop_receipt.json 和 desktop_manifest.json 六份输入，不能把任意 artifacts 目录传入。')
     text = (replace_paragraph(text, '英文译注刷新入口：', annotation_note)
             if '英文译注刷新入口：' in text else text.rstrip()+'\n\n'+annotation_note+'\n')
     validation = latest_test_validation()
@@ -116,6 +117,7 @@ def refresh():
               "已去除文件后缀的重复译注。17 个独立段落示例从上一题分离为章节附录，问答和示例总量不变。"
               "刷新器按唯一段落标记更新，缺失或重复会报错；保留历史验证口径。原件读取不再重写，mtime 不能证明首次捕获时间。\n\n"
               + evidence + "测试命令、代码指纹及原始结果见 artifacts/medagent_upgrade_20261013/latest_engineering_test_run.json 指向的记录。"
+              "该记录的 validation_scope 为 code_and_dependencies，code_sha256 核对代码与依赖；input_sha256 保留测试启动时的整工作区快照，后续文档再生成可使它与当前不同。recorded_input_differences 列出变化，不能把代码回归有效解释为所有文档哈希仍匹配。"
               f"该计数核验代码与依赖；生成后的当前文档另行核验 {coverage['question_count']:,} 处引用、{coverage['example_count']} 个示例内容和 {repository_docs + desktop_docs} 份本地链接，不能用代码回归代替文档核验。"
               "当前文档独立核验入口为 artifacts/medagent_upgrade_20261013/latest_document_delivery.json，所指报告逐项保存当前文档哈希与覆盖清单哈希。"
               "当前核验使用随仓库分发的 scripts/verify_delivery_evidence.py，传入 --delivery-pointer 和上述入口；该命令重算文档、原件、示例与桌面正文，并核对文档宣称的测试数。"

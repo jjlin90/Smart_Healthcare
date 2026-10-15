@@ -93,7 +93,7 @@ def verify_document_scope_claims(coverage: dict, desktop_count: int) -> None:
         scopes = re.findall(r'(?:当前链接审计为|链接审计统一覆盖|完整链接审计范围为)\s*仓库\s+(\d+)\s+份及桌面\s+(\d+)\s+份，共\s+(\d+)\s+份', text)
         require(len(scopes) == 1 and tuple(map(int, scopes[0])) == expected,
                 'delivery: document scope claim differs')
-        claims = re.findall(r'生成后的当前文档另行核验\s+([0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\s+处引用、\s*(\d+)\s+个示例内容和\s*(\d+)\s+份本地链接', text)
+        claims = re.findall(r'生成后的当前文档另行核验\s+([1-9][0-9]{0,2}(?:,[0-9]{3})+|0|[1-9][0-9]*)\s+处引用、\s*(\d+)\s+个示例内容和\s*(\d+)\s+份本地链接', text)
         require(len(claims) == 1 and
                 tuple(int(n.replace(',', '')) for n in claims[0]) ==
                 (coverage['question_count'], coverage['example_count'], expected[2]),
@@ -413,6 +413,9 @@ def verify_current_delivery(pointer_path: Path) -> dict:
     return {'verified_at_utc': datetime.now(timezone.utc).isoformat(), 'head': verification_head(),
             'pytest_passed': passed, 'document_files_checked': len(documents), 'document_issues': 0,
             'document_link_count_basis': 'recomputed_current_documents',
+            'code_regression_scope': validation.get('validation_scope', 'code_and_dependencies'),
+            'recorded_test_inputs_match_current': validation.get('recorded_inputs_match_current'),
+            'recorded_test_input_differences': validation.get('recorded_input_differences'),
             'questions_verified': len(coverage['questions']), 'examples_verified': len(coverage['examples']),
             'example_adaptations': adaptations, 'desktop_targets_matched': len(entries),
             'verifier_path': 'scripts/verify_delivery_evidence.py', 'verifier_sha256': sha(Path(__file__)),
@@ -423,7 +426,7 @@ def verify_current_delivery(pointer_path: Path) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument('--evidence-dir', type=Path, help='historical reports and target hashes; link count comes from the stored report, without rescanning its full document scope')
+    mode.add_argument('--evidence-dir', type=Path, help='legacy bundle requiring: ' + ', '.join(EVIDENCE_FILES) + '; the link basis describes only its stored link count; use --delivery-pointer for current documents')
     mode.add_argument('--delivery-pointer', type=Path, help='current MedAgent document delivery pointer')
     mode.add_argument('--repository-documents', action='store_true', help='portable book/coverage/link gate; no private desktop evidence')
     parser.add_argument('--output', type=Path, help='Create a new JSON summary; existing files are never overwritten')

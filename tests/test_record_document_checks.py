@@ -59,7 +59,8 @@ def metadata(path):
 
 
 @pytest.mark.parametrize('advance_head', [False, True])
-def test_git_observation_records_concurrent_commit_without_rejecting(repository, monkeypatch, advance_head):
+@pytest.mark.parametrize('entrypoint', ['direct', 'cli'])
+def test_git_observation_records_concurrent_commit_without_rejecting(repository, monkeypatch, advance_head, entrypoint):
     original_git = recorder.git
     before = original_git('rev-parse', 'HEAD')
     def observe(*args):
@@ -69,7 +70,14 @@ def test_git_observation_records_concurrent_commit_without_rejecting(repository,
                             '-qm', 'concurrent fixture commit'], check=True)
         return original_git(*args)
     monkeypatch.setattr(recorder, 'git', observe)
-    result = recorder.observe_git_state()
+    if entrypoint == 'cli':
+        output = repository/'artifacts/git-observation.json'
+        assert invoke(monkeypatch, output, 'git-observation') == 0
+        result = metadata(output)
+        assert result['kind'] == 'git-observation'
+        assert result['command'][-4:] == ['--kind', 'git-observation', '--output', str(output.resolve())]
+    else:
+        result = recorder.observe_git_state()
     assert result['local_head_before'] == before
     assert result['local_head_after'] == original_git('rev-parse', 'HEAD')
     assert (result['local_head_before'] != result['local_head_after']) is advance_head
@@ -237,12 +245,23 @@ def test_junit_counts_and_current_validation_reject_changed_code_or_counts(repos
     validation = recorder.latest_test_validation()
     assert validation['validation_scope'] == 'code_and_dependencies'
     assert validation['recorded_inputs_match_current'] is True
+    assert validation['recorded_input_differences'] == {'added': [], 'removed': [], 'changed': []}
     readme = repository / 'README.md'
     before = readme.read_bytes()
     readme.write_text('# Regenerated document\n', encoding='utf-8')
     validation = recorder.latest_test_validation()
     assert validation['test_counts'] == counts
     assert validation['recorded_inputs_match_current'] is False
+    assert validation['recorded_input_differences'] == {'added': [], 'removed': [], 'changed': [str(readme.resolve())]}
+    readme.write_bytes(before)
+    extra = repository/'new.md'
+    extra.write_text('# Added document\n', encoding='utf-8')
+    readme.unlink()
+    validation = recorder.latest_test_validation()
+    assert validation['recorded_inputs_match_current'] is False
+    assert validation['recorded_input_differences'] == {
+        'added': [str(extra.resolve())], 'removed': [str(readme.resolve())], 'changed': []}
+    extra.unlink()
     readme.write_bytes(before)
     data['test_counts'] = {**counts, 'passed': 480}
     pointer.write_text(json.dumps(data), encoding='utf-8')
@@ -289,7 +308,8 @@ def test_quick_rejects_input_or_head_changes_even_when_child_succeeds(repository
 
 
 @pytest.mark.parametrize('location', ['existing', 'outside', 'not_ignored', 'missing_parent'])
-def test_cli_rejects_unsafe_outputs_without_overwriting(repository, tmp_path, monkeypatch, capsys, location):
+@pytest.mark.parametrize('kind', ['quick', 'git-observation'])
+def test_cli_rejects_unsafe_outputs_without_overwriting(repository, tmp_path, monkeypatch, capsys, location, kind):
     paths = {'existing': repository / 'artifacts/existing.log',
              'outside': repository.parent / (repository.name + '-outside.log'),
              'not_ignored': repository / 'unignored.log',
@@ -297,7 +317,7 @@ def test_cli_rejects_unsafe_outputs_without_overwriting(repository, tmp_path, mo
     output = paths[location]
     if location == 'existing':
         output.write_bytes(b'preserve evidence')
-    assert invoke(monkeypatch, output) == 1
+    assert invoke(monkeypatch, output, kind) == 1
     message = capsys.readouterr().err
     expected = {'existing': 'File exists', 'outside': 'output must be inside',
                 'not_ignored': 'output must be ignored', 'missing_parent': 'No such file'}

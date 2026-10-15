@@ -3,6 +3,31 @@ import pytest
 from scripts.adapt_medagent_interviews import source_examples, append_examples
 
 
+@pytest.mark.parametrize('suffix', ['.md', '.MD', '.txt', '.TXT'])
+def test_original_discovery_accepts_case_insensitive_suffixes(tmp_path, monkeypatch, suffix, case_sensitive_markdown_globs):
+    from scripts import adapt_medagent_interviews as adapter
+    paths = [tmp_path/f'{index:02d}-source{suffix}' for index in range(14)]
+    for path in paths:
+        path.write_text('# Original\n', encoding='utf-8')
+    monkeypatch.setattr(adapter, 'PRESERVED', tmp_path)
+    assert adapter.source_paths(tmp_path) == paths
+    assert adapter.default_source() == tmp_path
+    assert all(path.read_text(encoding='utf-8') == '# Original\n' for path in paths)
+
+
+def test_original_discovery_prefers_markdown_and_rejects_partial_inventory(tmp_path, case_sensitive_markdown_globs):
+    from scripts.adapt_medagent_interviews import source_paths
+    markdown = [tmp_path/f'{index:02d}-source.MD' for index in range(14)]
+    for path in markdown:
+        path.write_text('# Markdown\n', encoding='utf-8')
+        path.with_suffix('.txt').write_text('# Text\n', encoding='utf-8')
+    (tmp_path/'ignored.json').write_text('{}', encoding='utf-8')
+    assert source_paths(tmp_path) == markdown
+    markdown[-1].unlink()
+    with pytest.raises(ValueError, match='实际13份'):
+        source_paths(tmp_path)
+
+
 def test_all_fenced_examples_survive_including_before_first_question(tmp_path):
     source = tmp_path / "00-overview.txt"
     source.write_text('# 概览\n```mermaid\nflowchart TD\n A[查订单] --> B[退款评估]\n```\n'

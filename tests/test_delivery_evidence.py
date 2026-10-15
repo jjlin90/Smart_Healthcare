@@ -18,7 +18,8 @@ def scope_claims(repository, desktop, questions=1, examples=1):
 
 
 @pytest.mark.parametrize('formatted,accepted', [
-    ('1260', True), ('1,260', True), ('12,60', False), ('1,,260', False), ('1,200', False)])
+    ('1260', True), ('1,260', True), ('12,60', False), ('1,,260', False), ('1,200', False),
+    ('01,260', False), ('001,260', False), ('01260', False), ('001260', False)])
 def test_coverage_claim_requires_valid_numeric_grouping(tmp_path, monkeypatch, formatted, accepted):
     paths = (tmp_path/'README.md', tmp_path/'docs/MedAgent_项目理解指南.md',
              tmp_path/'docs/MedAgent_文档对照与工程改进_2026-10-13.md')

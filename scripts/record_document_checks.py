@@ -94,16 +94,30 @@ def latest_test_validation() -> dict | None:
         data = json.loads(pointer.read_text(encoding='utf-8'))
         report = Path(data['report'])
         xml = Path(data['junit_report'])
+        paths = candidates()
+        current_inputs = hashes(paths)
+        current_code = {str(p.resolve()): current_inputs[str(p.resolve())] for p in paths
+                        if (p.suffix == '.py' or p.name in ('requirements.txt', 'requirements-dev.txt', 'constraints.txt', 'pyproject.toml'))
+                        and str(p.resolve()) in current_inputs}
         if (data['kind'] != 'tests' or data['exit_code'] != 0 or not data['inputs_unchanged']
                 or data['test_counts']['total'] < 1
                 or data['report_sha256'] != hashes([report]).get(str(report.resolve()))
                 or data['junit_sha256'] != hashes([xml]).get(str(xml.resolve()))
                 or data['test_counts'] != test_counts(xml)
-                or data['code_sha256'] != hashes([p for p in candidates()
-                    if p.suffix == '.py' or p.name in ('requirements.txt', 'requirements-dev.txt', 'constraints.txt', 'pyproject.toml')])):
+                or data['code_sha256'] != current_code):
             return None
+        frozen_inputs = data.get('input_sha256', {})
+        if not isinstance(frozen_inputs, dict):
+            return None
+        differences = {
+            'added': sorted(current_inputs.keys() - frozen_inputs.keys()),
+            'removed': sorted(frozen_inputs.keys() - current_inputs.keys()),
+            'changed': sorted(p for p in frozen_inputs.keys() & current_inputs.keys()
+                              if frozen_inputs[p] != current_inputs[p]),
+        }
         return {**data, 'validation_scope': 'code_and_dependencies',
-                'recorded_inputs_match_current': data.get('input_sha256') == hashes(candidates())}
+                'recorded_inputs_match_current': frozen_inputs == current_inputs,
+                'recorded_input_differences': differences}
     except (ValueError, KeyError, OSError, TypeError, ET.ParseError):
         return None
 
@@ -166,14 +180,33 @@ def check_links(paths: list[Path]) -> dict:
     return {'files': len(paths), 'issues': issues, 'external_urls': sorted(urls)}
 
 
-def record(kind: str, output: Path, desktop: Path | None = None,
-           extra_documents: list[Path] | None = None) -> int:
+def checked_output_path(output: Path) -> Path:
     output = output.resolve()
     if not output.is_relative_to(ROOT):
         raise ValueError('output must be inside the repository ignored artifacts directory')
     ignored = subprocess.run(['git', 'check-ignore', '-q', '--no-index', '--', str(output)], cwd=ROOT)
     if ignored.returncode != 0 or not output.is_relative_to(ROOT / 'artifacts'):
         raise ValueError('output must be ignored under artifacts/')
+    return output
+
+
+def record_git_observation(output: Path) -> int:
+    """Write one dated local Git observation to a new JSON file."""
+    output = checked_output_path(output)
+    observation = observe_git_state()
+    data = {**observation, 'kind': 'git-observation', 'run_id': str(uuid.uuid4()),
+            'command': [sys.executable, str(Path(__file__).resolve()), '--kind',
+                        'git-observation', '--output', str(output)]}
+    with output.open('x', encoding='utf-8', newline='\n') as stream:
+        json.dump(data, stream, ensure_ascii=False, indent=2)
+        stream.write('\n')
+    print(json.dumps({'output': str(output), 'kind': data['kind'], 'run_id': data['run_id']}, ensure_ascii=False))
+    return 0
+
+
+def record(kind: str, output: Path, desktop: Path | None = None,
+           extra_documents: list[Path] | None = None) -> int:
+    output = checked_output_path(output)
     # Reserve the filename before executing; existing evidence is never overwritten.
     with output.open('x', encoding='utf-8', newline='\n') as stream, ExitStack() as cleanup:
         started = datetime.now(timezone.utc).isoformat()
@@ -238,7 +271,7 @@ def record(kind: str, output: Path, desktop: Path | None = None,
                         'head': head, 'head_after': head_after, 'cwd': str(ROOT),
                         'worktree_dirty': bool(worktree_status),
                         'worktree_status_sha256': hashlib.sha256(worktree_status.encode()).hexdigest(),
-                        'snapshot_basis': 'input_sha256 identifies checked working-tree bytes; HEAD alone does not describe uncommitted contents.',
+                        'snapshot_basis': 'input_sha256 freezes workspace bytes at run start; code_sha256 scopes code regression. Later document generation is verified separately; HEAD alone does not describe uncommitted contents.',
                         'command': command, 'recorder_command': [sys.executable, *sys.argv], 'exit_code': code, 'inputs_unchanged': stable,
                         'input_sha256': before, 'checker_source_sha256': source_before}
             metadata['elapsed_seconds'] = round(time.monotonic() - timer, 3)
@@ -383,7 +416,7 @@ def record_desktop_snapshot(output: Path, receipt_path: Path, manifest_path: Pat
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--kind', choices=('quick', 'links', 'tests', 'desktop-snapshot'), required=True)
+    parser.add_argument('--kind', choices=('quick', 'links', 'tests', 'desktop-snapshot', 'git-observation'), required=True)
     parser.add_argument('--output', type=Path, required=True, help='new file, or new directory for desktop-snapshot, under ignored artifacts/')
     parser.add_argument('--desktop', type=Path, help='optional desktop directory for links mode')
     parser.add_argument('--extra-document', type=Path, action='append', default=[],
@@ -400,6 +433,8 @@ def main() -> int:
     if args.kind != 'desktop-snapshot' and (args.receipt is not None or args.manifest is not None):
         parser.error('--receipt/--manifest require --kind desktop-snapshot')
     try:
+        if args.kind == 'git-observation':
+            return record_git_observation(args.output)
         if args.kind == 'desktop-snapshot':
             return record_desktop_snapshot(args.output, args.receipt, args.manifest)
         return record(args.kind, args.output, args.desktop, args.extra_document)
