@@ -119,6 +119,7 @@ def refresh():
               "刷新器按唯一段落标记更新，缺失或重复会报错；保留历史验证口径。原件读取不再重写，mtime 不能证明首次捕获时间。\n\n"
               + evidence + "测试命令、代码指纹及原始结果见 artifacts/medagent_upgrade_20261013/latest_engineering_test_run.json 指向的记录。"
               "静态检查和代码指纹识别 .PY，不代表 pytest 会执行这类文件。tests/ 内的 Python 文件（含辅助模块）须使用小写 .py 后缀；预检对 tests、Tests、TESTS 使用同一规则，真实 pytest 收集也会拒绝后缀大小写错误，改名后再运行。"
+              "测试目录应使用配置中的 tests 拼写；目录名大小写的实际发现结果取决于文件系统，本次运行环境为 Windows，不能作为 Linux 实机验证。"
               "该记录的 validation_scope 为 code_and_dependencies，code_sha256 核对代码与依赖；input_sha256 保留测试启动时的整工作区快照，后续文档再生成可使它与当前不同。recorded_input_differences 列出变化，不能把代码回归有效解释为所有文档哈希仍匹配。"
               f"该计数核验代码与依赖；生成后的当前文档另行核验 {coverage['question_count']:,} 处引用、{coverage['example_count']} 个示例内容和 {repository_docs + desktop_docs} 份本地链接，不能用代码回归代替文档核验。"
               "当前文档独立核验入口为 artifacts/medagent_upgrade_20261013/latest_document_delivery.json，所指报告逐项保存当前文档哈希与覆盖清单哈希。"

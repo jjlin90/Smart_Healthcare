@@ -15,10 +15,10 @@ from backend.service_auth import delegated_context
 
 
 def pytest_collect_file(file_path, parent):
-    """Reject Python files that pytest's case-sensitive collector would skip."""
+    """Enforce canonical suffixes for Python files encountered under tests."""
     if file_path.suffix.lower() == ".py" and file_path.suffix != ".py":
         raise pytest.UsageError(
-            f"{file_path.name}: 测试目录中的 Python 文件必须使用小写 .py 后缀，避免 pytest 漏收集"
+            f"{file_path.name}: 测试目录中的 Python 文件必须使用小写 .py 后缀，请按项目命名约定改名"
         )
 
 
