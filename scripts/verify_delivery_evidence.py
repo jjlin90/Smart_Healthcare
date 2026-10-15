@@ -37,6 +37,14 @@ def default_desktop_pairs(root: Path, desktop: Path) -> list[tuple[Path, Path]]:
     return pairs
 
 
+def repository_markdown_paths(root: Path) -> set[Path]:
+    """Derive required repository documents independently of a supplied report."""
+    names = subprocess.check_output(
+        ['git', 'ls-files', '--cached', '--others', '--exclude-standard', '-z'], cwd=root).decode('utf-8')
+    return {(root / name).resolve() for name in names.split('\0')
+            if name and Path(name).suffix.lower() == '.md'}
+
+
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise ValueError(message)
@@ -312,15 +320,20 @@ def verify_current_delivery(pointer_path: Path) -> dict:
     require(all(Path(row['target']).suffix.lower() not in ('.html', '.pdf') for row in entries),
             'delivery: shared resume belongs to a separate delivery')
     mapping = {Path(row['source']).resolve(): Path(row['target']) for row in entries}
-    engineering_name = DESKTOP_DOCUMENTS[-1]
-    engineering_documents = [path for path in documents if path.name == engineering_name]
-    if engineering_documents:
-        source = (ROOT / 'docs' / engineering_name).resolve()
-        require(source in mapping, 'delivery: engineering document missing from desktop plan')
-        expected = {s.resolve(): t.resolve() for s, t in default_desktop_pairs(ROOT, mapping[source].parent)}
-        require(len(entries) == len(expected) and
-                {s: t.resolve() for s, t in mapping.items()} == expected,
-                'delivery: default desktop plan differs')
+    book_source = book_path.resolve()
+    require(book_source in mapping, 'delivery: primary book missing from desktop plan')
+    expected = {s.resolve(): t.resolve() for s, t in default_desktop_pairs(ROOT, mapping[book_source].parent)}
+    require(len(entries) == len(expected) and
+            {s: t.resolve() for s, t in mapping.items()} == expected,
+            'delivery: default desktop plan differs')
+    required_documents = repository_markdown_paths(ROOT) | {
+        target for source, target in expected.items() if source.suffix.lower() == '.md'}
+    require(len(documents) == len(required_documents) and
+            {path.resolve() for path in documents} == required_documents,
+            'delivery: document scope differs from required defaults')
+    engineering_source = (ROOT / 'docs' / DESKTOP_DOCUMENTS[-1]).resolve()
+    if engineering_source in expected:
+        engineering_documents = (engineering_source, expected[engineering_source])
         for path in engineering_documents:
             claims = re.findall(r'^桌面同步[^\n]*?共\s+(\d+)\s+个目标', path.read_text(encoding='utf-8-sig'), re.M)
             require(len(claims) == 1 and int(claims[0]) == len(expected),

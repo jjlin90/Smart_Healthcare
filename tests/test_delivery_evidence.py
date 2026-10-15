@@ -2,12 +2,14 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import subprocess
 from types import SimpleNamespace
 
 import pytest
 
 from scripts import verify_delivery_evidence as verifier
 from scripts import preflight_git
+REAL_DEFAULT_DESKTOP_PAIRS = verifier.default_desktop_pairs
 
 
 @pytest.mark.parametrize('extra', [None, 'nested/02-extra.md'])
@@ -172,6 +174,8 @@ def current_delivery(tmp_path, monkeypatch):
     book.write_text('# Book\n本轮代码与依赖回归 5 项通过。\n### full-q\n怎么调度？\n'
                     '#### full-example\n```json\n{}\n```\n', encoding='utf-8', newline='\n')
     (root / 'README.md').write_text('# Fixture\n', encoding='utf-8')
+    (root / '.gitignore').write_text('artifacts/\n', encoding='utf-8')
+    subprocess.run(['git', 'init', '-q', str(root)], check=True)
     target = tmp_path / 'desktop/MedAgent_AI_多Agent项目话术.md'
     target.parent.mkdir()
     target.write_bytes(book.read_bytes())
@@ -179,8 +183,9 @@ def current_delivery(tmp_path, monkeypatch):
                            'source_sha256': verifier.sha(book), 'target_sha256': verifier.sha(target)}]}
     write_json(directory, 'desktop_sync_receipt.json', receipt)
     report = {'validation_scope': 'current_documents_and_original_references',
-              'current_document_sha256': {str(book): verifier.sha(book), str(target): verifier.sha(target)},
-              'document_links_checked': 2, 'coverage_sha256': verifier.sha(library/'coverage.json'),
+              'current_document_sha256': {str(book): verifier.sha(book), str(target): verifier.sha(target),
+                                          str(root/'README.md'): verifier.sha(root/'README.md')},
+              'document_links_checked': 3, 'coverage_sha256': verifier.sha(library/'coverage.json'),
               'book_sha256': verifier.sha(book), 'question_count': 1, 'example_count': 1,
               'example_adaptations_verified': coverage['example_adaptation_counts'], 'desktop_hashes_verified': 1}
     write_json(directory, 'report.json', report)
@@ -188,6 +193,8 @@ def current_delivery(tmp_path, monkeypatch):
     monkeypatch.setattr(verifier, 'ROOT', root)
     monkeypatch.setattr(verifier, 'verification_head', lambda: 'fixture-head')
     monkeypatch.setattr(verifier, 'latest_test_validation', lambda: {'test_counts': {'passed': 5}, 'run_id': 'fixture-run'})
+    # Keep evidence-parser unit cases minimal; integration cases restore the real plan.
+    monkeypatch.setattr(verifier, 'default_desktop_pairs', lambda _root, desktop: [(book, desktop/book.name)])
     return directory, book, target, report, receipt
 
 
@@ -196,16 +203,19 @@ def test_current_delivery_verifies_claims_and_can_repeat_without_writing(current
     before = (book.read_bytes(), target.read_bytes())
     result = verifier.verify_current_delivery(directory/'pointer.json')
     assert result['pytest_passed'] == 5 and result['questions_verified'] == result['examples_verified'] == 1
-    assert result['document_files_checked'] == 2 and result['desktop_targets_matched'] == 1
+    assert result['document_files_checked'] == 3 and result['desktop_targets_matched'] == 1
     assert result['verifier_path'] == 'scripts/verify_delivery_evidence.py'
     assert verifier.verify_current_delivery(directory/'pointer.json')['test_run_id'] == 'fixture-run'
     assert before == (book.read_bytes(), target.read_bytes())
 
 
-@pytest.mark.parametrize('change', [None, 'count', 'target'])
-def test_current_delivery_checks_default_plan_and_document_count(current_delivery, change):
+@pytest.mark.parametrize('change', [None, 'count', 'target', 'omit_engineering_source',
+    'omit_engineering_target', 'omit_engineering_both', 'omit_engineering_receipt',
+    'omit_library_receipt', 'omit_book_receipt', 'omit_repo_readme', 'extra_document'])
+def test_current_delivery_checks_default_plan_and_document_count(current_delivery, change, monkeypatch):
     directory, book, target, report, _ = current_delivery
     root, desktop = book.parents[1], target.parent
+    monkeypatch.setattr(verifier, 'default_desktop_pairs', REAL_DEFAULT_DESKTOP_PAIRS)
     guide = root / 'docs/MedAgent_项目理解指南.md'
     guide.write_text('# Guide\n', encoding='utf-8')
     engineering = root / 'docs' / verifier.DESKTOP_DOCUMENTS[-1]
@@ -231,13 +241,38 @@ def test_current_delivery_checks_default_plan_and_document_count(current_deliver
                         'source_sha256': verifier.sha(source), 'target_sha256': verifier.sha(destination)})
         if source.suffix == '.md':
             documents.update({str(source): verifier.sha(source), str(destination): verifier.sha(destination)})
+    documents[str(root/'README.md')] = verifier.sha(root/'README.md')
+    engineering_target = desktop / engineering.name
+    if change in {'omit_engineering_source', 'omit_engineering_both', 'omit_engineering_receipt'}:
+        documents.pop(str(engineering))
+    if change in {'omit_engineering_target', 'omit_engineering_both', 'omit_engineering_receipt'}:
+        documents.pop(str(engineering_target))
+    if change == 'omit_engineering_receipt':
+        entries = [row for row in entries if Path(row['source']) != engineering]
+    elif change == 'omit_library_receipt':
+        entries = [row for row in entries if Path(row['source']).name != 'coverage.json']
+    elif change == 'omit_book_receipt':
+        entries = [row for row in entries if Path(row['source']) != book]
+    elif change == 'omit_repo_readme':
+        documents.pop(str(root/'README.md'))
+    elif change == 'extra_document':
+        extra = desktop.parent / 'outside.md'
+        extra.write_text('# Unrelated\n', encoding='utf-8')
+        documents[str(extra)] = verifier.sha(extra)
     report.update(current_document_sha256=documents, document_links_checked=len(documents), desktop_hashes_verified=len(entries))
     write_json(directory, 'desktop_sync_receipt.json', {'entries': entries})
     write_json(directory, 'report.json', report)
     write_json(directory, 'pointer.json', {'report': str(directory/'report.json'), 'report_sha256': verifier.sha(directory/'report.json')})
     before = {path: path.read_bytes() for path in [*map(Path, documents), directory/'report.json', directory/'desktop_sync_receipt.json']}
     if change:
-        reason = 'default desktop target claim differs' if change == 'count' else 'default desktop plan differs'
+        if change == 'count':
+            reason = 'default desktop target claim differs'
+        elif change == 'omit_book_receipt':
+            reason = 'primary book missing from desktop plan'
+        elif change in {'target', 'omit_engineering_receipt', 'omit_library_receipt'}:
+            reason = 'default desktop plan differs'
+        else:
+            reason = 'document scope differs from required defaults'
         with pytest.raises(ValueError, match=reason):
             verifier.verify_current_delivery(directory/'pointer.json')
     else:
@@ -258,7 +293,7 @@ def test_current_delivery_rejects_stale_or_forged_claims(current_delivery, monke
         book.write_text(book.read_text(encoding='utf-8').replace('5 项通过', '999 项通过'), encoding='utf-8', newline='\n')
         target.write_bytes(book.read_bytes())
         report['book_sha256'] = verifier.sha(book)
-        report['current_document_sha256'] = {str(book): verifier.sha(book), str(target): verifier.sha(target)}
+        report['current_document_sha256'].update({str(book): verifier.sha(book), str(target): verifier.sha(target)})
         receipt['entries'][0].update(source_sha256=verifier.sha(book), target_sha256=verifier.sha(target))
         write_json(directory, 'desktop_sync_receipt.json', receipt)
         write_json(directory, 'report.json', report)
