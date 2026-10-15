@@ -22258,5 +22258,184 @@
     "tob_rewrite": 60
   },
   "example_comparison_basis": "UTF-8/LF 内容比较，去除内容末尾空白；source_sha256 含原围栏，source_content_sha256 与 adapted_sha256 仅含内容，分别保存。",
-  "source_meaning": "source 为原资料名/适配稿映射键；original_local_path 为本机保留原件；question 保留原文，display_question 仅添加中文译注。"
+  "source_meaning": "source 为原资料名/适配稿映射键；original_local_path 为本机保留原件；question 保留原文，display_question 仅添加中文译注。",
+  "full_question_document": "docs/MedAgent_AI_多Agent项目话术.md",
+  "reading_layout": {
+    "schema_version": 1,
+    "question_count": 1260,
+    "principle_questions": 597,
+    "outline_questions": 663,
+    "project_questions": 1260,
+    "extension_questions": 1260,
+    "plain_notes": 72,
+    "scenario_notes": 561,
+    "supplemented_question_count": 33,
+    "supplemented_questions": [
+      {
+        "book_anchor": "full-00-q-009",
+        "source_key": "00-q-009",
+        "content_sha256": "bc8f2107be92c33e0a4aa6ed808088c18ef356139fd086aedc7ca4bd1fb1b43a"
+      },
+      {
+        "book_anchor": "full-01-q-008",
+        "source_key": "01-q-008",
+        "content_sha256": "2fd7b330842c998579ebe843a0e9671aa143f891fb832b4300215b25613d46bc"
+      },
+      {
+        "book_anchor": "full-01-q-030",
+        "source_key": "01-q-030",
+        "content_sha256": "73d130c2de1a554cc6a14f3c31c968df57ae52caa87e59cbce43c212fc66f0e4"
+      },
+      {
+        "book_anchor": "full-01-q-047",
+        "source_key": "01-q-047",
+        "content_sha256": "e8e5360b09228f4892e379dda1be577f46c0164864a633e8f5393febcb4422c5"
+      },
+      {
+        "book_anchor": "full-02-q-008",
+        "source_key": "02-q-008",
+        "content_sha256": "52b1738f538d3be9313a20b51d6c33bc1a80b564be439e13027c174fee71036e"
+      },
+      {
+        "book_anchor": "full-02-q-013",
+        "source_key": "02-q-013",
+        "content_sha256": "0815b53c6e8316dc59b85f74817a21d81d4f7865e2bf7ad946ff286ea310f6a9"
+      },
+      {
+        "book_anchor": "full-02-q-014",
+        "source_key": "02-q-014",
+        "content_sha256": "600d2c1d7a43d4eaf15c177ccdedb637ec8a1ec99f883dc13106095d51424a8b"
+      },
+      {
+        "book_anchor": "full-02-q-015",
+        "source_key": "02-q-015",
+        "content_sha256": "5edc87dd8a41d99f8e9dc7ce63d1485b7cb539f648f961054b03a3bd10be8519"
+      },
+      {
+        "book_anchor": "full-03-q-014",
+        "source_key": "03-q-014",
+        "content_sha256": "b9fd54830d63cf27abdc96f6923b96624a873574c96655d88e3afc241640908b"
+      },
+      {
+        "book_anchor": "full-03-q-021",
+        "source_key": "03-q-021",
+        "content_sha256": "b2e141b15388ec1d4acd053c85f2566668c51c1a5b316477c63f989661c9388d"
+      },
+      {
+        "book_anchor": "full-03-q-024",
+        "source_key": "03-q-024",
+        "content_sha256": "62f13acc70e6f4ea615b7b3872534d53e7f7653925eb9427a0b5331e756daf14"
+      },
+      {
+        "book_anchor": "full-03-q-026",
+        "source_key": "03-q-026",
+        "content_sha256": "d5ad847644f4eb97f08cf3bec161c43857bdc69a50c7a648a8ca615045609cb2"
+      },
+      {
+        "book_anchor": "full-03-q-030",
+        "source_key": "03-q-030",
+        "content_sha256": "979e8c96198a9fecd807b3fcaf443e503d8a47df6c8dacfb17dfb4f7240c0b75"
+      },
+      {
+        "book_anchor": "full-03-q-035",
+        "source_key": "03-q-035",
+        "content_sha256": "8e63e49c732b38fbaeb63a0619161a16a09263dd865d6d3fdd6b06faa6955173"
+      },
+      {
+        "book_anchor": "full-03-q-036",
+        "source_key": "03-q-036",
+        "content_sha256": "2d78d18729268f641eb5ce64066de6661a39bfcdf6e84cbec093ce7a4c13ba97"
+      },
+      {
+        "book_anchor": "full-03-q-050",
+        "source_key": "03-q-050",
+        "content_sha256": "342bf15924eab7264f864f62a636ea7aa6bbdfd70e048fc51349178d3989678c"
+      },
+      {
+        "book_anchor": "full-04-q-005",
+        "source_key": "04-q-005",
+        "content_sha256": "47390776fa23ff948a97e99c401b8f2fb973babb9e086e45595a3f8de64d1fc5"
+      },
+      {
+        "book_anchor": "full-04-q-089",
+        "source_key": "04-q-089",
+        "content_sha256": "ee647e415409692cd54fd8e8c5aa05751643aec96489a1b3c6aeb56676db3ae6"
+      },
+      {
+        "book_anchor": "full-04-q-093",
+        "source_key": "04-q-093",
+        "content_sha256": "948183f5f05a0388057be0223e22ac0c0a5bf058ee52f35b167f0085556be4d1"
+      },
+      {
+        "book_anchor": "full-04-q-094",
+        "source_key": "04-q-094",
+        "content_sha256": "190e6d0664000916bd54e9775d6d7c693a1fbeae099156b8dcd46e4ad565d5e4"
+      },
+      {
+        "book_anchor": "full-04-q-103",
+        "source_key": "04-q-103",
+        "content_sha256": "c41dfd3eec7d07fd26ba4db6dd4a0ee752ef148e3a017a0413c18d6f4cf432a4"
+      },
+      {
+        "book_anchor": "full-06-q-035",
+        "source_key": "06-q-035",
+        "content_sha256": "572c467ee54407549183f6e8527294cf7ab1b075bb5935dd424f28290a20f0b5"
+      },
+      {
+        "book_anchor": "full-08-q-003",
+        "source_key": "08-q-003",
+        "content_sha256": "fe9dd2db4029137744bfd9a6c2383891c9bd882a8f094a46002b8cfa4a5f6b15"
+      },
+      {
+        "book_anchor": "full-08-q-024",
+        "source_key": "08-q-024",
+        "content_sha256": "080690daffd4096552a087f56722c5b1221d77fa50bfa27c4c1b91745b8aaa78"
+      },
+      {
+        "book_anchor": "full-12-q-002",
+        "source_key": "12-q-002",
+        "content_sha256": "c8e80d51d83a21f37320473881b131bd477940b158c09908c2863f96d0347080"
+      },
+      {
+        "book_anchor": "full-12-q-003",
+        "source_key": "12-q-003",
+        "content_sha256": "ccbad0816b7a6fa6d74528ee1eacedf71041c06e13bd65d33df8a3e82da1fef7"
+      },
+      {
+        "book_anchor": "full-13-q-005",
+        "source_key": "13-q-005",
+        "content_sha256": "499f00f3f64832bb4cf1c0f3710e5dbb9b5198175d3066a01ccf95a9b92d2ecc"
+      },
+      {
+        "book_anchor": "full-cross-q-076",
+        "source_key": "02-q-013",
+        "content_sha256": "0815b53c6e8316dc59b85f74817a21d81d4f7865e2bf7ad946ff286ea310f6a9"
+      },
+      {
+        "book_anchor": "full-cross-q-077",
+        "source_key": "02-q-013",
+        "content_sha256": "0815b53c6e8316dc59b85f74817a21d81d4f7865e2bf7ad946ff286ea310f6a9"
+      },
+      {
+        "book_anchor": "full-cross-q-078",
+        "source_key": "02-q-013",
+        "content_sha256": "0815b53c6e8316dc59b85f74817a21d81d4f7865e2bf7ad946ff286ea310f6a9"
+      },
+      {
+        "book_anchor": "full-cross-q-154",
+        "source_key": "03-q-050",
+        "content_sha256": "342bf15924eab7264f864f62a636ea7aa6bbdfd70e048fc51349178d3989678c"
+      },
+      {
+        "book_anchor": "full-cross-q-155",
+        "source_key": "03-q-050",
+        "content_sha256": "342bf15924eab7264f864f62a636ea7aa6bbdfd70e048fc51349178d3989678c"
+      },
+      {
+        "book_anchor": "full-cross-q-156",
+        "source_key": "03-q-050",
+        "content_sha256": "342bf15924eab7264f864f62a636ea7aa6bbdfd70e048fc51349178d3989678c"
+      }
+    ]
+  }
 }

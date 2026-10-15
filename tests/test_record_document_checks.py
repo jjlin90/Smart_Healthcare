@@ -310,6 +310,9 @@ def test_links_success_metadata_and_desktop_scope(repository, monkeypatch):
                  'MedAgent_文档对照与工程改进_2026-10-13.md'):
         (desktop / name).write_text('# Desktop\n', encoding='utf-8')
     (desktop / 'MedAgent_AI_多Agent项目/03-Agent.md').write_text('# Agent\n', encoding='utf-8')
+    nested = desktop / 'MedAgent_AI_多Agent项目/专题/术语.md'
+    nested.parent.mkdir()
+    nested.write_text('# Nested\n', encoding='utf-8')
     extra = desktop / '工程对照.md'
     extra.write_text('# 工程对照\n', encoding='utf-8')
     output = repository / 'artifacts/links.json'
@@ -318,8 +321,9 @@ def test_links_success_metadata_and_desktop_scope(repository, monkeypatch):
                                     '--extra-document', str(extra), '--output', str(output)])
     assert recorder.main() == 0
     result = metadata(output)
-    assert result['files'] == len(result['input_sha256']) == 6
-    assert len(result['document_files']) == 6
+    assert result['files'] == len(result['input_sha256']) == 7
+    assert len(result['document_files']) == 7
+    assert str(nested.resolve()) in result['input_sha256']
     assert str(extra.resolve()) in result['input_sha256']
     assert result['document_files'] == [{'path': p, 'sha256': h}
                                        for p, h in result['input_sha256'].items()]

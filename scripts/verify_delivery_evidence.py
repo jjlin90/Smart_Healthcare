@@ -15,6 +15,7 @@ from urllib.parse import unquote
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from scripts.record_document_checks import latest_test_validation, check_links
+from scripts.merge_medagent_interviews import question_sections, reading_summary
 EVIDENCE_FILES = (
     'preflight.log', 'quick.log', 'anchor_drift.json',
     'document_links.json', 'latest_desktop_receipt.json', 'desktop_manifest.json',
@@ -22,6 +23,11 @@ EVIDENCE_FILES = (
 PRIMARY_DOCUMENTS = ('MedAgent_项目理解指南.md', 'MedAgent_AI_多Agent项目话术.md')
 DESKTOP_DOCUMENTS = ('MedAgent_AI_多Agent项目话术.md', 'MedAgent_项目理解指南.md',
                      'MedAgent_文档对照与工程改进_2026-10-13.md')
+
+
+def question_book_path() -> Path:
+    """All questions stay in the main book; reports cannot redirect this scope."""
+    return ROOT / 'docs/MedAgent_AI_多Agent项目话术.md'
 
 
 def default_desktop_pairs(root: Path, desktop: Path) -> list[tuple[Path, Path]]:
@@ -48,6 +54,47 @@ def repository_markdown_paths(root: Path) -> set[Path]:
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise ValueError(message)
+
+
+def verify_reading_layout(book: str, coverage: dict) -> None:
+    """Check actual per-question layers and the measured supplement manifest."""
+    sections = question_sections(book, coverage)
+    require(len(sections) == len(coverage['questions']), 'delivery: reading question scope differs')
+    for row in coverage['questions']:
+        section = sections[row['book_anchor']]
+        require(row.get('display_question', row['question']) in section,
+                'delivery: question text missing from its section')
+        principle = list(re.finditer(r'^\*\*(?:先讲原理|回答思路)：\*\*', section, re.M))
+        project = list(re.finditer(r'^\*\*项目里怎么说：\*\*', section, re.M))
+        extensions = list(re.finditer(r'^\*\*扩展与限制：\*\*', section, re.M))
+        require(len(principle) == len(project) == 1 and bool(extensions),
+                'delivery: reading layers missing or duplicated')
+        require(principle[0].start() < project[0].start() < extensions[0].start(),
+                'delivery: reading layer order differs')
+        require(not re.search(r'^\*\*(?:在 MedAgent[^\n]*怎么补全：|方案补全：|项目口述：)\*\*', section, re.M),
+                'delivery: legacy reading label remains')
+    require(coverage.get('reading_layout') == reading_summary(book, coverage),
+            'delivery: reading layout manifest differs')
+
+
+def verify_document_scope_claims(coverage: dict, desktop_count: int) -> None:
+    """Numbers in all three generated explanations must match trusted inventory."""
+    repository = repository_markdown_paths(ROOT)
+    expected = (len(repository), desktop_count, len(repository) + desktop_count)
+    paths = (ROOT/'README.md', ROOT/'docs/MedAgent_项目理解指南.md',
+             ROOT/'docs/MedAgent_文档对照与工程改进_2026-10-13.md')
+    for path in paths:
+        if path.resolve() not in repository:
+            continue
+        text = path.read_text(encoding='utf-8-sig')
+        scopes = re.findall(r'(?:当前链接审计为|链接审计统一覆盖|完整链接审计范围为)\s*仓库\s+(\d+)\s+份及桌面\s+(\d+)\s+份，共\s+(\d+)\s+份', text)
+        require(len(scopes) == 1 and tuple(map(int, scopes[0])) == expected,
+                'delivery: document scope claim differs')
+        claims = re.findall(r'生成后的当前文档另行核验\s+([\d,]+)\s+处引用、\s*(\d+)\s+个示例内容和\s*(\d+)\s+份本地链接', text)
+        require(len(claims) == 1 and
+                tuple(int(n.replace(',', '')) for n in claims[0]) ==
+                (coverage['question_count'], coverage['example_count'], expected[2]),
+                'delivery: document coverage claim differs')
 
 
 def read_log(path: Path) -> str:
@@ -147,8 +194,10 @@ def rebase_markdown(source: Path, target: Path, content: str,
 def verify_repository_documents() -> dict:
     """Portable gate for tracked book/coverage, without private desktop inputs."""
     library = ROOT / 'docs/MedAgent_逐题适配'
+    require((ROOT / 'docs/MedAgent_AI_多Agent项目话术.md').is_file(),
+            'repository delivery: main interview guide missing')
     coverage = json.loads((library / 'coverage.json').read_text(encoding='utf-8-sig'))
-    book = (ROOT / 'docs/MedAgent_AI_多Agent项目话术.md').read_text(encoding='utf-8-sig')
+    book = question_book_path().read_text(encoding='utf-8-sig')
     require(len(coverage['questions']) == coverage['question_count'] > 0,
             'repository delivery: question count differs')
     require(len(coverage['examples']) == coverage['example_count'] > 0,
@@ -158,6 +207,7 @@ def verify_repository_documents() -> dict:
                 'repository delivery: question anchor missing or duplicated')
         require(row.get('display_question', row['question']) in book,
                 'repository delivery: displayed question missing')
+    verify_reading_layout(book, coverage)
     adaptations = {'unchanged': 0, 'tob_rewrite': 0}
     for row in coverage['examples']:
         heading = '#### ' + row['book_anchor'] + '\n'
@@ -173,6 +223,8 @@ def verify_repository_documents() -> dict:
     paths = sorted([ROOT / 'README.md', *(ROOT / 'docs').rglob('*.md')])
     links = check_links(paths)
     require(not links['issues'], 'repository delivery: local links failed')
+    verify_document_scope_claims(coverage, sum(source.suffix.lower() == '.md'
+        for source, _ in default_desktop_pairs(ROOT, Path('desktop'))))
     return {'document_files_checked': len(paths), 'questions_verified': len(coverage['questions']),
             'examples_verified': len(coverage['examples']), 'example_adaptations': adaptations,
             'scope': 'Repository question anchors, example content hashes and local links only; '
@@ -279,7 +331,7 @@ def verify_current_delivery(pointer_path: Path) -> dict:
     coverage_path = library / 'coverage.json'
     require(sha(coverage_path) == report['coverage_sha256'], 'delivery: coverage hash differs')
     coverage = json.loads(coverage_path.read_text(encoding='utf-8-sig'))
-    book_path = ROOT / 'docs/MedAgent_AI_多Agent项目话术.md'
+    book_path = question_book_path()
     require(sha(book_path) == report['book_sha256'], 'delivery: book hash differs')
     book = book_path.read_text(encoding='utf-8-sig')
     require(len(coverage['questions']) == report['question_count'] == coverage['question_count'], 'delivery: question count differs')
@@ -296,6 +348,7 @@ def verify_current_delivery(pointer_path: Path) -> dict:
         require(row.get('display_question', row['question']) in book, 'delivery: displayed question missing')
         if 'source_start_column' in row:
             require(original_line[row['source_start_column']-1:row['source_end_column']] == row['question'], 'delivery: question character span differs')
+    verify_reading_layout(book, coverage)
     adaptations = {'unchanged': 0, 'tob_rewrite': 0}
     for row in coverage['examples']:
         original = originals[row['original_local_path']]
@@ -331,6 +384,7 @@ def verify_current_delivery(pointer_path: Path) -> dict:
     require(len(documents) == len(required_documents) and
             {path.resolve() for path in documents} == required_documents,
             'delivery: document scope differs from required defaults')
+    verify_document_scope_claims(coverage, sum(source.suffix.lower() == '.md' for source in expected))
     engineering_source = (ROOT / 'docs' / DESKTOP_DOCUMENTS[-1]).resolve()
     if engineering_source in expected:
         engineering_documents = (engineering_source, expected[engineering_source])
@@ -346,10 +400,10 @@ def verify_current_delivery(pointer_path: Path) -> dict:
     validation = latest_test_validation()
     require(validation is not None, 'delivery: no current successful code regression')
     passed = validation['test_counts']['passed']
-    claims = re.findall(r'(?:本轮|最新)代码与依赖回归\s+(\d+)\s+项通过', book)
+    claims = []
     for path in documents:
-        if path.name in ('README.md', 'MedAgent_项目理解指南.md', 'MedAgent_文档对照与工程改进_2026-10-13.md') and path.is_relative_to(ROOT):
-            claims += re.findall(r'(?:本轮|最新)代码与依赖回归\s+(\d+)\s+项通过', path.read_text(encoding='utf-8-sig'))
+        text = book if path.resolve() == book_path.resolve() else path.read_text(encoding='utf-8-sig')
+        claims += re.findall(r'(?:本轮|最新)代码与依赖回归\s+(\d+)\s+项通过', text)
     require(bool(claims) and all(int(n) == passed for n in claims), 'delivery: current document test claim differs')
     return {'verified_at_utc': datetime.now(timezone.utc).isoformat(), 'head': verification_head(),
             'pytest_passed': passed, 'document_files_checked': len(documents), 'document_issues': 0,

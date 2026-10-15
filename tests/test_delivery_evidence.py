@@ -12,6 +12,11 @@ from scripts import preflight_git
 REAL_DEFAULT_DESKTOP_PAIRS = verifier.default_desktop_pairs
 
 
+def scope_claims(repository, desktop):
+    return (f'当前链接审计为仓库 {repository} 份及桌面 {desktop} 份，共 {repository+desktop} 份。\n'
+            f'生成后的当前文档另行核验 1 处引用、1 个示例内容和 {repository+desktop} 份本地链接。\n')
+
+
 @pytest.mark.parametrize('extra', [None, 'nested/02-extra.md'])
 def test_default_desktop_plan_tracks_inventory_and_excludes_separate_materials(tmp_path, extra):
     root, desktop = tmp_path / 'repo', tmp_path / 'desktop'
@@ -169,32 +174,43 @@ def current_delivery(tmp_path, monkeypatch):
                               'source_content_sha256': hashlib.sha256(b'{}').hexdigest(),
                               'adapted_sha256': hashlib.sha256(b'{}').hexdigest(), 'adaptation': 'unchanged'}],
                 'example_adaptation_counts': {'unchanged': 1, 'tob_rewrite': 0}}
-    write_json(library, 'coverage.json', coverage)
     book = root / 'docs/MedAgent_AI_多Agent项目话术.md'
     book.write_text('# Book\n本轮代码与依赖回归 5 项通过。\n### full-q\n怎么调度？\n'
-                    '#### full-example\n```json\n{}\n```\n', encoding='utf-8', newline='\n')
-    (root / 'README.md').write_text('# Fixture\n', encoding='utf-8')
+                         '**先讲原理：** 先检查目标。\n**项目里怎么说：** 使用有界计划。\n**扩展与限制：** 扩展需复核。\n'
+                         '#### full-example\n```json\n{}\n```\n', encoding='utf-8', newline='\n')
+    coverage['reading_layout'] = verifier.reading_summary(book.read_text(encoding='utf-8'), coverage)
+    write_json(library, 'coverage.json', coverage)
+    reference = library / '核心题理解导读.md'
+    reference.write_text('# Reading guide\n', encoding='utf-8', newline='\n')
+    (root / 'README.md').write_text('# Fixture\n'+scope_claims(3,2), encoding='utf-8')
     (root / '.gitignore').write_text('artifacts/\n', encoding='utf-8')
     subprocess.run(['git', 'init', '-q', str(root)], check=True)
     target = tmp_path / 'desktop/MedAgent_AI_多Agent项目话术.md'
     target.parent.mkdir()
     target.write_bytes(book.read_bytes())
+    reference_target = target.parent / 'MedAgent_AI_多Agent项目/核心题理解导读.md'
+    reference_target.parent.mkdir()
+    reference_target.write_bytes(reference.read_bytes())
     receipt = {'entries': [{'source': str(book), 'target': str(target),
-                           'source_sha256': verifier.sha(book), 'target_sha256': verifier.sha(target)}]}
+                           'source_sha256': verifier.sha(book), 'target_sha256': verifier.sha(target)},
+                          {'source': str(reference), 'target': str(reference_target),
+                           'source_sha256': verifier.sha(reference), 'target_sha256': verifier.sha(reference_target)}]}
     write_json(directory, 'desktop_sync_receipt.json', receipt)
     report = {'validation_scope': 'current_documents_and_original_references',
               'current_document_sha256': {str(book): verifier.sha(book), str(target): verifier.sha(target),
+                                          str(reference): verifier.sha(reference), str(reference_target): verifier.sha(reference_target),
                                           str(root/'README.md'): verifier.sha(root/'README.md')},
-              'document_links_checked': 3, 'coverage_sha256': verifier.sha(library/'coverage.json'),
+              'document_links_checked': 5, 'coverage_sha256': verifier.sha(library/'coverage.json'),
               'book_sha256': verifier.sha(book), 'question_count': 1, 'example_count': 1,
-              'example_adaptations_verified': coverage['example_adaptation_counts'], 'desktop_hashes_verified': 1}
+              'example_adaptations_verified': coverage['example_adaptation_counts'], 'desktop_hashes_verified': 2}
     write_json(directory, 'report.json', report)
     write_json(directory, 'pointer.json', {'report': str(directory/'report.json'), 'report_sha256': verifier.sha(directory/'report.json')})
     monkeypatch.setattr(verifier, 'ROOT', root)
     monkeypatch.setattr(verifier, 'verification_head', lambda: 'fixture-head')
     monkeypatch.setattr(verifier, 'latest_test_validation', lambda: {'test_counts': {'passed': 5}, 'run_id': 'fixture-run'})
     # Keep evidence-parser unit cases minimal; integration cases restore the real plan.
-    monkeypatch.setattr(verifier, 'default_desktop_pairs', lambda _root, desktop: [(book, desktop/book.name)])
+    monkeypatch.setattr(verifier, 'default_desktop_pairs', lambda _root, desktop: [
+        (book, desktop/book.name), (reference, desktop/'MedAgent_AI_多Agent项目'/reference.name)])
     return directory, book, target, report, receipt
 
 
@@ -203,7 +219,7 @@ def test_current_delivery_verifies_claims_and_can_repeat_without_writing(current
     before = (book.read_bytes(), target.read_bytes())
     result = verifier.verify_current_delivery(directory/'pointer.json')
     assert result['pytest_passed'] == 5 and result['questions_verified'] == result['examples_verified'] == 1
-    assert result['document_files_checked'] == 3 and result['desktop_targets_matched'] == 1
+    assert result['document_files_checked'] == 5 and result['desktop_targets_matched'] == 2
     assert result['verifier_path'] == 'scripts/verify_delivery_evidence.py'
     assert verifier.verify_current_delivery(directory/'pointer.json')['test_run_id'] == 'fixture-run'
     assert before == (book.read_bytes(), target.read_bytes())
@@ -211,13 +227,14 @@ def test_current_delivery_verifies_claims_and_can_repeat_without_writing(current
 
 @pytest.mark.parametrize('change', [None, 'count', 'target', 'omit_engineering_source',
     'omit_engineering_target', 'omit_engineering_both', 'omit_engineering_receipt',
-    'omit_library_receipt', 'omit_book_receipt', 'omit_repo_readme', 'extra_document'])
+    'omit_library_receipt', 'omit_book_receipt', 'omit_repo_readme', 'extra_document',
+    'omit_reference_both', 'omit_reference_receipt'])
 def test_current_delivery_checks_default_plan_and_document_count(current_delivery, change, monkeypatch):
     directory, book, target, report, _ = current_delivery
     root, desktop = book.parents[1], target.parent
     monkeypatch.setattr(verifier, 'default_desktop_pairs', REAL_DEFAULT_DESKTOP_PAIRS)
     guide = root / 'docs/MedAgent_项目理解指南.md'
-    guide.write_text('# Guide\n', encoding='utf-8')
+    guide.write_text('# Guide\n'+scope_claims(5,4), encoding='utf-8')
     engineering = root / 'docs' / verifier.DESKTOP_DOCUMENTS[-1]
     engineering.write_text('# Engineering\n', encoding='utf-8')
     diagrams = root / 'artifacts/medagent_upgrade_20261013'
@@ -226,7 +243,8 @@ def test_current_delivery_checks_default_plan_and_document_count(current_deliver
     (diagrams / 'MedAgent_项目流程图.png').write_bytes(b'fixture-image')
     pairs = verifier.default_desktop_pairs(root, desktop)
     claimed = len(pairs) + int(change == 'count')
-    engineering.write_text(f'# Engineering\n桌面同步的当前默认清单，共 {claimed} 个目标。\n', encoding='utf-8')
+    engineering.write_text(f'# Engineering\n桌面同步的当前默认清单，共 {claimed} 个目标。\n'+scope_claims(5,4), encoding='utf-8')
+    (root/'README.md').write_text('# Fixture\n'+scope_claims(5,4), encoding='utf-8')
     if change == 'target':
         pairs = [(source, destination.with_name('unexpected.md') if source == guide else destination)
                  for source, destination in pairs]
@@ -243,6 +261,10 @@ def test_current_delivery_checks_default_plan_and_document_count(current_deliver
             documents.update({str(source): verifier.sha(source), str(destination): verifier.sha(destination)})
     documents[str(root/'README.md')] = verifier.sha(root/'README.md')
     engineering_target = desktop / engineering.name
+    reference = root / 'docs/MedAgent_逐题适配/核心题理解导读.md'
+    if change == 'omit_reference_both':
+        documents.pop(str(reference))
+        documents.pop(str(desktop/'MedAgent_AI_多Agent项目'/reference.name))
     if change in {'omit_engineering_source', 'omit_engineering_both', 'omit_engineering_receipt'}:
         documents.pop(str(engineering))
     if change in {'omit_engineering_target', 'omit_engineering_both', 'omit_engineering_receipt'}:
@@ -255,6 +277,8 @@ def test_current_delivery_checks_default_plan_and_document_count(current_deliver
         entries = [row for row in entries if Path(row['source']) != book]
     elif change == 'omit_repo_readme':
         documents.pop(str(root/'README.md'))
+    elif change == 'omit_reference_receipt':
+        entries = [row for row in entries if Path(row['source']) != reference]
     elif change == 'extra_document':
         extra = desktop.parent / 'outside.md'
         extra.write_text('# Unrelated\n', encoding='utf-8')
@@ -269,7 +293,7 @@ def test_current_delivery_checks_default_plan_and_document_count(current_deliver
             reason = 'default desktop target claim differs'
         elif change == 'omit_book_receipt':
             reason = 'primary book missing from desktop plan'
-        elif change in {'target', 'omit_engineering_receipt', 'omit_library_receipt'}:
+        elif change in {'target', 'omit_engineering_receipt', 'omit_library_receipt', 'omit_reference_receipt'}:
             reason = 'default desktop plan differs'
         else:
             reason = 'document scope differs from required defaults'
@@ -302,6 +326,72 @@ def test_current_delivery_rejects_stale_or_forged_claims(current_delivery, monke
               'missing_regression': 'no current successful code regression',
               'forged_claim': 'current document test claim differs'}[change]
     with pytest.raises(ValueError, match=reason):
+        verifier.verify_current_delivery(directory/'pointer.json')
+
+
+@pytest.mark.parametrize('change,reason', [
+    ('scope','document scope claim differs'), ('coverage','document coverage claim differs'),
+    ('missing_scope','document scope claim differs'), ('missing_coverage','document coverage claim differs')])
+def test_delivery_rejects_forged_scope_numbers_even_with_matching_report_hashes(current_delivery, change, reason):
+    directory, book, _, report, _ = current_delivery
+    readme = book.parents[1]/'README.md'
+    text = readme.read_text(encoding='utf-8')
+    if change == 'scope':
+        text = text.replace('共 5 份','共 50 份')
+    elif change == 'coverage':
+        text = text.replace('和 5 份','和 50 份')
+    else:
+        prefix = '当前链接审计' if change == 'missing_scope' else '生成后的当前文档'
+        text = '\n'.join(line for line in text.splitlines() if not line.startswith(prefix))+'\n'
+    readme.write_text(text,encoding='utf-8')
+    report['current_document_sha256'][str(readme)] = verifier.sha(readme)
+    write_json(directory,'report.json',report)
+    write_json(directory,'pointer.json',{'report':str(directory/'report.json'),'report_sha256':verifier.sha(directory/'report.json')})
+    with pytest.raises(ValueError,match=reason):
+        verifier.verify_current_delivery(directory/'pointer.json')
+
+
+@pytest.mark.parametrize('change,reason', [
+    ('legacy_tail','legacy reading label'), ('reverse','reading layer order'),
+    ('missing_manifest','reading layout manifest'), ('wrong_manifest','reading layout manifest'),
+    ('wrong_question','question text missing from its section')])
+def test_repository_gate_checks_reading_layers_and_manifest(current_delivery, change, reason):
+    _, book, _, _, _ = current_delivery
+    text = book.read_text(encoding='utf-8')
+    if change == 'legacy_tail':
+        text += '\n**在 MedAgent 中怎么补全：** 旧标签不应藏在示例之后。\n'
+    elif change == 'reverse':
+        text = text.replace('**先讲原理：** 先检查目标。\n**项目里怎么说：** 使用有界计划。',
+                            '**项目里怎么说：** 使用有界计划。\n**先讲原理：** 先检查目标。')
+    elif change == 'wrong_question':
+        text = text.replace('怎么调度？','别的问题').replace('# Book','# Book\n怎么调度？')
+    else:
+        path = book.parent/'MedAgent_逐题适配/coverage.json'
+        coverage = json.loads(path.read_text(encoding='utf-8'))
+        if change == 'missing_manifest':
+            coverage.pop('reading_layout')
+        else:
+            coverage['reading_layout']['supplemented_question_count'] = 999
+        write_json(path.parent,path.name,coverage)
+    book.write_text(text,encoding='utf-8')
+    with pytest.raises(ValueError,match=reason):
+        verifier.verify_repository_documents()
+
+
+def test_current_delivery_checks_test_claims_in_optional_guide(current_delivery):
+    directory, book, target, report, receipt = current_delivery
+    guide = book.parent/'MedAgent_逐题适配/核心题理解导读.md'
+    desktop = target.parent/'MedAgent_AI_多Agent项目'/guide.name
+    guide.write_text('# Guide\n本轮代码与依赖回归 999 项通过。\n',encoding='utf-8')
+    desktop.write_bytes(guide.read_bytes())
+    for path in (guide,desktop):
+        report['current_document_sha256'][str(path)] = verifier.sha(path)
+    entry = next(row for row in receipt['entries'] if Path(row['source']) == guide)
+    entry.update(source_sha256=verifier.sha(guide),target_sha256=verifier.sha(desktop))
+    write_json(directory,'desktop_sync_receipt.json',receipt)
+    write_json(directory,'report.json',report)
+    write_json(directory,'pointer.json',{'report':str(directory/'report.json'),'report_sha256':verifier.sha(directory/'report.json')})
+    with pytest.raises(ValueError,match='current document test claim differs'):
         verifier.verify_current_delivery(directory/'pointer.json')
 
 
@@ -470,7 +560,7 @@ def test_repository_gate_works_without_private_originals_or_desktop(current_deli
     target.unlink()
     result = verifier.verify_repository_documents()
     assert result['questions_verified'] == result['examples_verified'] == 1
-    assert result['document_files_checked'] == 2
+    assert result['document_files_checked'] == 3
     assert 'private originals' in result['scope']
     assert verifier.verify_repository_documents() == result
 
@@ -484,9 +574,11 @@ def test_repository_gate_works_without_private_originals_or_desktop(current_deli
 def test_repository_gate_rejects_actual_document_drift(current_delivery, change, reason):
     directory, book, _, _, _ = current_delivery
     if change == 'example':
-        book.write_text(book.read_text(encoding='utf-8').replace('\n{}\n', '\n{"changed":true}\n'), encoding='utf-8')
+        reference = verifier.question_book_path()
+        reference.write_text(reference.read_text(encoding='utf-8').replace('\n{}\n', '\n{"changed":true}\n'), encoding='utf-8')
     elif change == 'anchor':
-        book.write_text(book.read_text(encoding='utf-8').replace('### full-q', '### changed-q'), encoding='utf-8')
+        reference = verifier.question_book_path()
+        reference.write_text(reference.read_text(encoding='utf-8').replace('### full-q', '### changed-q'), encoding='utf-8')
     elif change == 'link':
         with book.open('a', encoding='utf-8') as stream:
             stream.write('\n[broken](missing.md)\n')

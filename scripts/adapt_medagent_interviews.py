@@ -486,7 +486,7 @@ def build(source: Path):
     index += [f"- [{table_path.stem}]({table_name})：{len(table_questions)} 个题表单元与连问。", "",
               "## 使用建议", "", "以03章的意图、槽位和任务切换为主线，接04章执行编排，再练05/06章故障与状态，最后按07/08/13章解释工具、依据和安全。00章用于架构辨析；10/11/12章按训练理论、开发方法或院内扩展设计作答。所有章节均已纳入覆盖清单。", "",
               "[覆盖清单](coverage.json)逐项记录来源文件、行号、题目和适配稿位置；文件哈希用于确认同步的是这次读取的版本。"]
-    index += ["", "全部答案也已直接合入[单一话术正文](../MedAgent_AI_多Agent项目话术.md#全文档逐题正文)，分册保留用于对照。"]
+    index += ["", "[完整面试话术](../MedAgent_AI_多Agent项目话术.md#全文档逐题正文)保留全部原题及示例；[72 题理解导读](核心题理解导读.md)仅用于辅助理解，分册继续用于对照。"]
     index += ["", "英文术语、工具名及参数名在正文后附中文译注；代码围栏内保持标识符与语法原样，译注放在示例之后。覆盖清单的 source 是原资料名称及适配稿映射键，original_local_path 才是本机原件路径；question 为原文，display_question 为带译注的显示题目。"]
     (DEST/"README.md").write_text(annotate_markdown("\n".join(index)+"\n"), encoding="utf-8", newline="\n")
     for row in manifest:

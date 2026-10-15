@@ -121,7 +121,7 @@ def test_refresh_corrects_legacy_delivery_scope_and_remains_idempotent(tmp_path,
         tmp_path / 'README.md': '# 项目\n2026-10-13 完整话术补充：旧\n2026-10-13 文档追溯复核：旧\n2026-10-13 复核修复：旧\n',
         engineering: '# 工程\n核查日期：旧\n先前逐题生成器跳过了围栏块，旧\n136 个示例均只有一份正文：旧\n链接审计统一覆盖旧\n文档生成与审计修复范围旧\n桌面同步包含项目文档及简历 HTML/PDF，共 23 个文件。\n',
         tmp_path / 'docs/MedAgent_项目理解指南.md': '# 指南\n话术中的原文行号指向旧\n',
-        tmp_path / 'docs/MedAgent_AI_多Agent项目话术.md': '# 话术\n',
+        tmp_path / 'docs/MedAgent_AI_多Agent项目话术.md': '# 话术\nReAct 是受控工具循环，Agent 不需要反复插入译注。\n',
         library / 'README.md': '# 题库\n',
         library / '01-示例.md': '# 调度\n',
     }
@@ -129,17 +129,23 @@ def test_refresh_corrects_legacy_delivery_scope_and_remains_idempotent(tmp_path,
         contents[library / '02-新增.md'] = '# 新增章节\n'
     for path, body in contents.items():
         path.write_text(body, encoding='utf-8')
-    coverage = {'example_count': 1, 'examples': [{'association': 'question', 'placement': 'beside_question'}],
+    coverage = {'question_count': 1, 'example_count': 1, 'examples': [{'association': 'question', 'placement': 'beside_question'}],
                 'example_adaptation_counts': {'unchanged': 1, 'tob_rewrite': 0}}
     (library / 'coverage.json').write_text(json.dumps(coverage), encoding='utf-8')
     monkeypatch.setattr(annotator, 'ROOT', tmp_path)
     monkeypatch.setattr(annotator, 'latest_test_validation', lambda: None)
+    monkeypatch.setattr(annotator, 'repository_markdown_paths', lambda _root: set(contents))
     monkeypatch.setattr(annotator.subprocess, 'run', lambda *args, **kwargs: SimpleNamespace(stdout=b''))
     annotator.refresh()
+    assert (tmp_path / 'docs/MedAgent_AI_多Agent项目话术.md').read_text(encoding='utf-8') == contents[tmp_path / 'docs/MedAgent_AI_多Agent项目话术.md']
     paragraph = next(line for line in engineering.read_text(encoding='utf-8').splitlines() if line.startswith('桌面同步'))
     # Three library files, three main documents and two diagrams; inventory grows.
     assert f'共 {8 + int(extra_chapter)} 个目标' in paragraph
     assert '单独交付，不计入此清单' in paragraph and '共 23 个文件' not in paragraph
+    for path in (tmp_path/'README.md', engineering, tmp_path/'docs/MedAgent_项目理解指南.md'):
+        assert f'和 {11 + 2*int(extra_chapter)} 份本地链接' in path.read_text(encoding='utf-8')
+    readme = (tmp_path/'README.md').read_text(encoding='utf-8')
+    assert '话术合并继承分章已有译注' in readme and '主文由生成器重建' in readme
     first = {path: path.read_bytes() for path in contents}
     annotator.refresh()
     assert {path: path.read_bytes() for path in contents} == first
@@ -168,14 +174,15 @@ def test_template_text_line_is_not_a_table_column_and_repeated_cells_have_distin
     assert row[second['source_start_column']-1:second['source_end_column']] == question
 
 
-def test_merge_rebuilds_stale_summary_without_changing_question_or_example(tmp_path, monkeypatch):
+def test_merge_builds_reference_without_overwriting_readable_main(tmp_path, monkeypatch):
     import json
     from scripts import merge_medagent_interviews as merger
     library = tmp_path / 'library'
     library.mkdir()
-    book = tmp_path / 'book.md'
-    book.write_text('# 项目\n\n全文保留 1,260 处问答与 136 个图、伪代码和结构示例。128/8 旧口径。\n'
-                    '生产签名委托必带任务、会话。当前完整工程回归 479 项通过，医疗正确性仍須复核。\n', encoding='utf-8')
+    main = library / '核心题理解导读.md'
+    main.write_text('# 面试主文\n\n手工整理的回答和例子。\n', encoding='utf-8')
+    main_bytes = main.read_bytes()
+    book = tmp_path / 'MedAgent_AI_多Agent项目话术.md'
     chapter = '00-示例.md'
     (library / chapter).write_text('## q-001\n\n### 主问题｜怎么做？\n保持答案。\n'
                                   '### example-001\n```json\n{"patient_id": "a"}\n```\n', encoding='utf-8')
@@ -186,13 +193,86 @@ def test_merge_rebuilds_stale_summary_without_changing_question_or_example(tmp_p
     monkeypatch.setattr(merger, 'ROOT', tmp_path)
     monkeypatch.setattr(merger, 'LIBRARY', library)
     monkeypatch.setattr(merger, 'BOOK', book)
-    monkeypatch.setattr(merger, 'latest_test_validation', lambda: {'test_counts': {'passed': 480}})
     merger.merge()
     text = book.read_text(encoding='utf-8')
-    assert '128/8 旧口径' not in text
     assert '0 个示例随对应问答保留，0 个章首示例单列概览，1 个独立段落示例单列章节附录' in text
-    assert '最新代码与依赖回归 480 项通过' in text and '当前完整工程回归 479' not in text
-    assert '桌面同名 .md 为适配稿' in text and '生成文档另行核验' in text
+    assert '完整保留 1 处问答' in text and '全部原题及答案仍在本文件' in text
+    assert main.read_bytes() == main_bytes
     assert '{"patient_id": "a"}' in text and '保持答案。' in text
+    assert json.loads((library/'coverage.json').read_text(encoding='utf-8'))['full_question_document'] == 'MedAgent_AI_多Agent项目话术.md'
     merger.merge()
-    assert book.read_text(encoding='utf-8') == text
+    assert book.read_text(encoding='utf-8') == text and main.read_bytes() == main_bytes
+
+
+@pytest.mark.parametrize('extension_after_example', [False, True])
+def test_readable_merge_expands_cross_answers_and_preserves_code(tmp_path, monkeypatch, extension_after_example):
+    import hashlib
+    import json
+    from scripts import merge_medagent_interviews as merger
+    library = tmp_path / 'library'
+    library.mkdir()
+    code = 'def keep():\n    text = """\n**在 MedAgent 中怎么补全：** 这是代码内的文字。\n"""\n\n\n    return "unchanged"'
+    extension = '\n**在 MedAgent 中怎么补全：** 后续能力需要单独设计。\n'
+    primary, cross = '04-示例.md', '横向.md'
+    (library/primary).write_text('## q-001\n\n### 主问题｜能重规划吗？\n\n'
+        '原文位置：原件第 1 行。\n\n**项目口述：** 项目仅允许一次只读复核。\n\n'
+        '**针对本题的设计展开（原理）：**\n\n只修改尚未执行且不再适用的步骤。\n\n'
+        + ('' if extension_after_example else extension)
+        + '**代码依据：** 无\n\n### example-001\n```python\n'+code+'\n```\n'
+        + (extension if extension_after_example else ''), encoding='utf-8')
+    (library/cross).write_text('## q-001\n\n### 能重规划吗？\n\n来源：表格。\n\n'
+        '**项目口述：** 项目仅允许一次只读复核。\n\n'
+        '**对应详解：** [完整回答](04-示例.md#q-001)。\n', encoding='utf-8')
+    guide = library/'核心题理解导读.md'
+    guide.write_text('### Q20 重规划\n\n**例子：** A 已完成，后续 C 需要调整。\n', encoding='utf-8')
+    before = guide.read_bytes()
+    coverage = {'source_files': [{'name': primary},{'name': cross}], 'question_count': 2, 'example_count': 1,
+        'questions': [{'output': name,'anchor':'q-001','question':'能重规划吗？'} for name in (primary,cross)],
+        'examples': [{'output':primary,'anchor':'example-001','association':'question'}]}
+    (library/'coverage.json').write_text(json.dumps(coverage), encoding='utf-8')
+    monkeypatch.setattr(merger, 'ROOT', tmp_path)
+    monkeypatch.setattr(merger, 'LIBRARY', library)
+    monkeypatch.setattr(merger, 'BOOK', tmp_path/'book.md')
+    merger.merge()
+    text = (tmp_path/'book.md').read_text(encoding='utf-8')
+    assert text.count('只修改尚未执行且不再适用的步骤。') == 2
+    assert '**回答思路：**' in text and '**用例理解：**' in text
+    assert '[分章原题](library/04-示例.md#q-001)' in text
+    actual = text.split('```python\n',1)[1].split('\n```',1)[0]
+    assert hashlib.sha256(actual.encode()).digest() == hashlib.sha256(code.encode()).digest()
+    assert guide.read_bytes() == before
+    section = merger.question_sections(text, json.loads((library/'coverage.json').read_text(encoding='utf-8')))['full-04-q-001']
+    assert '**在 MedAgent' not in section
+    assert section.index('**先讲原理：**') < section.index('**项目里怎么说：**') < section.index('**扩展与限制：**')
+
+
+def test_reading_manifest_records_each_supplement_and_rejects_counter_drift(tmp_path, monkeypatch):
+    import json
+    from scripts import merge_medagent_interviews as merger
+    from scripts.verify_delivery_evidence import verify_reading_layout
+    library = tmp_path/'library'
+    library.mkdir()
+    source, cross = '04-示例.md', '横向.md'
+    question = '子 Agent 负责业务还是工具？'
+    (library/source).write_text('## q-005\n\n### 主问题｜'+question+'\n\n**项目口述：** 三个专科分工。\n\n'
+        '**方案补全：** 扩展需复核。\n', encoding='utf-8')
+    (library/cross).write_text('## q-001\n\n### '+question+'\n\n**项目口述：** 三个专科分工。\n\n'
+        '**方案补全：** 扩展需复核。\n\n**对应详解：** [详解](04-示例.md#q-005)。\n', encoding='utf-8')
+    coverage = {'source_files':[{'name':source},{'name':cross}], 'question_count':2, 'example_count':0, 'examples':[],
+        'questions':[{'output':source,'anchor':'q-005','question':question},
+                     {'output':cross,'anchor':'q-001','question':question}]}
+    (library/'coverage.json').write_text(json.dumps(coverage),encoding='utf-8')
+    monkeypatch.setattr(merger,'ROOT',tmp_path)
+    monkeypatch.setattr(merger,'LIBRARY',library)
+    monkeypatch.setattr(merger,'BOOK',tmp_path/'book.md')
+    merger.merge()
+    manifest = json.loads((library/'coverage.json').read_text(encoding='utf-8'))
+    layout = manifest['reading_layout']
+    assert layout['supplemented_question_count'] == 2
+    assert {row['book_anchor'] for row in layout['supplemented_questions']} == {'full-04-q-005','full-cross-q-001'}
+    assert {row['source_key'] for row in layout['supplemented_questions']} == {'04-q-005'}
+    text = (tmp_path/'book.md').read_text(encoding='utf-8')
+    verify_reading_layout(text,manifest)
+    layout['supplemented_question_count'] = 1
+    with pytest.raises(ValueError,match='layout manifest differs'):
+        verify_reading_layout(text,manifest)
