@@ -1,3 +1,5 @@
+import pytest
+
 from scripts.adapt_medagent_interviews import source_examples, append_examples
 
 
@@ -107,35 +109,40 @@ def test_refresh_handles_translated_paragraphs_and_rejects_missing_or_duplicate_
     assert '本轮记录' not in review_block(marked, '最新记录')
 
 
-def test_refresh_corrects_legacy_delivery_scope_and_remains_idempotent(tmp_path, monkeypatch):
+@pytest.mark.parametrize('extra_chapter', [False, True])
+def test_refresh_corrects_legacy_delivery_scope_and_remains_idempotent(tmp_path, monkeypatch, extra_chapter):
+    import json
     from types import SimpleNamespace
     from scripts import annotate_medagent_documents as annotator
-    source = annotator.ROOT
-    paths = [source / 'README.md', source / 'docs/MedAgent_文档对照与工程改进_2026-10-13.md',
-             source / 'docs/MedAgent_项目理解指南.md', source / 'docs/MedAgent_AI_多Agent项目话术.md',
-             *sorted((source / 'docs/MedAgent_逐题适配').glob('*.md')),
-             source / 'docs/MedAgent_逐题适配/coverage.json']
-    copies = []
-    for path in paths:
-        target = tmp_path / path.relative_to(source)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(path.read_bytes())
-        copies.append(target)
+    library = tmp_path / 'docs/MedAgent_逐题适配'
+    library.mkdir(parents=True)
     engineering = tmp_path / 'docs/MedAgent_文档对照与工程改进_2026-10-13.md'
-    lines = engineering.read_text(encoding='utf-8').splitlines()
-    assert sum(line.startswith('桌面同步') for line in lines) == 1
-    engineering.write_text('\n'.join('桌面同步包含项目文档及简历 HTML/PDF，共 23 个文件。'
-                          if line.startswith('桌面同步') else line for line in lines) + '\n', encoding='utf-8')
+    contents = {
+        tmp_path / 'README.md': '# 项目\n2026-10-13 完整话术补充：旧\n2026-10-13 文档追溯复核：旧\n2026-10-13 复核修复：旧\n',
+        engineering: '# 工程\n核查日期：旧\n先前逐题生成器跳过了围栏块，旧\n136 个示例均只有一份正文：旧\n链接审计统一覆盖旧\n文档生成与审计修复范围旧\n桌面同步包含项目文档及简历 HTML/PDF，共 23 个文件。\n',
+        tmp_path / 'docs/MedAgent_项目理解指南.md': '# 指南\n话术中的原文行号指向旧\n',
+        tmp_path / 'docs/MedAgent_AI_多Agent项目话术.md': '# 话术\n',
+        library / 'README.md': '# 题库\n',
+        library / '01-示例.md': '# 调度\n',
+    }
+    if extra_chapter:
+        contents[library / '02-新增.md'] = '# 新增章节\n'
+    for path, body in contents.items():
+        path.write_text(body, encoding='utf-8')
+    coverage = {'example_count': 1, 'examples': [{'association': 'question', 'placement': 'beside_question'}],
+                'example_adaptation_counts': {'unchanged': 1, 'tob_rewrite': 0}}
+    (library / 'coverage.json').write_text(json.dumps(coverage), encoding='utf-8')
     monkeypatch.setattr(annotator, 'ROOT', tmp_path)
     monkeypatch.setattr(annotator, 'latest_test_validation', lambda: None)
     monkeypatch.setattr(annotator.subprocess, 'run', lambda *args, **kwargs: SimpleNamespace(stdout=b''))
     annotator.refresh()
     paragraph = next(line for line in engineering.read_text(encoding='utf-8').splitlines() if line.startswith('桌面同步'))
-    assert '共 21 个目标' in paragraph and '单独交付，不计入此清单' in paragraph
-    assert '共 23 个文件' not in paragraph
-    first = {path: path.read_bytes() for path in copies}
+    # Three library files, three main documents and two diagrams; inventory grows.
+    assert f'共 {8 + int(extra_chapter)} 个目标' in paragraph
+    assert '单独交付，不计入此清单' in paragraph and '共 23 个文件' not in paragraph
+    first = {path: path.read_bytes() for path in contents}
     annotator.refresh()
-    assert {path: path.read_bytes() for path in copies} == first
+    assert {path: path.read_bytes() for path in contents} == first
 
 
 def test_filename_annotations_are_removed_but_professional_terms_remain():

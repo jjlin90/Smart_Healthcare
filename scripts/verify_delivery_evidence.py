@@ -20,6 +20,21 @@ EVIDENCE_FILES = (
     'document_links.json', 'latest_desktop_receipt.json', 'desktop_manifest.json',
 )
 PRIMARY_DOCUMENTS = ('MedAgent_项目理解指南.md', 'MedAgent_AI_多Agent项目话术.md')
+DESKTOP_DOCUMENTS = ('MedAgent_AI_多Agent项目话术.md', 'MedAgent_项目理解指南.md',
+                     'MedAgent_文档对照与工程改进_2026-10-13.md')
+
+
+def default_desktop_pairs(root: Path, desktop: Path) -> list[tuple[Path, Path]]:
+    """One default document/diagram plan for annotation, sync and verification."""
+    library = root / 'docs/MedAgent_逐题适配'
+    target_library = desktop / 'MedAgent_AI_多Agent项目'
+    pairs = [(path, target_library / path.relative_to(library))
+             for path in sorted(library.rglob('*')) if path.is_file()]
+    pairs += [(root / 'docs' / name, desktop / name) for name in DESKTOP_DOCUMENTS]
+    diagrams = root / 'artifacts/medagent_upgrade_20261013'
+    pairs += [(diagrams / name, desktop / name)
+              for name in ('MedAgent_项目流程图.svg', 'MedAgent_项目流程图.png')]
+    return pairs
 
 
 def require(condition: bool, message: str) -> None:
@@ -297,6 +312,19 @@ def verify_current_delivery(pointer_path: Path) -> dict:
     require(all(Path(row['target']).suffix.lower() not in ('.html', '.pdf') for row in entries),
             'delivery: shared resume belongs to a separate delivery')
     mapping = {Path(row['source']).resolve(): Path(row['target']) for row in entries}
+    engineering_name = DESKTOP_DOCUMENTS[-1]
+    engineering_documents = [path for path in documents if path.name == engineering_name]
+    if engineering_documents:
+        source = (ROOT / 'docs' / engineering_name).resolve()
+        require(source in mapping, 'delivery: engineering document missing from desktop plan')
+        expected = {s.resolve(): t.resolve() for s, t in default_desktop_pairs(ROOT, mapping[source].parent)}
+        require(len(entries) == len(expected) and
+                {s: t.resolve() for s, t in mapping.items()} == expected,
+                'delivery: default desktop plan differs')
+        for path in engineering_documents:
+            claims = re.findall(r'^桌面同步[^\n]*?共\s+(\d+)\s+个目标', path.read_text(encoding='utf-8-sig'), re.M)
+            require(len(claims) == 1 and int(claims[0]) == len(expected),
+                    'delivery: default desktop target claim differs')
     for row in entries:
         source, target = Path(row['source']), Path(row['target'])
         require(sha(source) == row['source_sha256'] and sha(target) == row['target_sha256'], 'delivery: sync hash differs')

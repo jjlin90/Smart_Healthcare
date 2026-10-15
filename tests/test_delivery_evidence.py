@@ -10,6 +10,32 @@ from scripts import verify_delivery_evidence as verifier
 from scripts import preflight_git
 
 
+@pytest.mark.parametrize('extra', [None, 'nested/02-extra.md'])
+def test_default_desktop_plan_tracks_inventory_and_excludes_separate_materials(tmp_path, extra):
+    root, desktop = tmp_path / 'repo', tmp_path / 'desktop'
+    library = root / 'docs/MedAgent_逐题适配'
+    library.mkdir(parents=True)
+    (library / 'README.md').write_text('# Library', encoding='utf-8')
+    (library / 'coverage.json').write_text('{}', encoding='utf-8')
+    if extra:
+        path = library / extra
+        path.parent.mkdir()
+        path.write_text('# Extra', encoding='utf-8')
+    (root / 'docs/med_rag_面试全解.md').write_text('# Separate', encoding='utf-8')
+    (root / 'docs/resume.html').write_text('Separate resume', encoding='utf-8')
+    pairs = verifier.default_desktop_pairs(root, desktop)
+    assert len(pairs) == 7 + int(extra is not None)
+    assert len({target for _, target in pairs}) == len(pairs)
+    assert (library / 'coverage.json', desktop / 'MedAgent_AI_多Agent项目/coverage.json') in pairs
+    if extra:
+        assert (library / extra, desktop / 'MedAgent_AI_多Agent项目' / extra) in pairs
+    assert {source.name for source, _ in pairs} >= {
+        'MedAgent_AI_多Agent项目话术.md', 'MedAgent_项目理解指南.md',
+        'MedAgent_文档对照与工程改进_2026-10-13.md', 'MedAgent_项目流程图.svg', 'MedAgent_项目流程图.png'}
+    assert all(source.suffix not in {'.html', '.pdf'} and 'med_rag' not in source.name for source, _ in pairs)
+    assert not desktop.exists()
+
+
 def logs(tests=37, static_count=3):
     static = ''.join(f'[PASS] static check {index}\n' for index in range(static_count))
     conclusion = '结论：检查通过，可以进入提交/推送流程。\n'
@@ -174,6 +200,49 @@ def test_current_delivery_verifies_claims_and_can_repeat_without_writing(current
     assert result['verifier_path'] == 'scripts/verify_delivery_evidence.py'
     assert verifier.verify_current_delivery(directory/'pointer.json')['test_run_id'] == 'fixture-run'
     assert before == (book.read_bytes(), target.read_bytes())
+
+
+@pytest.mark.parametrize('change', [None, 'count', 'target'])
+def test_current_delivery_checks_default_plan_and_document_count(current_delivery, change):
+    directory, book, target, report, _ = current_delivery
+    root, desktop = book.parents[1], target.parent
+    guide = root / 'docs/MedAgent_项目理解指南.md'
+    guide.write_text('# Guide\n', encoding='utf-8')
+    engineering = root / 'docs' / verifier.DESKTOP_DOCUMENTS[-1]
+    engineering.write_text('# Engineering\n', encoding='utf-8')
+    diagrams = root / 'artifacts/medagent_upgrade_20261013'
+    diagrams.mkdir(parents=True)
+    (diagrams / 'MedAgent_项目流程图.svg').write_text('<svg/>', encoding='utf-8')
+    (diagrams / 'MedAgent_项目流程图.png').write_bytes(b'fixture-image')
+    pairs = verifier.default_desktop_pairs(root, desktop)
+    claimed = len(pairs) + int(change == 'count')
+    engineering.write_text(f'# Engineering\n桌面同步的当前默认清单，共 {claimed} 个目标。\n', encoding='utf-8')
+    if change == 'target':
+        pairs = [(source, destination.with_name('unexpected.md') if source == guide else destination)
+                 for source, destination in pairs]
+    mapping = {source.resolve(): destination for source, destination in pairs}
+    entries, documents = [], {}
+    for source, destination in pairs:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        data = (verifier.rebase_markdown(source, destination, source.read_bytes().decode('utf-8-sig'), mapping, root).encode('utf-8')
+                if source.suffix == '.md' else source.read_bytes())
+        destination.write_bytes(data)
+        entries.append({'source': str(source), 'target': str(destination),
+                        'source_sha256': verifier.sha(source), 'target_sha256': verifier.sha(destination)})
+        if source.suffix == '.md':
+            documents.update({str(source): verifier.sha(source), str(destination): verifier.sha(destination)})
+    report.update(current_document_sha256=documents, document_links_checked=len(documents), desktop_hashes_verified=len(entries))
+    write_json(directory, 'desktop_sync_receipt.json', {'entries': entries})
+    write_json(directory, 'report.json', report)
+    write_json(directory, 'pointer.json', {'report': str(directory/'report.json'), 'report_sha256': verifier.sha(directory/'report.json')})
+    before = {path: path.read_bytes() for path in [*map(Path, documents), directory/'report.json', directory/'desktop_sync_receipt.json']}
+    if change:
+        reason = 'default desktop target claim differs' if change == 'count' else 'default desktop plan differs'
+        with pytest.raises(ValueError, match=reason):
+            verifier.verify_current_delivery(directory/'pointer.json')
+    else:
+        assert verifier.verify_current_delivery(directory/'pointer.json')['desktop_targets_matched'] == len(pairs)
+    assert {path: path.read_bytes() for path in before} == before
 
 
 @pytest.mark.parametrize('change', ['report', 'document', 'missing_regression', 'forged_claim'])

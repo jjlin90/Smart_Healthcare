@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT))
 from scripts.medagent_terminology import annotate_markdown, annotate_text
 from scripts.preflight_git import _markdown_headings, _markdown_without_fences
 from scripts.record_document_checks import latest_test_validation
+from scripts.verify_delivery_evidence import default_desktop_pairs
 
 
 def replace_paragraph(text, prefix, replacement):
@@ -39,6 +40,7 @@ def refresh():
     placement = {kind: sum(row['placement'] == kind for row in coverage['examples'])
                  for kind in ('after_source_lead', 'beside_question')}
     engineering = ROOT / 'docs/MedAgent_文档对照与工程改进_2026-10-13.md'
+    desktop_targets = len(default_desktop_pairs(ROOT, Path('desktop')))
     text = engineering.read_text(encoding='utf-8')
     text = replace_paragraph(text, '核查日期：',
             "核查日期：2026-10-13。范围是本地保留的 14 份 .txt 原件，位于仓库根目录下 artifacts/medagent_upgrade_20261013/原始资料/；桌面同名 .md 为适配稿。"
@@ -63,7 +65,7 @@ def refresh():
             "文档生成与审计修复范围（2026-10-13）：该阶段只修改文档生成与审计代码。2026-10-14 已收紧临床专科职责：症状智能体保留症状辅助评估、风险提示、疾病信息和科室建议，不创建转诊草稿；医生在独立表单确认患者、科室和原因后，由 ReferralDraftService 经 MCP 执行参数绑定的草稿写入。前轮 479 项及 24.11 秒是历史记录，本轮验证另行记录。"
             "用户已主动删除备份，本轮直接覆盖原稿，不恢复或新增备份。")
     text = replace_paragraph(text, '桌面同步',
-            "桌面同步的当前默认清单包含逐题稿与覆盖清单、完整讲稿、理解指南、工程对照和 SVG/PNG 流程图，共 21 个目标。"
+            f"桌面同步的当前默认清单包含逐题稿与覆盖清单、完整讲稿、理解指南、工程对照和 SVG/PNG 流程图，共 {desktop_targets} 个目标。"
             "共享简历 HTML/PDF 单独交付，不计入此清单；旧的 23 目标收据包含简历，仅作历史快照。"
             "独立 med_rag 稿件也不在当前项目交付范围。按用户要求直接更新桌面原稿，不新建备份；同步后逐项核验来源、目标字节及链接映射。"
             "覆盖清单中的原文哈希以首次读取的原始内容为准。")
