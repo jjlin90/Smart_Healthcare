@@ -93,7 +93,7 @@ def documents(desktop: Path | None, extra_documents: list[Path] | None = None) -
         directory = desktop / 'MedAgent_AI_多Agent项目'
         if not directory.is_dir():
             raise ValueError('desktop document directory is missing')
-        paths += sorted(directory.rglob('*.md'))
+        paths += sorted(p for p in directory.rglob('*') if p.is_file() and p.suffix.lower() == '.md')
         if any(not p.is_file() for p in paths):
             raise ValueError('required desktop document is missing')
     for path in extra_documents or []:

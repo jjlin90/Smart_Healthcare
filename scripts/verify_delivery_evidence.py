@@ -78,7 +78,10 @@ def verify_reading_layout(book: str, coverage: dict) -> None:
 
 
 def verify_document_scope_claims(coverage: dict, desktop_count: int) -> None:
-    """Numbers in all three generated explanations must match trusted inventory."""
+    """Check required scope/coverage sentences, not arbitrary historical prose.
+
+    Thousands separators are formatting, not a different numeric claim.
+    """
     repository = repository_markdown_paths(ROOT)
     expected = (len(repository), desktop_count, len(repository) + desktop_count)
     paths = (ROOT/'README.md', ROOT/'docs/MedAgent_项目理解指南.md',
@@ -220,7 +223,7 @@ def verify_repository_documents() -> dict:
         adaptations[row['adaptation']] += 1
     require(adaptations == coverage['example_adaptation_counts'],
             'repository delivery: adaptation counts differ')
-    paths = sorted([ROOT / 'README.md', *(ROOT / 'docs').rglob('*.md')])
+    paths = sorted(repository_markdown_paths(ROOT))
     links = check_links(paths)
     require(not links['issues'], 'repository delivery: local links failed')
     verify_document_scope_claims(coverage, sum(source.suffix.lower() == '.md'

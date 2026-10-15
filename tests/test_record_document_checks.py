@@ -303,14 +303,15 @@ def test_links_records_specific_issues_and_separates_source_hashes(repository, m
     assert result['inputs_unchanged'] is True
 
 
-def test_links_success_metadata_and_desktop_scope(repository, monkeypatch):
+@pytest.mark.parametrize('suffix', ['.md', '.MD'])
+def test_links_success_metadata_and_desktop_scope(repository, monkeypatch, suffix):
     desktop = repository / 'artifacts/desktop'
     (desktop / 'MedAgent_AI_多Agent项目').mkdir(parents=True)
     for name in ('MedAgent_项目理解指南.md', 'MedAgent_AI_多Agent项目话术.md',
                  'MedAgent_文档对照与工程改进_2026-10-13.md'):
         (desktop / name).write_text('# Desktop\n', encoding='utf-8')
     (desktop / 'MedAgent_AI_多Agent项目/03-Agent.md').write_text('# Agent\n', encoding='utf-8')
-    nested = desktop / 'MedAgent_AI_多Agent项目/专题/术语.md'
+    nested = desktop / ('MedAgent_AI_多Agent项目/专题/术语' + suffix)
     nested.parent.mkdir()
     nested.write_text('# Nested\n', encoding='utf-8')
     extra = desktop / '工程对照.md'

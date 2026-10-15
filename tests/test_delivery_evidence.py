@@ -225,6 +225,18 @@ def test_current_delivery_verifies_claims_and_can_repeat_without_writing(current
     assert before == (book.read_bytes(), target.read_bytes())
 
 
+def test_repository_gate_checks_uppercase_markdown_outside_docs(current_delivery):
+    _, book, _, _, _ = current_delivery
+    root = book.parents[1]
+    extra = root/'EXTRA.MD'
+    extra.write_text('# Extra\n', encoding='utf-8')
+    (root/'README.md').write_text('# Fixture\n'+scope_claims(4,2), encoding='utf-8')
+    assert verifier.verify_repository_documents()['document_files_checked'] == 4
+    extra.write_text('# Extra\n[Broken](missing.md)\n', encoding='utf-8')
+    with pytest.raises(ValueError, match='local links failed'):
+        verifier.verify_repository_documents()
+
+
 @pytest.mark.parametrize('change', [None, 'count', 'target', 'omit_engineering_source',
     'omit_engineering_target', 'omit_engineering_both', 'omit_engineering_receipt',
     'omit_library_receipt', 'omit_book_receipt', 'omit_repo_readme', 'extra_document',

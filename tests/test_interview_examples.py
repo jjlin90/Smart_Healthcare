@@ -109,7 +109,7 @@ def test_refresh_handles_translated_paragraphs_and_rejects_missing_or_duplicate_
     assert '本轮记录' not in review_block(marked, '最新记录')
 
 
-@pytest.mark.parametrize('extra_chapter', [False, True])
+@pytest.mark.parametrize('extra_chapter', [None, '02-新增.md', '02-新增.MD'])
 def test_refresh_corrects_legacy_delivery_scope_and_remains_idempotent(tmp_path, monkeypatch, extra_chapter):
     import json
     from types import SimpleNamespace
@@ -126,7 +126,7 @@ def test_refresh_corrects_legacy_delivery_scope_and_remains_idempotent(tmp_path,
         library / '01-示例.md': '# 调度\n',
     }
     if extra_chapter:
-        contents[library / '02-新增.md'] = '# 新增章节\n'
+        contents[library / extra_chapter] = '# 新增章节\nAgent 负责调用工具。\n'
     for path, body in contents.items():
         path.write_text(body, encoding='utf-8')
     coverage = {'question_count': 1, 'example_count': 1, 'examples': [{'association': 'question', 'placement': 'beside_question'}],
@@ -140,10 +140,16 @@ def test_refresh_corrects_legacy_delivery_scope_and_remains_idempotent(tmp_path,
     assert (tmp_path / 'docs/MedAgent_AI_多Agent项目话术.md').read_text(encoding='utf-8') == contents[tmp_path / 'docs/MedAgent_AI_多Agent项目话术.md']
     paragraph = next(line for line in engineering.read_text(encoding='utf-8').splitlines() if line.startswith('桌面同步'))
     # Three library files, three main documents and two diagrams; inventory grows.
-    assert f'共 {8 + int(extra_chapter)} 个目标' in paragraph
+    assert f'共 {8 + int(bool(extra_chapter))} 个目标' in paragraph
     assert '单独交付，不计入此清单' in paragraph and '共 23 个文件' not in paragraph
     for path in (tmp_path/'README.md', engineering, tmp_path/'docs/MedAgent_项目理解指南.md'):
-        assert f'和 {11 + 2*int(extra_chapter)} 份本地链接' in path.read_text(encoding='utf-8')
+        assert f'和 {11 + 2*int(bool(extra_chapter))} 份本地链接' in path.read_text(encoding='utf-8')
+    if extra_chapter:
+        assert 'Agent(智能体)' in (library/extra_chapter).read_text(encoding='utf-8')
+    from scripts import verify_delivery_evidence as verifier
+    monkeypatch.setattr(verifier, 'ROOT', tmp_path)
+    monkeypatch.setattr(verifier, 'repository_markdown_paths', lambda _root: set(contents))
+    verifier.verify_document_scope_claims(coverage, 5 + int(bool(extra_chapter)))
     readme = (tmp_path/'README.md').read_text(encoding='utf-8')
     assert '话术合并继承分章已有译注' in readme and '主文由生成器重建' in readme
     first = {path: path.read_bytes() for path in contents}

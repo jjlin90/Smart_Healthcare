@@ -43,7 +43,7 @@ def refresh():
     desktop_plan = default_desktop_pairs(ROOT, Path('desktop'))
     desktop_targets = len(desktop_plan)
     repository_docs = len(repository_markdown_paths(ROOT))
-    desktop_docs = sum(source.suffix == '.md' for source, _ in desktop_plan)
+    desktop_docs = sum(source.suffix.lower() == '.md' for source, _ in desktop_plan)
     link_scope = f'仓库 {repository_docs} 份及桌面 {desktop_docs} 份，共 {repository_docs + desktop_docs} 份'
     text = engineering.read_text(encoding='utf-8')
     text = replace_paragraph(text, '核查日期：',
@@ -101,7 +101,8 @@ def refresh():
         '主文由生成器重建，原题答案应编辑分章，项目开场应编辑导读，新增原理补充在生成器问答补充表维护。'
         '覆盖清单的 source 是适配映射键，original_local_path 才是本机原件路径。'
         '链接审计检查本地文件及锚点；Git 索引可分发检查另由预检执行，external_urls 仅列举外部网址。'
-        '审计的 worktree_dirty 表示未提交改动，输入哈希识别实际检查内容。')
+        '审计的 worktree_dirty 表示记录生成时的未提交改动，输入哈希识别实际检查内容。'
+        '统计门禁核对约定统计段落的数值及完整性，千分位逗号不影响数值；任意历史叙述仍需人工核对。')
     text = (replace_paragraph(text, '英文译注刷新入口：', annotation_note)
             if '英文译注刷新入口：' in text else text.rstrip()+'\n\n'+annotation_note+'\n')
     validation = latest_test_validation()
@@ -127,7 +128,7 @@ def refresh():
     # Keep the revised texts until all required paragraphs have matched.
     readme_text = review_block(text, review)
     targets = [readme, engineering, guide, ROOT / 'docs/MedAgent_AI_多Agent项目话术.md',
-               *library.glob('*.md')]
+               *(path for path in library.rglob('*') if path.is_file() and path.suffix.lower() == '.md')]
     before = {path: path.read_text(encoding='utf-8-sig') for path in targets}
     before[readme] = readme_text
     before[guide] = review_block(guide_text, review)
