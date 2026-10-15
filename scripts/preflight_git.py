@@ -416,7 +416,7 @@ def check_python_syntax(report: Report, candidates: list[Path]) -> None:
             continue
         checked += 1
         relative = path.relative_to(ROOT)
-        if relative.parts[0] == "tests" and path.suffix != ".py":
+        if relative.parts[0].lower() == "tests" and path.suffix != ".py":
             failures.append(f"{relative.as_posix()}: 测试目录中的 Python 文件必须使用小写 .py 后缀，避免 pytest 漏收集")
         try:
             compile(path.read_text(encoding="utf-8-sig"), str(path), "exec")
@@ -425,7 +425,7 @@ def check_python_syntax(report: Report, candidates: list[Path]) -> None:
     if failures:
         report.error("Python 语法或测试文件后缀检查失败：" + "; ".join(failures))
     else:
-        report.ok(f"Python 语法检查通过（{checked} 个文件）")
+        report.ok(f"Python 语法及测试目录后缀检查通过（{checked} 个 Python 文件）")
 
 
 def check_absolute_local_paths(report: Report, candidates: list[Path]) -> None:

@@ -136,11 +136,12 @@ def test_preflight_scans_untracked_importers(tmp_path, monkeypatch, suffix):
 
 
 @pytest.mark.parametrize("suffix", [".PY", ".Py", ".pY", ".py"])
-def test_preflight_rejects_noncanonical_test_suffix(tmp_path, monkeypatch, suffix):
+@pytest.mark.parametrize("directory", ["tests", "Tests", "TESTS"])
+def test_preflight_rejects_noncanonical_test_suffix(tmp_path, monkeypatch, suffix, directory):
     from scripts import preflight_git as scanner
 
     monkeypatch.setattr(scanner, "ROOT", tmp_path)
-    tests = tmp_path / "tests/nested"
+    tests = tmp_path / directory / "nested"
     tests.mkdir(parents=True)
     source = tests / ("test_hidden" + suffix)
     source.write_text("def test_hidden():\n    assert False\n", encoding="utf-8")
@@ -150,6 +151,8 @@ def test_preflight_rejects_noncanonical_test_suffix(tmp_path, monkeypatch, suffi
     if report.errors:
         assert "小写 .py 后缀" in report.errors[0]
         assert source.relative_to(tmp_path).as_posix() in report.errors[0]
+    else:
+        assert "语法及测试目录后缀检查通过" in report.passed[0]
     # Source files outside the configured test directory still receive static checks.
     ordinary = tmp_path / ("worker" + suffix)
     ordinary.write_text("value = 1\n", encoding="utf-8")
