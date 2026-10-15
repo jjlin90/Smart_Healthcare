@@ -12,9 +12,26 @@ from scripts import preflight_git
 REAL_DEFAULT_DESKTOP_PAIRS = verifier.default_desktop_pairs
 
 
-def scope_claims(repository, desktop):
+def scope_claims(repository, desktop, questions=1, examples=1):
     return (f'当前链接审计为仓库 {repository} 份及桌面 {desktop} 份，共 {repository+desktop} 份。\n'
-            f'生成后的当前文档另行核验 1 处引用、1 个示例内容和 {repository+desktop} 份本地链接。\n')
+            f'生成后的当前文档另行核验 {questions} 处引用、{examples} 个示例内容和 {repository+desktop} 份本地链接。\n')
+
+
+@pytest.mark.parametrize('formatted,accepted', [
+    ('1260', True), ('1,260', True), ('12,60', False), ('1,,260', False), ('1,200', False)])
+def test_coverage_claim_requires_valid_numeric_grouping(tmp_path, monkeypatch, formatted, accepted):
+    paths = (tmp_path/'README.md', tmp_path/'docs/MedAgent_项目理解指南.md',
+             tmp_path/'docs/MedAgent_文档对照与工程改进_2026-10-13.md')
+    for path in paths:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(scope_claims(3,19,formatted,136), encoding='utf-8')
+    monkeypatch.setattr(verifier, 'ROOT', tmp_path)
+    monkeypatch.setattr(verifier, 'repository_markdown_paths', lambda _root: set(paths))
+    if accepted:
+        verifier.verify_document_scope_claims({'question_count':1260,'example_count':136},19)
+    else:
+        with pytest.raises(ValueError, match='document coverage claim differs'):
+            verifier.verify_document_scope_claims({'question_count':1260,'example_count':136},19)
 
 
 @pytest.mark.parametrize('extra', [None, 'nested/02-extra.md'])
@@ -220,6 +237,7 @@ def test_current_delivery_verifies_claims_and_can_repeat_without_writing(current
     result = verifier.verify_current_delivery(directory/'pointer.json')
     assert result['pytest_passed'] == 5 and result['questions_verified'] == result['examples_verified'] == 1
     assert result['document_files_checked'] == 5 and result['desktop_targets_matched'] == 2
+    assert result['document_link_count_basis'] == 'recomputed_current_documents'
     assert result['verifier_path'] == 'scripts/verify_delivery_evidence.py'
     assert verifier.verify_current_delivery(directory/'pointer.json')['test_run_id'] == 'fixture-run'
     assert before == (book.read_bytes(), target.read_bytes())
@@ -412,6 +430,7 @@ def test_summary_checks_source_target_and_repository_content(evidence):
     result = verifier.summarize(directory)
     assert result['pytest_passed'] == 37
     assert result['document_files_checked'] == 7
+    assert result['document_link_count_basis'] == 'stored_historical_link_report'
     assert result['desktop_targets_matched'] == 2
     assert result['desktop_manifest_targets_matched'] == 2
     assert result['repository_desktop_documents_matched'] == 2
@@ -574,6 +593,7 @@ def test_repository_gate_works_without_private_originals_or_desktop(current_deli
     assert result['questions_verified'] == result['examples_verified'] == 1
     assert result['document_files_checked'] == 3
     assert 'private originals' in result['scope']
+    assert result['document_link_count_basis'] == 'recomputed_current_repository'
     assert verifier.verify_repository_documents() == result
 
 

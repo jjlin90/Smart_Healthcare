@@ -109,8 +109,8 @@ def test_refresh_handles_translated_paragraphs_and_rejects_missing_or_duplicate_
     assert '本轮记录' not in review_block(marked, '最新记录')
 
 
-@pytest.mark.parametrize('extra_chapter', [None, '02-新增.md', '02-新增.MD'])
-def test_refresh_corrects_legacy_delivery_scope_and_remains_idempotent(tmp_path, monkeypatch, extra_chapter):
+@pytest.mark.parametrize('extra_chapter', [None, '02-新增.md', '02-新增.MD', '专题/02-新增.MD'])
+def test_refresh_corrects_legacy_delivery_scope_and_remains_idempotent(tmp_path, monkeypatch, extra_chapter, case_sensitive_markdown_globs):
     import json
     from types import SimpleNamespace
     from scripts import annotate_medagent_documents as annotator
@@ -128,6 +128,7 @@ def test_refresh_corrects_legacy_delivery_scope_and_remains_idempotent(tmp_path,
     if extra_chapter:
         contents[library / extra_chapter] = '# 新增章节\nAgent 负责调用工具。\n'
     for path, body in contents.items():
+        path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(body, encoding='utf-8')
     coverage = {'question_count': 1, 'example_count': 1, 'examples': [{'association': 'question', 'placement': 'beside_question'}],
                 'example_adaptation_counts': {'unchanged': 1, 'tob_rewrite': 0}}

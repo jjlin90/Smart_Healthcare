@@ -26,6 +26,30 @@ def git(*args: str) -> str:
     return subprocess.check_output(['git', *args], cwd=ROOT).decode('utf-8').strip()
 
 
+def observe_git_state() -> dict:
+    """Read a dated local snapshot without assuming concurrent Git work stops.
+
+    The tracking reference is local metadata, never a remote-server query.
+    A changed HEAD makes the observation non-atomic; it is recorded, not rejected.
+    """
+    started = datetime.now(timezone.utc).isoformat()
+    head_before = git('rev-parse', 'HEAD')
+    try:
+        origin_main = git('rev-parse', '--verify', '--quiet', 'refs/remotes/origin/main')
+    except subprocess.CalledProcessError:
+        origin_main = None
+    status = git('status', '--porcelain')
+    head_after = git('rev-parse', 'HEAD')
+    return {'observation_started_at_utc': started,
+            'observation_finished_at_utc': datetime.now(timezone.utc).isoformat(),
+            'local_head_before': head_before, 'local_head_after': head_after,
+            'local_origin_main_tracking_ref': origin_main,
+            'working_tree_status_at_observation': status,
+            'head_unchanged_while_observing': head_before == head_after,
+            'remote_server_queried': False,
+            'scope': 'Dated local observation only; later commits and pushes may change this state.'}
+
+
 def candidates() -> list[Path]:
     names = git('ls-files', '--cached', '--others', '--exclude-standard', '-z')
     return sorted({ROOT / name for name in names.split('\0') if name})

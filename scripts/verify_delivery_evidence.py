@@ -93,7 +93,7 @@ def verify_document_scope_claims(coverage: dict, desktop_count: int) -> None:
         scopes = re.findall(r'(?:当前链接审计为|链接审计统一覆盖|完整链接审计范围为)\s*仓库\s+(\d+)\s+份及桌面\s+(\d+)\s+份，共\s+(\d+)\s+份', text)
         require(len(scopes) == 1 and tuple(map(int, scopes[0])) == expected,
                 'delivery: document scope claim differs')
-        claims = re.findall(r'生成后的当前文档另行核验\s+([\d,]+)\s+处引用、\s*(\d+)\s+个示例内容和\s*(\d+)\s+份本地链接', text)
+        claims = re.findall(r'生成后的当前文档另行核验\s+([0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\s+处引用、\s*(\d+)\s+个示例内容和\s*(\d+)\s+份本地链接', text)
         require(len(claims) == 1 and
                 tuple(int(n.replace(',', '')) for n in claims[0]) ==
                 (coverage['question_count'], coverage['example_count'], expected[2]),
@@ -228,7 +228,8 @@ def verify_repository_documents() -> dict:
     require(not links['issues'], 'repository delivery: local links failed')
     verify_document_scope_claims(coverage, sum(source.suffix.lower() == '.md'
         for source, _ in default_desktop_pairs(ROOT, Path('desktop'))))
-    return {'document_files_checked': len(paths), 'questions_verified': len(coverage['questions']),
+    return {'document_files_checked': len(paths), 'document_link_count_basis': 'recomputed_current_repository',
+            'questions_verified': len(coverage['questions']),
             'examples_verified': len(coverage['examples']), 'example_adaptations': adaptations,
             'scope': 'Repository question anchors, example content hashes and local links only; '
                      'private originals, test records, desktop files and resumes are not verified.'}
@@ -300,6 +301,7 @@ def summarize(evidence_dir: Path) -> dict:
         'head': verification_head(),
         **counts,
         'document_files_checked': links['files'],
+        'document_link_count_basis': 'stored_historical_link_report',
         'document_issues': len(links['issues']),
         'desktop_targets_matched': len(entries),
         'desktop_manifest_targets_matched': len(read_json('desktop_manifest.json')),
@@ -378,28 +380,28 @@ def verify_current_delivery(pointer_path: Path) -> dict:
     mapping = {Path(row['source']).resolve(): Path(row['target']) for row in entries}
     book_source = book_path.resolve()
     require(book_source in mapping, 'delivery: primary book missing from desktop plan')
-    expected = {s.resolve(): t.resolve() for s, t in default_desktop_pairs(ROOT, mapping[book_source].parent)}
-    require(len(entries) == len(expected) and
-            {s: t.resolve() for s, t in mapping.items()} == expected,
+    desktop_plan = {s.resolve(): t.resolve() for s, t in default_desktop_pairs(ROOT, mapping[book_source].parent)}
+    require(len(entries) == len(desktop_plan) and
+            {s: t.resolve() for s, t in mapping.items()} == desktop_plan,
             'delivery: default desktop plan differs')
     required_documents = repository_markdown_paths(ROOT) | {
-        target for source, target in expected.items() if source.suffix.lower() == '.md'}
+        target for source, target in desktop_plan.items() if source.suffix.lower() == '.md'}
     require(len(documents) == len(required_documents) and
             {path.resolve() for path in documents} == required_documents,
             'delivery: document scope differs from required defaults')
-    verify_document_scope_claims(coverage, sum(source.suffix.lower() == '.md' for source in expected))
+    verify_document_scope_claims(coverage, sum(source.suffix.lower() == '.md' for source in desktop_plan))
     engineering_source = (ROOT / 'docs' / DESKTOP_DOCUMENTS[-1]).resolve()
-    if engineering_source in expected:
-        engineering_documents = (engineering_source, expected[engineering_source])
+    if engineering_source in desktop_plan:
+        engineering_documents = (engineering_source, desktop_plan[engineering_source])
         for path in engineering_documents:
             claims = re.findall(r'^桌面同步[^\n]*?共\s+(\d+)\s+个目标', path.read_text(encoding='utf-8-sig'), re.M)
-            require(len(claims) == 1 and int(claims[0]) == len(expected),
+            require(len(claims) == 1 and int(claims[0]) == len(desktop_plan),
                     'delivery: default desktop target claim differs')
     for row in entries:
         source, target = Path(row['source']), Path(row['target'])
         require(sha(source) == row['source_sha256'] and sha(target) == row['target_sha256'], 'delivery: sync hash differs')
-        expected = project_desktop_document(source, target, mapping) if source.suffix.lower() == '.md' else source.read_bytes()
-        require(target.read_bytes() == expected, 'delivery: desktop content differs after shared mapping')
+        projected_bytes = project_desktop_document(source, target, mapping) if source.suffix.lower() == '.md' else source.read_bytes()
+        require(target.read_bytes() == projected_bytes, 'delivery: desktop content differs after shared mapping')
     validation = latest_test_validation()
     require(validation is not None, 'delivery: no current successful code regression')
     passed = validation['test_counts']['passed']
@@ -410,6 +412,7 @@ def verify_current_delivery(pointer_path: Path) -> dict:
     require(bool(claims) and all(int(n) == passed for n in claims), 'delivery: current document test claim differs')
     return {'verified_at_utc': datetime.now(timezone.utc).isoformat(), 'head': verification_head(),
             'pytest_passed': passed, 'document_files_checked': len(documents), 'document_issues': 0,
+            'document_link_count_basis': 'recomputed_current_documents',
             'questions_verified': len(coverage['questions']), 'examples_verified': len(coverage['examples']),
             'example_adaptations': adaptations, 'desktop_targets_matched': len(entries),
             'verifier_path': 'scripts/verify_delivery_evidence.py', 'verifier_sha256': sha(Path(__file__)),
@@ -420,7 +423,7 @@ def verify_current_delivery(pointer_path: Path) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument('--evidence-dir', type=Path, help='historical full/quick evidence format; target drift is an error')
+    mode.add_argument('--evidence-dir', type=Path, help='historical reports and target hashes; link count comes from the stored report, without rescanning its full document scope')
     mode.add_argument('--delivery-pointer', type=Path, help='current MedAgent document delivery pointer')
     mode.add_argument('--repository-documents', action='store_true', help='portable book/coverage/link gate; no private desktop evidence')
     parser.add_argument('--output', type=Path, help='Create a new JSON summary; existing files are never overwritten')

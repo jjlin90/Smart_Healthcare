@@ -102,7 +102,8 @@ def refresh():
         '覆盖清单的 source 是适配映射键，original_local_path 才是本机原件路径。'
         '链接审计检查本地文件及锚点；Git 索引可分发检查另由预检执行，external_urls 仅列举外部网址。'
         '审计的 worktree_dirty 表示记录生成时的未提交改动，输入哈希识别实际检查内容。'
-        '统计门禁核对约定统计段落的数值及完整性，千分位逗号不影响数值；任意历史叙述仍需人工核对。')
+        '统计门禁核对约定统计段落的数值及完整性，接受纯数字或标准三位分组的千分位格式；任意历史叙述仍需人工核对。'
+        '当前 --delivery-pointer 会现场重算完整文档范围的链接；旧 --evidence-dir 的链接份数来自历史报告，不等于当前完整链接扫描。')
     text = (replace_paragraph(text, '英文译注刷新入口：', annotation_note)
             if '英文译注刷新入口：' in text else text.rstrip()+'\n\n'+annotation_note+'\n')
     validation = latest_test_validation()

@@ -58,6 +58,27 @@ def metadata(path):
     return json.loads(body.split('\n[RUN] ')[1]) if path.suffix == '.log' else json.loads(body)
 
 
+@pytest.mark.parametrize('advance_head', [False, True])
+def test_git_observation_records_concurrent_commit_without_rejecting(repository, monkeypatch, advance_head):
+    original_git = recorder.git
+    before = original_git('rev-parse', 'HEAD')
+    def observe(*args):
+        if advance_head and args == ('status', '--porcelain'):
+            subprocess.run(['git', '-C', str(repository), '-c', 'user.name=Recorder test',
+                            '-c', 'user.email=test@example.invalid', 'commit', '--allow-empty',
+                            '-qm', 'concurrent fixture commit'], check=True)
+        return original_git(*args)
+    monkeypatch.setattr(recorder, 'git', observe)
+    result = recorder.observe_git_state()
+    assert result['local_head_before'] == before
+    assert result['local_head_after'] == original_git('rev-parse', 'HEAD')
+    assert (result['local_head_before'] != result['local_head_after']) is advance_head
+    assert result['head_unchanged_while_observing'] is not advance_head
+    assert result['remote_server_queried'] is False
+    assert result['local_origin_main_tracking_ref'] is None
+    assert result['observation_started_at_utc'] <= result['observation_finished_at_utc']
+
+
 @pytest.mark.parametrize('status', [0, 4])
 def test_recorded_tests_use_and_clean_system_temp_with_real_child(repository, monkeypatch, status):
     # A tiny real child implements only the CLI arguments the recorder passes.
@@ -304,7 +325,7 @@ def test_links_records_specific_issues_and_separates_source_hashes(repository, m
 
 
 @pytest.mark.parametrize('suffix', ['.md', '.MD'])
-def test_links_success_metadata_and_desktop_scope(repository, monkeypatch, suffix):
+def test_links_success_metadata_and_desktop_scope(repository, monkeypatch, suffix, case_sensitive_markdown_globs):
     desktop = repository / 'artifacts/desktop'
     (desktop / 'MedAgent_AI_多Agent项目').mkdir(parents=True)
     for name in ('MedAgent_项目理解指南.md', 'MedAgent_AI_多Agent项目话术.md',
