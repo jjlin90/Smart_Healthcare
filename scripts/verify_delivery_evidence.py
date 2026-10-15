@@ -277,6 +277,11 @@ def verify_desktop_documents(evidence_dir: Path, receipt_entries: list[dict]) ->
 
 
 def summarize(evidence_dir: Path) -> dict:
+    """Validate a legacy bundle against its recorded inputs and current targets.
+
+    Having every file is necessary but not sufficient: later target changes
+    invalidate the receipt. A rejection leaves all historical evidence intact.
+    """
     counts = parse_preflight_logs(read_log(evidence_dir / 'preflight.log'), read_log(evidence_dir / 'quick.log'))
     read_json = lambda name: json.loads((evidence_dir / name).read_text(encoding='utf-8-sig'))
     links = read_json('document_links.json')
@@ -426,7 +431,7 @@ def verify_current_delivery(pointer_path: Path) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument('--evidence-dir', type=Path, help='legacy bundle requiring: ' + ', '.join(EVIDENCE_FILES) + '; the link basis describes only its stored link count; use --delivery-pointer for current documents')
+    mode.add_argument('--evidence-dir', type=Path, help='legacy bundle requiring: ' + ', '.join(EVIDENCE_FILES) + '; complete files do not guarantee success: current target hashes and repository projections must still match; the link count is historical; use --delivery-pointer for current documents')
     mode.add_argument('--delivery-pointer', type=Path, help='current MedAgent document delivery pointer')
     mode.add_argument('--repository-documents', action='store_true', help='portable book/coverage/link gate; no private desktop evidence')
     parser.add_argument('--output', type=Path, help='Create a new JSON summary; existing files are never overwritten')

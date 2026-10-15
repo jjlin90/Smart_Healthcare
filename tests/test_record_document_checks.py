@@ -93,6 +93,8 @@ def test_recorded_tests_use_and_clean_system_temp_with_real_child(repository, mo
     # It exercises allocation, cleanup and evidence publication independently
     # from the outer pytest runner and without a nested full suite.
     monkeypatch.setenv('PYTHONDONTWRITEBYTECODE', '1')
+    uppercase_source = repository/'scripts/worker.PY'
+    uppercase_source.write_text('value = 1\n', encoding='utf-8')
     (repository / 'pytest.py').write_text(
         "from pathlib import Path\nimport sys\n"
         "base=Path(sys.argv[sys.argv.index('--basetemp')+1])\n"
@@ -116,7 +118,11 @@ def test_recorded_tests_use_and_clean_system_temp_with_real_child(repository, mo
     pointer = repository / 'artifacts/medagent_upgrade_20261013/latest_engineering_test_run.json'
     assert pointer.is_file() == (status == 0)
     if status == 0:
+        pointer_data = json.loads(pointer.read_text(encoding='utf-8'))
+        assert pointer_data['code_sha256'][str(uppercase_source.resolve())] == hashlib.sha256(uppercase_source.read_bytes()).hexdigest()
         assert recorder.latest_test_validation()['test_counts']['passed'] == 1
+        uppercase_source.write_text('value = 2\n', encoding='utf-8')
+        assert recorder.latest_test_validation() is None
 
 
 @pytest.mark.parametrize('exception', [OSError, KeyboardInterrupt])

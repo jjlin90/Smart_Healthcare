@@ -103,33 +103,35 @@ def test_git_scanner_checks_staged_content_independently(monkeypatch):
     "[sys.executable, '-m', 'backend.worker']",
     "[sys.executable, '-m', 'uvicorn', 'backend.worker:app']",
 ])
-def test_preflight_checks_literal_module_launches(tmp_path, monkeypatch, command):
+@pytest.mark.parametrize("suffix", [".py", ".PY"])
+def test_preflight_checks_literal_module_launches(tmp_path, monkeypatch, command, suffix):
     from scripts import preflight_git as scanner
     monkeypatch.setattr(scanner, "ROOT", tmp_path)
     (tmp_path / "backend").mkdir()
     worker = tmp_path / "backend/worker.py"
     worker.write_text("app = None\n")
-    launcher = tmp_path / "launch.py"
+    launcher = tmp_path / ("launch" + suffix)
     launcher.write_text("import sys\ncommand = " + command)
     report = scanner.Report()
     scanner.check_local_imports_tracked(report, [launcher], [launcher])
-    assert any("launch.py -> backend/worker.py" in error for error in report.errors)
+    assert any(f"{launcher.name} -> backend/worker.py" in error for error in report.errors)
     fixed = scanner.Report()
     scanner.check_local_imports_tracked(fixed, [launcher, worker], [launcher, worker])
     assert not fixed.errors
 
 
-def test_preflight_scans_untracked_importers(tmp_path, monkeypatch):
+@pytest.mark.parametrize("suffix", [".py", ".PY"])
+def test_preflight_scans_untracked_importers(tmp_path, monkeypatch, suffix):
     from scripts import preflight_git as scanner
     monkeypatch.setattr(scanner, "ROOT", tmp_path)
     (tmp_path / "backend").mkdir()
     worker = tmp_path / "backend/worker.py"
     worker.write_text("app = None\n")
-    test = tmp_path / "test_worker.py"
+    test = tmp_path / ("test_worker" + suffix)
     test.write_text("from backend import worker\n")
     report = scanner.Report()
     scanner.check_local_imports_tracked(report, [], [test, worker])
-    assert any("test_worker.py -> backend/worker.py" in error for error in report.errors)
+    assert any(f"{test.name} -> backend/worker.py" in error for error in report.errors)
     assert any("未跟踪 Python 文件" in error for error in report.errors)
 
 

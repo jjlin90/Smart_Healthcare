@@ -427,7 +427,7 @@ def test_current_delivery_checks_test_claims_in_optional_guide(current_delivery)
 
 
 def test_summary_checks_source_target_and_repository_content(evidence):
-    directory, _, _, _ = evidence
+    directory, _, _, entries = evidence
     result = verifier.summarize(directory)
     assert result['pytest_passed'] == 37
     assert result['document_files_checked'] == 7
@@ -436,6 +436,15 @@ def test_summary_checks_source_target_and_repository_content(evidence):
     assert result['desktop_manifest_targets_matched'] == 2
     assert result['repository_desktop_documents_matched'] == 2
     assert 'desktop_manifest.json' in result['files']
+    frozen_bundle = {directory/name:(directory/name).read_bytes() for name in verifier.EVIDENCE_FILES}
+    target = Path(entries[0]['target'])
+    original = target.read_bytes()
+    target.write_bytes(b'changed after historical receipt')
+    with pytest.raises(ValueError, match='receipt: current target hash differs'):
+        verifier.summarize(directory)
+    assert all(path.read_bytes() == data for path,data in frozen_bundle.items())
+    target.write_bytes(original)
+    assert verifier.summarize(directory)['desktop_targets_matched'] == 2
 
 
 @pytest.mark.parametrize('change', [

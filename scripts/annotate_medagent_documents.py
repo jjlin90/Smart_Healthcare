@@ -104,7 +104,8 @@ def refresh():
         '审计的 worktree_dirty 表示记录生成时的未提交改动，输入哈希识别实际检查内容。'
         '统计门禁核对约定统计段落的数值及完整性，接受无前导零的整数或标准三位分组的千分位格式；任意历史叙述仍需人工核对。'
         '当前 --delivery-pointer 会现场重算完整文档范围的链接；旧 --evidence-dir 的链接份数来自历史报告，不等于当前完整链接扫描。'
-        '旧入口须提供 preflight.log、quick.log、anchor_drift.json、document_links.json、latest_desktop_receipt.json 和 desktop_manifest.json 六份输入，不能把任意 artifacts 目录传入。')
+        '旧入口须提供 preflight.log、quick.log、anchor_drift.json、document_links.json、latest_desktop_receipt.json 和 desktop_manifest.json 六份输入，不能把任意 artifacts 目录传入。'
+        '文件齐全只是前提，目标当前字节及仓库投影仍须匹配；后来修改目标会使旧收据过期并返回失败，这不等于历史执行失败。旧证据保持原样，当前文档重新同步并另行核验。')
     text = (replace_paragraph(text, '英文译注刷新入口：', annotation_note)
             if '英文译注刷新入口：' in text else text.rstrip()+'\n\n'+annotation_note+'\n')
     validation = latest_test_validation()

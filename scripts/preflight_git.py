@@ -282,7 +282,7 @@ def check_local_imports_tracked(report: Report, tracked: list[Path], candidates:
     tracked_names = {path.relative_to(ROOT).as_posix() for path in tracked}
     missing: set[str] = set()
     for source in candidates if candidates is not None else tracked:
-        if source.suffix != ".py" or not source.is_file():
+        if source.suffix.lower() != ".py" or not source.is_file():
             continue
         source_name = source.relative_to(ROOT).as_posix()
         if source_name not in tracked_names and source.relative_to(ROOT).parts[0] in {"backend", "scripts", "tests", "migrations"}:
