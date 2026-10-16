@@ -22440,7 +22440,7 @@
   },
   "code_regression": {
     "scope": "code_and_dependencies",
-    "passed": 718,
+    "passed": 742,
     "code_sha256": {
       "backend/__init__.py": "62c4d37ccdd01ec2763800dc1a76b8c2a43ff7ec3b691a3e2307d98e788cc95c",
       "backend/a2a_context.py": "c1c99123b064607e39a77f2e50f45c5fd5ee9bb066b1dda58fca70c67b225188",
@@ -22492,7 +22492,7 @@
       "scripts/export_medagent_flowchart.py": "8f636790f206f7ea6d46b9b0e6ffa582f8458080da71fec91405b3b108983d50",
       "scripts/install_git_hooks.py": "e13c3a9f7b99e28b8bdc7ac580258d5fc964fcd25d327847ed70c00e49db45c6",
       "scripts/intent_metrics.py": "d1e2a549978f769f7a7414fd7eb0e52c04848c632faf87e3a072a893aeb3157f",
-      "scripts/medagent_terminology.py": "fb81917157cb5f320d656356c8500075badb26b10bc53a1b5bfbd7ccdbc1b8dd",
+      "scripts/medagent_terminology.py": "266fd1db252d6d73e967b6888fa573022f6d21c42c5de0aa964e863ab35496e8",
       "scripts/merge_medagent_interviews.py": "75314273cbca89fee722faf6f84eb709b7a908c41d67588b16daa2d45675834f",
       "scripts/preflight_git.py": "4d51782b0a81d4c9cf0bbcdfe37d068b548bba2ff4b3ecae29a966f1ff6b4da1",
       "scripts/record_document_checks.py": "85af70cda647b78d843e5c04c3dd1f80424c712efeacd0b78e2c9caa48ab2081",
@@ -22512,7 +22512,7 @@
       "tests/test_intent_dataset.py": "090a6c59935d342dd4d3220eb90ac906899f982bea7c0a807b7a32b405da431a",
       "tests/test_intent_fusion.py": "9ca0e9ccef0733ade7c36ca934d4672052627d6e48df46a75ce10d2391c33100",
       "tests/test_internal_access.py": "a3ca2f99032b1baa07806a4093e216d4d997ff5f9d53b4f8b313b5c7e0a7d421",
-      "tests/test_interview_examples.py": "b7572756f8789114b3a3f8e98edc6481961154d753c056a285b5c97f2ff2cb26",
+      "tests/test_interview_examples.py": "3f16bc1b13eeb9270d1f1dc34f5e0da02d98137e6324898230ace833f00d57f5",
       "tests/test_memory.py": "1d06c11657c4d4d7d9a640eae00dfbd3a57336748abda03847ed9eb9ff7174d2",
       "tests/test_migrations.py": "717fb3c4fc571369197765563c5316fbb9d7d7d8f2f9f8896971f67b338c6dec",
       "tests/test_monitoring.py": "2b7ee5525cf946ffa0ca8940afde7224445638dfa0ae17b00ae8aca1d9b9a860",

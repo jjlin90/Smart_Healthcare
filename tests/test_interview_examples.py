@@ -203,6 +203,50 @@ def test_filename_annotations_are_removed_but_professional_terms_remain():
     assert annotate_markdown(result) == result
 
 
+@pytest.mark.parametrize('uri', [
+    'mysql+aiomysql://',
+    'MYSQL+AIOMYSQL://user:fixture@localhost/db?charset=utf8mb4',
+    'postgresql+asyncpg://user:fixture@localhost/db',
+    'sqlite+aiosqlite:///./medagent.db',
+    'redis://localhost:6379/0',
+    'mongodb://localhost/fixture',
+    'https://example.invalid/mysql/task_id',
+    'custom+driver://localhost/Redis',
+])
+@pytest.mark.parametrize('inline', [False, True])
+def test_uri_literals_are_preserved_without_database_glosses(uri, inline):
+    from scripts.medagent_terminology import annotate_markdown
+    literal = f'`{uri}`' if inline else uri
+    source = f'连接地址：{literal}；仍解释 MySQL 和 `task_id`。'
+    expected = f'连接地址：{literal}；仍解释 MySQL(关系型数据库) 和 `task_id`(任务标识)。'
+    assert annotate_markdown(source) == expected
+    assert annotate_markdown(expected) == expected
+
+
+@pytest.mark.parametrize('source,expected', [
+    ('`mysql+aiomysql://`(关系型数据库)', '`mysql+aiomysql://`'),
+    ('mysql+aiomysql://（关系型数据库）', 'mysql+aiomysql://'),
+    ('`redis://localhost/0`(内存键值数据库)', '`redis://localhost/0`'),
+    ('`sqlite+aiosqlite:///./data.db`(轻量关系型数据库)', '`sqlite+aiosqlite:///./data.db`'),
+    ('mysql(关系型数据库)+aiomysql://', 'mysql+aiomysql://'),
+    ('`mysql(关系型数据库)+aiomysql://`', '`mysql+aiomysql://`'),
+    ('`mysql+aiomysql://`（生产连接前缀）', '`mysql+aiomysql://`（生产连接前缀）'),
+])
+def test_uri_gloss_repair_preserves_literals_and_human_remarks(source, expected):
+    from scripts.medagent_terminology import annotate_markdown
+    assert annotate_markdown(source) == expected
+    assert annotate_markdown(expected) == expected
+
+
+def test_uri_annotation_keeps_markdown_targets_and_fenced_examples_exact():
+    from scripts.medagent_terminology import annotate_markdown
+    target = '[数据库](mysql+aiomysql://localhost/db)'
+    code = '```text\nmysql(关系型数据库)+aiomysql://\n```'
+    result = annotate_markdown(target+'\n\n'+code)
+    assert target in result and code in result
+    assert annotate_markdown(result) == result
+
+
 def test_template_text_line_is_not_a_table_column_and_repeated_cells_have_distinct_spans():
     from scripts.adapt_medagent_interviews import question_source_position
     question = '主 Agent 做什么？'

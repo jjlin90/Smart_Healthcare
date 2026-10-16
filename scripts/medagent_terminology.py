@@ -841,6 +841,21 @@ def _already_translated(tail):
 
 def annotate_text(text):
     """Annotate readable text, preserving paths and existing bilingual labels."""
+    protected = []
+    def stash(value):
+        protected.append(value)
+        return f'\ue000{len(protected)-1}\ue001'
+    def protect(match):
+        return stash(match[0])
+    # A URI denotes a location/connection, not the database named in its scheme.
+    # Repair only the old generated database glosses, preserving human remarks.
+    database_gloss = r'[（(](?:关系型数据库|轻量关系型数据库|内存键值数据库|文档数据库)[）)]'
+    text = re.sub(r'([A-Za-z][A-Za-z0-9+.-]*)' + database_gloss +
+                  r'(?=(?:\+[A-Za-z][A-Za-z0-9+.-]*)?://)', r'\1', text)
+    text = re.sub(r'(`[A-Za-z][A-Za-z0-9+.-]*://[^`\n]*`)(?:' + database_gloss + r')?',
+                  lambda match: stash(match[1]), text)
+    text = re.sub(r'''(?<![A-Za-z0-9_])([A-Za-z][A-Za-z0-9+.-]*://[^\s`<>"'()（）\[\]{}，；。]*)(?:''' +
+                  database_gloss + r')?', lambda match: stash(match[1]), text)
     text = text.replace('ReAct(前端组件框架)', 'ReAct(推理与行动交替)')
     # Extensions are parts of filenames, not technical terms to annotate per row.
     text = re.sub(r'(\.(?:md|txt|py|json|svg|png|html|pdf|yaml|yml|toml)`?)(?:[（(][^()（）\n]*[\u3400-\u9fff][^()（）\n]*[）)])', r'\1', text, flags=re.I)
@@ -858,12 +873,6 @@ def annotate_text(text):
         if not depth and re.search(r'[\u3400-\u9fff]', gloss):
             flat = re.sub(r'([A-Za-z][A-Za-z0-9_+\- ]*)[（(][^()（）]*[\u3400-\u9fff][^()（）]*[）)]', r'\1', gloss)
             text = text[:start + 1] + flat + text[end - 1:]
-    protected = []
-    def stash(value):
-        protected.append(value)
-        return f'\ue000{len(protected)-1}\ue001'
-    def protect(match):
-        return stash(match[0])
     # An existing bilingual label is one unit, including English in its gloss.
     text = re.sub(r'(?:`[^`\n]+`|[A-Za-z][A-Za-z0-9_ +\-]*?)[（(][^()（）\n]*[\u3400-\u9fff][^()（）\n]*[）)]', protect, text)
     # Filenames, paths, URLs, anchors and versioned model names are exact references.
