@@ -70,6 +70,8 @@ python scripts/preflight_git.py
 
 当前数据库支持范围：本地默认及测试使用 SQLite；生产配置校验仅接受 `mysql+aiomysql://`，Docker Compose 清单包含 MySQL 8.4 服务，运行依赖声明 aiomysql；K8s 的 Secret 仅保留 DATABASE_URL 占位值，需要部署方注入有效的 MySQL DSN，清单本身没有提供可用数据库连接。PostgreSQL 与 MongoDB 尚未接入，不能与 MySQL 并列描述为本项目可直接选择的生产后端。若新增 PostgreSQL，需同步调整生产校验、驱动依赖与数据库迁移，并在目标数据库验证事务、并发及部署行为。数据库升级应先在目标 MySQL 版本的备份副本演练，再由发布流程执行；SQLite 迁移测试、配置校验通过或驱动已声明，均不代替目标 MySQL 的数据及锁行为验证，也不表示已经完成生产部署。
 
+DSN 是数据库连接串，用来说明连接目标及使用的数据库方言、驱动。`mysql+aiomysql://` 表示 MySQL 配合异步驱动 aiomysql 的连接前缀，本身不是完整可用的连接地址；还要按目标环境配置主机、库名及认证信息。K8s 中的 `DATABASE_URL: REPLACE_ME` 是待部署方替换的占位值，不能直接用来启动生产服务。填入连接串后，仍需做配置校验和真实连通性验证。
+
 `constraints.txt` 固定已测试的直接依赖，不是完整传递依赖哈希锁。LangChain MCP 适配器仍标记为测试阶段，当前 WSGI 桥接还有弃用提示；已用本地协议测试覆盖，但升级 Starlette、FastMCP、LangChain 或 python-a2a 前必须重新做兼容验证。供应链扫描、镜像摘要和完整软件物料清单仍需目标构建流程提供。
 
 ## Git 历史
