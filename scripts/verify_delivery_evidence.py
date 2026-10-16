@@ -15,6 +15,7 @@ from urllib.parse import unquote
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from scripts.record_document_checks import latest_test_validation, check_links, is_code_dependency
+from scripts.preflight_git import _markdown_without_fences
 from scripts.merge_medagent_interviews import question_sections, reading_summary
 EVIDENCE_FILES = (
     'preflight.log', 'quick.log', 'anchor_drift.json',
@@ -25,7 +26,9 @@ DESKTOP_DOCUMENTS = ('MedAgent_AI_多Agent项目话术.md', 'MedAgent_项目理�
                      'MedAgent_文档对照与工程改进_2026-10-13.md')
 REGRESSION_DOCUMENTS = ('README.md', 'docs/MedAgent_项目理解指南.md',
                         'docs/MedAgent_文档对照与工程改进_2026-10-13.md')
-REGRESSION_CLAIM = r'(?:本轮|最新|仓库记录的)代码与依赖回归\s+([1-9][0-9]*)\s+项通过'
+REGRESSION_CLAIM = (r'(?:本轮|最新|仓库记录的)代码与依赖回归\s+([1-9][0-9]*)\s+项通过'
+                    r'(?=[^\S\n]*(?:[。；，、;,.!！)）]|\n|$))')
+REGRESSION_MARKER = r'(?:本轮|最新|仓库记录的)代码与依赖回归'
 
 
 def question_book_path() -> Path:
@@ -122,18 +125,39 @@ def verified_code_regression(coverage: dict, root: Path) -> dict:
     return record
 
 
+def document_regression_fields(text: str) -> tuple[list[int], int]:
+    """Read prose declarations at any sentence position; quoted/code text is a reference."""
+    def masked(value):
+        # A non-whitespace sentinel prevents tokens joining across a reference.
+        return re.sub(r'[^\n]', '\x00', value)
+
+    original = text.splitlines(keepends=True)
+    visible = _markdown_without_fences(text).splitlines(keepends=True)
+    prose = ''.join(line if i < len(visible) and line == visible[i] else masked(line)
+                    for i,line in enumerate(original))
+    mask = lambda match: masked(match[0])
+    prose = re.sub(r'<!--.*?-->', mask, prose, flags=re.S)
+    prose = re.sub(r'^[ \t]*>.*$|^(?: {4}|\t).+$', mask, prose, flags=re.M)
+    prose = re.sub(r'(?<![\\`])(`+)(?!`)[\s\S]*?(?<!`)\1(?!`)', mask, prose)
+    prose = re.sub(r'''"(?:\\.|[^"\\\n])*"|'(?:\\.|[^'\\\n])*'|“[^”]*”|‘[^’]*’|「[^」]*」|『[^』]*』''', mask, prose)
+    markers = list(re.finditer(REGRESSION_MARKER, prose))
+    values = []
+    for marker in markers:
+        claim = re.match(REGRESSION_CLAIM, prose[marker.start():])
+        if claim:
+            values.append(int(claim[1]))
+    return values, len(markers)
+
+
 def verify_document_test_claims(paths: list[Path], passed: int) -> None:
-    """Require one current claim per primary document and verify every other claim."""
-    documents = {path.resolve(): path.read_text(encoding='utf-8-sig') for path in paths}
+    """Require one prose declaration per primary document and reject every malformed marker."""
+    documents = {path.resolve(): document_regression_fields(path.read_text(encoding='utf-8-sig')) for path in paths}
     for relative in REGRESSION_DOCUMENTS:
         path = (ROOT/relative).resolve()
-        require(path in documents and len(re.findall(REGRESSION_CLAIM, documents[path])) == 1,
+        require(path in documents and len(documents[path][0]) == 1,
                 'delivery: required current document test claim missing or duplicated')
-    for text in documents.values():
-        claims = re.findall(REGRESSION_CLAIM, text)
-        # Reject malformed/empty claims, rather than letting a numeric regex skip them.
-        markers = re.findall(r'^(?:本轮|最新|仓库记录的)代码与依赖回归', text, re.M)
-        require(len(claims) >= len(markers) and all(int(n) == passed for n in claims),
+    for claims, markers in documents.values():
+        require(len(claims) == markers and all(n == passed for n in claims),
                 'delivery: current document test claim differs')
 
 

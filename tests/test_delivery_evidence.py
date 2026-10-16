@@ -779,3 +779,83 @@ def test_full_preflight_checks_actual_test_count_before_reporting_success(monkey
     assert bool(report.errors) is (state != 'matched')
     assert any('--executed-tests' in call for call in calls) is (state != 'missing_summary')
     assert any(line.startswith('pytest 通过') for line in report.passed) is (state == 'matched')
+
+
+@pytest.mark.parametrize('bad', [
+    '备注：本轮代码与依赖回归 项通过。',
+    '已核对；最新代码与依赖回归 0 项通过。',
+    '补充（仓库记录的代码与依赖回归 05 项通过）。',
+    '**统计：**本轮代码与依赖回归 -5 项通过。',
+    '说明：本轮代码与依赖回归 五 项通过。',
+    '- 本轮代码与依赖回归 6 项通过。',
+    '统计结果：本轮代码与依赖回归 5 项未通过。',
+    '备注：本轮代码与依赖回归 5 项待核验。',
+    '备注：本轮代码与依赖回归 `999` 5 项通过。',
+    '备注：本轮代码与依赖回归 “999” 5 项通过。',
+    '备注：本轮代码与依赖回归 <!--999--> 5 项通过。',
+    '本轮代码与依赖回归\n```text\n999\n```\n5 项通过。',
+    '本轮代码与依赖回归\n> 999\n5 项通过。',
+    '本轮代码与依赖回归\n    999\n5 项通过。',
+    '备注：本轮代码与依赖回归 5 项通过不了。',
+    '备注：本轮代码与依赖回归 5 项通过吗？',
+    '备注：本轮代码与依赖回归 5 项通过？',
+])
+def test_prefixed_and_appended_regression_fields_cannot_escape_validation(regression_repository,bad):
+    _,paths,_ = regression_repository
+    original = {p:p.read_text(encoding='utf-8') for p in paths}
+    verifier.verify_document_test_claims(paths,5)
+    for target in paths:
+        for text in (bad, original[target]+bad, original[target].strip()+'；'+bad):
+            for path,body in original.items():
+                path.write_text(body,encoding='utf-8')
+            target.write_text(text,encoding='utf-8')
+            with pytest.raises(ValueError,match='current document test claim'):
+                verifier.verify_document_test_claims(paths,5)
+    for path,body in original.items():
+        path.write_text(body,encoding='utf-8')
+    extra = verifier.ROOT/'optional.md'
+    extra.write_text(bad,encoding='utf-8')
+    with pytest.raises(ValueError,match='current document test claim differs'):
+        verifier.verify_document_test_claims([*paths,extra],5)
+
+
+@pytest.mark.parametrize('declaration', [
+    '备注：本轮代码与依赖回归 5 项通过。',
+    '- 最新代码与依赖回归 5 项通过。',
+    '**已核对：**仓库记录的代码与依赖回归 5 项通过。',
+    '先说明范围。当前结论：本轮代码与依赖回归 5 项通过。',
+])
+def test_valid_regression_fields_allow_prose_prefixes(regression_repository,declaration):
+    _,paths,_ = regression_repository
+    for path in paths:
+        path.write_text(declaration,encoding='utf-8')
+    verifier.verify_document_test_claims(paths,5)
+
+
+@pytest.mark.parametrize('reference', [
+    '说明：`本轮代码与依赖回归 项通过` 是模板。',
+    '模板：``最新代码与依赖回归 `值` 项通过``。',
+    '```text\n本轮代码与依赖回归 项通过\n```\n',
+    '   ~~~text\n最新代码与依赖回归 999 项通过\n   ~~~\n',
+    '> 本轮代码与依赖回归 项通过\n',
+    '字段名：“本轮代码与依赖回归 项通过”。',
+    '字段名：‘最新代码与依赖回归 999 项通过’。',
+    '引用："本轮代码与依赖回归 项通过"。',
+    "引用：'最新代码与依赖回归 999 项通过'。",
+    '字段名：「仓库记录的代码与依赖回归 项通过」。',
+    '字段名：『本轮代码与依赖回归 999 项通过』。',
+    '<!-- 模板：本轮代码与依赖回归 项通过 -->',
+    '    本轮代码与依赖回归 999 项通过\n',
+])
+def test_references_are_not_current_regression_declarations(regression_repository,reference):
+    _,paths,_ = regression_repository
+    original = {p:p.read_text(encoding='utf-8') for p in paths}
+    for target in paths:
+        for path,body in original.items():
+            path.write_text(body,encoding='utf-8')
+        target.write_text(original[target]+'\n'+reference,encoding='utf-8')
+        verifier.verify_document_test_claims(paths,5)
+        # Quoting a field cannot replace the required operational declaration.
+        target.write_text(reference,encoding='utf-8')
+        with pytest.raises(ValueError,match='required current document test claim'):
+            verifier.verify_document_test_claims(paths,5)
