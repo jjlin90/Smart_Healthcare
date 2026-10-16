@@ -145,6 +145,16 @@ def test_regression_evidence_never_invents_a_historical_count_without_validation
     assert '本轮代码与依赖回归 10 项通过' in local and 'new-run' in local
 
 
+@pytest.mark.parametrize('local,preserved', [(False,False),(False,True),(True,False)])
+def test_regression_record_location_does_not_advertise_missing_private_logs(local, preserved):
+    from scripts.annotate_medagent_documents import regression_record_location
+    result = regression_record_location({'run_id':'local'} if local else None, {'passed':9} if preserved else None)
+    assert ('latest_engineering_test_run.json' in result) == local
+    assert ('coverage.json' in result) == preserved
+    if preserved:
+        assert '不能据此确认一次新的执行' in result
+
+
 @pytest.mark.parametrize('extra_chapter', [None, '02-新增.md', '02-新增.MD', '专题/02-新增.MD'])
 def test_refresh_corrects_legacy_delivery_scope_and_remains_idempotent(tmp_path, monkeypatch, extra_chapter, case_sensitive_markdown_globs):
     import json

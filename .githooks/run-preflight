@@ -19,4 +19,4 @@ else
         exit 1
     fi
 fi
-exec "$interpreter" scripts/preflight_git.py "$@"
+exec "$interpreter" scripts/record_document_checks.py --kind preflight "$@"

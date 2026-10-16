@@ -99,6 +99,11 @@ def latest_test_validation() -> dict | None:
         data = json.loads(pointer.read_text(encoding='utf-8'))
         report = Path(data['report'])
         xml = Path(data['junit_report'])
+        evidence_root = (ROOT / 'artifacts').resolve()
+        if (not report.is_absolute() or not xml.is_absolute()
+                or not report.resolve().is_relative_to(evidence_root)
+                or not xml.resolve().is_relative_to(evidence_root)):
+            return None
         paths = candidates()
         current_inputs = hashes(paths)
         current_code = {str(p.resolve()): current_inputs[str(p.resolve())] for p in paths
@@ -210,7 +215,8 @@ def record_git_observation(output: Path) -> int:
 
 
 def record(kind: str, output: Path, desktop: Path | None = None,
-           extra_documents: list[Path] | None = None) -> int:
+           extra_documents: list[Path] | None = None, *, quick: bool = False,
+           delivery_pointer: Path | None = None) -> int:
     output = checked_output_path(output)
     # Reserve the filename before executing; existing evidence is never overwritten.
     with output.open('x', encoding='utf-8', newline='\n') as stream, ExitStack() as cleanup:
@@ -223,11 +229,19 @@ def record(kind: str, output: Path, desktop: Path | None = None,
         try:
             head = git('rev-parse', 'HEAD')
             worktree_status = git('status', '--porcelain')
-            paths = candidates() if kind in ('quick', 'tests') else documents(desktop, extra_documents)
+            paths = candidates() if kind in ('quick', 'tests', 'preflight') else documents(desktop, extra_documents)
             before = hashes(paths)
             sources = [Path(__file__).resolve(), ROOT / 'scripts/preflight_git.py']
+            if kind == 'preflight':
+                sources += [ROOT / '.githooks/run-preflight', ROOT / '.githooks/pre-commit', ROOT / '.githooks/pre-push']
             source_before = hashes(sources)
             command = [sys.executable, str(ROOT / 'scripts/preflight_git.py'), '--quick']
+            if kind == 'preflight':
+                command = [sys.executable, str(ROOT / 'scripts/preflight_git.py')]
+                if quick:
+                    command.append('--quick')
+                if delivery_pointer is not None:
+                    command += ['--delivery-pointer', str(delivery_pointer)]
             if kind == 'tests':
                 junit = output.with_suffix('.junit.xml')
                 with junit.open('x', encoding='utf-8'):
@@ -241,7 +255,7 @@ def record(kind: str, output: Path, desktop: Path | None = None,
                 command = [sys.executable, '-m', 'pytest', '-p', 'pytest_asyncio.plugin', '-p', 'anyio.pytest_plugin',
                            '-p', 'no:cacheprovider', '--basetemp', str(temporary_root / 'pytest'),
                            '--junitxml', str(junit), '-q']
-            if kind in ('quick', 'tests'):
+            if kind in ('quick', 'tests', 'preflight'):
                 failure_stage = 'execution'
                 result = subprocess.run(command, cwd=ROOT, stdout=subprocess.PIPE,
                                         stderr=subprocess.STDOUT, encoding='utf-8',
@@ -266,7 +280,7 @@ def record(kind: str, output: Path, desktop: Path | None = None,
             failure_stage = 'cleanup'
             cleanup.close()
             failure_stage = 'input_validation'
-            after_paths = candidates() if kind in ('quick', 'tests') else documents(desktop, extra_documents)
+            after_paths = candidates() if kind in ('quick', 'tests', 'preflight') else documents(desktop, extra_documents)
             head_after = git('rev-parse', 'HEAD')
             stable = (before == hashes(after_paths) and head == head_after
                       and source_before == hashes(sources))
@@ -280,6 +294,11 @@ def record(kind: str, output: Path, desktop: Path | None = None,
                         'command': command, 'recorder_command': [sys.executable, *sys.argv], 'exit_code': code, 'inputs_unchanged': stable,
                         'input_sha256': before, 'checker_source_sha256': source_before}
             metadata['elapsed_seconds'] = round(time.monotonic() - timer, 3)
+            if kind == 'preflight':
+                metadata.update(preflight_mode='quick' if quick else 'full',
+                                passed_checks=len(re.findall(r'^\[PASS\]', text, re.M)),
+                                failed_checks=len(re.findall(r'^\[FAIL\]', text, re.M)),
+                                warning_checks=len(re.findall(r'^\[WARN\]', text, re.M)))
             if kind == 'tests':
                 metadata.update(test_counts=counts, junit_report=str(junit), junit_sha256=hashes([junit])[str(junit.resolve())])
                 metadata.update(pytest_temporary_root=str(temporary_root),
@@ -338,6 +357,8 @@ def record(kind: str, output: Path, desktop: Path | None = None,
             'code_sha256': {path: digest for path, digest in before.items()
                 if is_code_dependency(Path(path))}
             }, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+    if kind == 'preflight':
+        print(text, end='' if text.endswith('\n') else '\n')
     print(json.dumps({'output': str(output), 'exit_code': code, 'run_id': metadata['run_id'],
                       'inputs_unchanged': stable}, ensure_ascii=False))
     return code
@@ -421,14 +442,23 @@ def record_desktop_snapshot(output: Path, receipt_path: Path, manifest_path: Pat
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--kind', choices=('quick', 'links', 'tests', 'desktop-snapshot', 'git-observation'), required=True)
-    parser.add_argument('--output', type=Path, required=True, help='new file, or new directory for desktop-snapshot, under ignored artifacts/')
+    parser.add_argument('--kind', choices=('quick', 'links', 'tests', 'preflight', 'desktop-snapshot', 'git-observation'), required=True)
+    parser.add_argument('--output', type=Path, help='new ignored artifacts path; preflight defaults to a unique artifacts/git-preflight/*.log')
+    parser.add_argument('--quick', action='store_true', help='preflight: skip pytest and pip check')
+    parser.add_argument('--delivery-pointer', type=Path, help='preflight: forward an explicit local delivery pointer')
     parser.add_argument('--desktop', type=Path, help='optional desktop directory for links mode')
     parser.add_argument('--extra-document', type=Path, action='append', default=[],
                         help='additional Markdown file explicitly included in links mode; repeatable')
     parser.add_argument('--receipt', type=Path, help='existing target receipt for desktop-snapshot')
     parser.add_argument('--manifest', type=Path, help='existing declared subset for desktop-snapshot')
     args = parser.parse_args()
+    if (args.quick or args.delivery_pointer is not None) and args.kind != 'preflight':
+        parser.error('--quick/--delivery-pointer require --kind preflight')
+    if args.output is None:
+        if args.kind != 'preflight':
+            parser.error('--output is required except for --kind preflight')
+        stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S.%fZ')
+        args.output = ROOT / 'artifacts/git-preflight' / f'{stamp}-{uuid.uuid4().hex}.log'
     if args.desktop is not None and args.kind != 'links':
         parser.error('--desktop requires --kind links')
     if args.extra_document and args.kind != 'links':
@@ -438,6 +468,12 @@ def main() -> int:
     if args.kind != 'desktop-snapshot' and (args.receipt is not None or args.manifest is not None):
         parser.error('--receipt/--manifest require --kind desktop-snapshot')
     try:
+        if args.kind == 'preflight':
+            output = checked_output_path(args.output)
+            if output.suffix != '.log':
+                raise ValueError('preflight output must be a new .log file')
+            output.parent.mkdir(parents=True, exist_ok=True)
+            return record('preflight', output, quick=args.quick, delivery_pointer=args.delivery_pointer)
         if args.kind == 'git-observation':
             return record_git_observation(args.output)
         if args.kind == 'desktop-snapshot':

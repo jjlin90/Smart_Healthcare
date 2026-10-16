@@ -297,6 +297,71 @@ def test_quick_records_real_child_status_and_input_hashes(repository, monkeypatc
     assert '[PASS] fixture check' in output.read_text(encoding='utf-8')
 
 
+@pytest.mark.parametrize('quick', [False, True])
+@pytest.mark.parametrize('status', [0, 7])
+def test_preflight_cli_appends_unique_records_and_preserves_child_result(repository, monkeypatch, quick, status, capsys):
+    tool = repository/'scripts/preflight_git.py'
+    tool.write_text(f"print('[PASS] fixture check');print('[WARN] fixture warning')\nraise SystemExit({status})\n",encoding='utf-8')
+    for _ in range(2):
+        monkeypatch.setattr(sys,'argv',['record_document_checks.py','--kind','preflight']+(['--quick'] if quick else []))
+        assert recorder.main() == status
+    logs = list((repository/'artifacts/git-preflight').glob('*.log'))
+    assert len(logs) == 2
+    rows = [metadata(path) for path in logs]
+    assert rows[0]['run_id'] != rows[1]['run_id']
+    for row in rows:
+        assert row['kind'] == 'preflight' and row['exit_code'] == status
+        assert row['preflight_mode'] == ('quick' if quick else 'full')
+        assert ('--quick' in row['command']) == quick
+        assert row['passed_checks'] == 1 and row['warning_checks'] == 1
+        assert row['inputs_unchanged'] and row['checker_source_sha256']
+        assert row['started_at_utc'] <= row['finished_at_utc']
+    assert '[PASS] fixture check' in capsys.readouterr().out
+    assert not (repository/'artifacts/medagent_upgrade_20261013/latest_engineering_test_run.json').exists()
+
+
+def test_preflight_explicit_output_is_never_overwritten(repository, monkeypatch):
+    output = repository/'artifacts/hook.log'
+    output.write_bytes(b'old execution record')
+    monkeypatch.setattr(sys,'argv',['record_document_checks.py','--kind','preflight','--output',str(output),'--quick'])
+    assert recorder.main() == 1
+    assert output.read_bytes() == b'old execution record'
+
+
+def test_preflight_record_forwards_delivery_pointer(repository, monkeypatch):
+    pointer = repository/'artifacts/missing.json'
+    output = repository/'artifacts/preflight.log'
+    monkeypatch.setattr(sys,'argv',['record_document_checks.py','--kind','preflight','--quick',
+                                  '--delivery-pointer',str(pointer),'--output',str(output)])
+    assert recorder.main() == 0
+    assert metadata(output)['command'][-2:] == ['--delivery-pointer',str(pointer)]
+
+
+@pytest.mark.parametrize('external', ['report','junit_report','both'])
+def test_latest_test_validation_rejects_records_outside_current_repository(repository, external):
+    directory = repository/'artifacts/medagent_upgrade_20261013'
+    directory.mkdir()
+    report,junit = directory/'run.log',directory/'run.xml'
+    report.write_text('fixture run',encoding='utf-8')
+    junit.write_text('<testsuites><testsuite><testcase/></testsuite></testsuites>',encoding='utf-8')
+    data = {'kind':'tests','exit_code':0,'inputs_unchanged':True,'test_counts':recorder.test_counts(junit),
+            'report':str(report),'report_sha256':hashlib.sha256(report.read_bytes()).hexdigest(),
+            'junit_report':str(junit),'junit_sha256':hashlib.sha256(junit.read_bytes()).hexdigest(),
+            'input_sha256':recorder.hashes(recorder.candidates()),
+            'code_sha256':recorder.hashes([repository/'scripts/preflight_git.py'])}
+    pointer = directory/'latest_engineering_test_run.json'
+    pointer.write_text(json.dumps(data),encoding='utf-8')
+    assert recorder.latest_test_validation()
+    for key in ('report','junit_report'):
+        if external in (key,'both'):
+            original = Path(data[key])
+            target = repository.parent/(repository.name+'-external-'+original.name)
+            target.write_bytes(original.read_bytes())
+            data[key] = str(target)
+    pointer.write_text(json.dumps(data),encoding='utf-8')
+    assert recorder.latest_test_validation() is None
+
+
 @pytest.mark.parametrize('change', ['document', 'new_candidate', 'checker', 'head'])
 def test_quick_rejects_input_or_head_changes_even_when_child_succeeds(repository, monkeypatch, change):
     actions = {

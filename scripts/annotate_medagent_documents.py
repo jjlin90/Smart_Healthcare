@@ -43,6 +43,14 @@ def regression_evidence(validation, preserved=None):
     return "本轮代码回归尚无与当前代码匹配的成功记录；须重新运行测试后再生成成功声明。"
 
 
+def regression_record_location(validation, preserved=None):
+    if validation:
+        return "本机测试命令、代码指纹及原始结果见 artifacts/medagent_upgrade_20261013/latest_engineering_test_run.json 指向的当前仓库记录。"
+    if preserved:
+        return "可分发的回归数及相对代码指纹见 docs/MedAgent_逐题适配/coverage.json 的 code_regression；本机原始测试日志未通过当前仓库归属及内容校验，不能据此确认一次新的执行。"
+    return "当前没有通过校验的回归记录；先在本仓库运行测试记录器，再重新生成说明。"
+
+
 def refresh():
     library = ROOT / 'docs/MedAgent_逐题适配'
     coverage = json.loads((library / 'coverage.json').read_text(encoding='utf-8'))
@@ -134,13 +142,13 @@ def refresh():
               "术语、工具名、参数名逐项说明，代码与路径不改写。文件格式集中说明：.md 是 Markdown 文档，.txt 是纯文本原件，.json 是结构化数据文件，.svg 是矢量图，.png 是位图。"
               "已去除文件后缀的重复译注。17 个独立段落示例从上一题分离为章节附录，问答和示例总量不变。"
               "刷新器按唯一段落标记更新，缺失或重复会报错；保留历史验证口径。原件读取不再重写，mtime 不能证明首次捕获时间。\n\n"
-              + evidence + "测试命令、代码指纹及原始结果见 artifacts/medagent_upgrade_20261013/latest_engineering_test_run.json 指向的记录。"
+              + evidence + regression_record_location(validation, preserved) +
               "静态检查和代码指纹识别 .PY，不代表 pytest 会执行这类文件。tests/ 内的 Python 文件（含辅助模块）须使用小写 .py 后缀；预检对 tests、Tests、TESTS 使用同一规则，真实 pytest 收集也会拒绝后缀大小写错误，改名后再运行。"
               "测试目录应使用配置中的 tests 拼写；目录名大小写的实际发现结果取决于文件系统，本次运行环境为 Windows，不能作为 Linux 实机验证。"
               "该记录的 validation_scope 为 code_and_dependencies，code_sha256 核对代码与依赖；input_sha256 保留测试启动时的整工作区快照，后续文档再生成可使它与当前不同。recorded_input_differences 列出变化，不能把代码回归有效解释为所有文档哈希仍匹配。"
               "覆盖清单另保存可随仓库分发的回归数及相对代码/依赖指纹；仓库入口和本机交付均检查三份说明稿的必填成功句，完整预检还用实际 pytest 数量复核。仓库记录不替代本机日志或远端 CI 结果。"
               f"该计数核验代码与依赖；生成后的当前文档另行核验 {coverage['question_count']:,} 处引用、{coverage['example_count']} 个示例内容和 {repository_docs + desktop_docs} 份本地链接，不能用代码回归代替文档核验。"
-              "当前文档独立核验入口为 artifacts/medagent_upgrade_20261013/latest_document_delivery.json，所指报告逐项保存当前文档哈希与覆盖清单哈希。"
+              "本机具备私有证据时，可使用 artifacts/medagent_upgrade_20261013/latest_document_delivery.json 指向的交付报告，核对当前文档哈希与覆盖清单哈希；干净克隆使用 --repository-documents 核验随仓库分发的内容。"
               "当前核验使用随仓库分发的 scripts/verify_delivery_evidence.py，传入 --delivery-pointer 和上述入口；该命令重算文档、原件、示例与桌面正文，并核对文档宣称的测试数。"
               "桌面写入与核验共用链接映射，默认同步清单已排除独立 RAG，不依赖 --medagent-only 才排除。"
               "本仓库本轮未修改独立 med_rag 项目的正文，其他会话对该项目或共享简历的更新不属于本轮交付状态。"
